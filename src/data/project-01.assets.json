@@ -1,0 +1,538 @@
+{
+  "projectId": "project-01",
+  "strategy": "preserve-scene",
+  "presentation": "framed-photo",
+  "focusMode": "none",
+  "palette": {
+    "base": "#161b18",
+    "text": "#edece3",
+    "muted": "#b1b9ad",
+    "accent": "#cbda8c",
+    "line": "#46514a"
+  },
+  "source": {
+    "path": "inputs/source/chengpintu.png",
+    "originalName": "chengpintu.png",
+    "origin": "用户提供：project/毕业设计-基于GNSS-R和无人机的土壤遥测系统/chengpintu.png",
+    "sha256": "203c45a07038f98061736d80e5082206e1a04b02bd43c39e7448e782c0937ec9",
+    "bytes": 11853478,
+    "format": "png",
+    "width": 4032,
+    "height": 2090,
+    "orientation": null,
+    "orientationNote": "未含 EXIF orientation；按现有像素方向",
+    "hasAlpha": true,
+    "hasExif": false,
+    "hasIcc": false,
+    "orientedWidth": 4032,
+    "orientedHeight": 2090
+  },
+  "supplementalSource": {
+    "path": "inputs/source/pcb3dtop.png",
+    "originalName": "pcb3dtop.png",
+    "origin": "用户提供的另一张板级视图；并非由实物照片生成",
+    "sha256": "8948c3d750f3e8d51e5416d372b32d0013377f437cbf44b3de165640ab02a7f1",
+    "bytes": 629846,
+    "format": "png",
+    "width": 2160,
+    "height": 999,
+    "orientation": null,
+    "orientationNote": "未含 EXIF orientation；按现有像素方向",
+    "hasAlpha": true,
+    "hasExif": false,
+    "hasIcc": false,
+    "orientedWidth": 2160,
+    "orientedHeight": 999
+  },
+  "poster": {
+    "src": "/media/project-01/poster-1920.webp",
+    "width": 1920,
+    "height": 995,
+    "bytes": 524648,
+    "sha256": "e122288751d884542fc36ac280119aa6819ae4b0c6f4aefbb9ccb124a1e2b618",
+    "format": "webp",
+    "source": "inputs/source/chengpintu.png",
+    "crop": {
+      "x": 0,
+      "y": 0,
+      "width": 1,
+      "height": 1,
+      "focus": {
+        "x": 0.54,
+        "y": 0.31
+      },
+      "pixels": {
+        "left": 0,
+        "top": 0,
+        "width": 4032,
+        "height": 2090
+      }
+    },
+    "focus": {
+      "x": 0.54,
+      "y": 0.31
+    },
+    "blurSigma": 0,
+    "srcset": "/media/project-01/poster-640.webp 640w, /media/project-01/poster-1280.webp 1280w, /media/project-01/poster-1920.webp 1920w",
+    "sources": [
+      {
+        "src": "/media/project-01/poster-640.webp",
+        "width": 640,
+        "height": 332,
+        "bytes": 71538,
+        "sha256": "f36c22c109871d2a07450d0e19da9774bd8c61f72fbba807e2649a807d9c0e7c",
+        "format": "webp",
+        "source": "inputs/source/chengpintu.png",
+        "crop": {
+          "x": 0,
+          "y": 0,
+          "width": 1,
+          "height": 1,
+          "focus": {
+            "x": 0.54,
+            "y": 0.31
+          },
+          "pixels": {
+            "left": 0,
+            "top": 0,
+            "width": 4032,
+            "height": 2090
+          }
+        },
+        "focus": {
+          "x": 0.54,
+          "y": 0.31
+        },
+        "blurSigma": 0
+      },
+      {
+        "src": "/media/project-01/poster-1280.webp",
+        "width": 1280,
+        "height": 663,
+        "bytes": 269450,
+        "sha256": "5269e1054f881c363f96440dc177466e8acde738c3fdb1232a40e60d63194b88",
+        "format": "webp",
+        "source": "inputs/source/chengpintu.png",
+        "crop": {
+          "x": 0,
+          "y": 0,
+          "width": 1,
+          "height": 1,
+          "focus": {
+            "x": 0.54,
+            "y": 0.31
+          },
+          "pixels": {
+            "left": 0,
+            "top": 0,
+            "width": 4032,
+            "height": 2090
+          }
+        },
+        "focus": {
+          "x": 0.54,
+          "y": 0.31
+        },
+        "blurSigma": 0
+      },
+      {
+        "src": "/media/project-01/poster-1920.webp",
+        "width": 1920,
+        "height": 995,
+        "bytes": 524648,
+        "sha256": "e122288751d884542fc36ac280119aa6819ae4b0c6f4aefbb9ccb124a1e2b618",
+        "format": "webp",
+        "source": "inputs/source/chengpintu.png",
+        "crop": {
+          "x": 0,
+          "y": 0,
+          "width": 1,
+          "height": 1,
+          "focus": {
+            "x": 0.54,
+            "y": 0.31
+          },
+          "pixels": {
+            "left": 0,
+            "top": 0,
+            "width": 4032,
+            "height": 2090
+          }
+        },
+        "focus": {
+          "x": 0.54,
+          "y": 0.31
+        },
+        "blurSigma": 0
+      }
+    ]
+  },
+  "texture": {
+    "src": "/media/project-01/texture-2560.webp",
+    "width": 2560,
+    "height": 1327,
+    "bytes": 796620,
+    "sha256": "300a8a4d6589ef6c06f06aabbf5c5a5a091e6654c97ba62234c0cb3579b9a29c",
+    "format": "webp",
+    "source": "inputs/source/chengpintu.png",
+    "crop": {
+      "x": 0,
+      "y": 0,
+      "width": 1,
+      "height": 1,
+      "focus": {
+        "x": 0.54,
+        "y": 0.31
+      },
+      "pixels": {
+        "left": 0,
+        "top": 0,
+        "width": 4032,
+        "height": 2090
+      }
+    },
+    "focus": {
+      "x": 0.54,
+      "y": 0.31
+    },
+    "blurSigma": 0
+  },
+  "mobile": {
+    "src": "/media/project-01/poster-1280.webp",
+    "width": 1280,
+    "height": 663,
+    "bytes": 269450,
+    "sha256": "5269e1054f881c363f96440dc177466e8acde738c3fdb1232a40e60d63194b88",
+    "format": "webp",
+    "source": "inputs/source/chengpintu.png",
+    "crop": {
+      "x": 0,
+      "y": 0,
+      "width": 1,
+      "height": 1,
+      "focus": {
+        "x": 0.54,
+        "y": 0.31
+      }
+    },
+    "focus": {
+      "x": 0.54,
+      "y": 0.31
+    },
+    "blurSigma": 0,
+    "srcset": "/media/project-01/poster-640.webp 640w, /media/project-01/poster-1280.webp 1280w",
+    "sources": [
+      {
+        "src": "/media/project-01/poster-640.webp",
+        "width": 640,
+        "height": 332,
+        "bytes": 71538,
+        "sha256": "f36c22c109871d2a07450d0e19da9774bd8c61f72fbba807e2649a807d9c0e7c",
+        "format": "webp",
+        "source": "inputs/source/chengpintu.png",
+        "crop": {
+          "x": 0,
+          "y": 0,
+          "width": 1,
+          "height": 1,
+          "focus": {
+            "x": 0.54,
+            "y": 0.31
+          },
+          "pixels": {
+            "left": 0,
+            "top": 0,
+            "width": 4032,
+            "height": 2090
+          }
+        },
+        "focus": {
+          "x": 0.54,
+          "y": 0.31
+        },
+        "blurSigma": 0
+      },
+      {
+        "src": "/media/project-01/poster-1280.webp",
+        "width": 1280,
+        "height": 663,
+        "bytes": 269450,
+        "sha256": "5269e1054f881c363f96440dc177466e8acde738c3fdb1232a40e60d63194b88",
+        "format": "webp",
+        "source": "inputs/source/chengpintu.png",
+        "crop": {
+          "x": 0,
+          "y": 0,
+          "width": 1,
+          "height": 1,
+          "focus": {
+            "x": 0.54,
+            "y": 0.31
+          },
+          "pixels": {
+            "left": 0,
+            "top": 0,
+            "width": 4032,
+            "height": 2090
+          }
+        },
+        "focus": {
+          "x": 0.54,
+          "y": 0.31
+        },
+        "blurSigma": 0
+      }
+    ],
+    "reuse": "poster"
+  },
+  "blur": {
+    "src": "/media/project-01/blur-1920.webp",
+    "width": 1920,
+    "height": 995,
+    "bytes": 89602,
+    "sha256": "df314bff8c7296f80f9fe216b56fc70ee4c427f817d3e95f6813a350b9fde702",
+    "format": "webp",
+    "source": "inputs/source/chengpintu.png",
+    "crop": {
+      "x": 0,
+      "y": 0,
+      "width": 1,
+      "height": 1,
+      "focus": {
+        "x": 0.54,
+        "y": 0.31
+      },
+      "pixels": {
+        "left": 0,
+        "top": 0,
+        "width": 4032,
+        "height": 2090
+      }
+    },
+    "focus": {
+      "x": 0.54,
+      "y": 0.31
+    },
+    "blurSigma": 4,
+    "srcset": "/media/project-01/blur-640.webp 640w, /media/project-01/blur-1280.webp 1280w, /media/project-01/blur-1920.webp 1920w",
+    "sources": [
+      {
+        "src": "/media/project-01/blur-640.webp",
+        "width": 640,
+        "height": 332,
+        "bytes": 26696,
+        "sha256": "1a4821a71b94ff99b2f9920d7d06c9670bceb1a3e4bbed7b78c778a2efb4ef44",
+        "format": "webp",
+        "source": "inputs/source/chengpintu.png",
+        "crop": {
+          "x": 0,
+          "y": 0,
+          "width": 1,
+          "height": 1,
+          "focus": {
+            "x": 0.54,
+            "y": 0.31
+          },
+          "pixels": {
+            "left": 0,
+            "top": 0,
+            "width": 4032,
+            "height": 2090
+          }
+        },
+        "focus": {
+          "x": 0.54,
+          "y": 0.31
+        },
+        "blurSigma": 1.3333333333333333
+      },
+      {
+        "src": "/media/project-01/blur-1280.webp",
+        "width": 1280,
+        "height": 663,
+        "bytes": 59142,
+        "sha256": "6a4b551d2816b7e36d5fceb10253b759a370bdff8cce825eabf1562c88729b3d",
+        "format": "webp",
+        "source": "inputs/source/chengpintu.png",
+        "crop": {
+          "x": 0,
+          "y": 0,
+          "width": 1,
+          "height": 1,
+          "focus": {
+            "x": 0.54,
+            "y": 0.31
+          },
+          "pixels": {
+            "left": 0,
+            "top": 0,
+            "width": 4032,
+            "height": 2090
+          }
+        },
+        "focus": {
+          "x": 0.54,
+          "y": 0.31
+        },
+        "blurSigma": 2.6666666666666665
+      },
+      {
+        "src": "/media/project-01/blur-1920.webp",
+        "width": 1920,
+        "height": 995,
+        "bytes": 89602,
+        "sha256": "df314bff8c7296f80f9fe216b56fc70ee4c427f817d3e95f6813a350b9fde702",
+        "format": "webp",
+        "source": "inputs/source/chengpintu.png",
+        "crop": {
+          "x": 0,
+          "y": 0,
+          "width": 1,
+          "height": 1,
+          "focus": {
+            "x": 0.54,
+            "y": 0.31
+          },
+          "pixels": {
+            "left": 0,
+            "top": 0,
+            "width": 4032,
+            "height": 2090
+          }
+        },
+        "focus": {
+          "x": 0.54,
+          "y": 0.31
+        },
+        "blurSigma": 4
+      }
+    ]
+  },
+  "detail": {
+    "src": "/media/project-01/detail-1600.webp",
+    "width": 1600,
+    "height": 553,
+    "bytes": 155620,
+    "sha256": "c2cec7003d1a62a382c04623a8030c8a2da733a1987a3f07ee4982c5559d75f9",
+    "format": "webp",
+    "source": "inputs/source/chengpintu.png",
+    "crop": {
+      "x": 0.23,
+      "y": 0.08,
+      "width": 0.6,
+      "height": 0.4,
+      "focus": {
+        "x": 0.52,
+        "y": 0.5
+      },
+      "pixels": {
+        "left": 927,
+        "top": 167,
+        "width": 2419,
+        "height": 836
+      }
+    },
+    "focus": {
+      "x": 0.52,
+      "y": 0.5
+    },
+    "blurSigma": 0
+  },
+  "board": {
+    "src": "/media/project-01/board-1920.webp",
+    "width": 1920,
+    "height": 888,
+    "bytes": 203130,
+    "sha256": "159afcfda733725fca7490b427eb848dd6e729f47085d72104e41d1624bc96ab",
+    "format": "webp",
+    "source": "inputs/source/pcb3dtop.png",
+    "crop": {
+      "x": 0,
+      "y": 0,
+      "width": 1,
+      "height": 1,
+      "focus": {
+        "x": 0.5,
+        "y": 0.5
+      },
+      "pixels": {
+        "left": 0,
+        "top": 0,
+        "width": 2160,
+        "height": 999
+      }
+    },
+    "focus": {
+      "x": 0.5,
+      "y": 0.5
+    },
+    "blurSigma": 0
+  },
+  "alt": "用户提供的项目实物照片：绿色电路板置于打开的黑色外壳中，左侧连有线缆，右侧可见三个金属接口。",
+  "detailAlt": "同一张实物照片的电路板区域局部，保留板上可见元件及右侧接口。",
+  "boardAlt": "用户另外提供的板级顶视图，黑色板面与金色走线区域中分布元件，右侧有三个接口。",
+  "spatial": {
+    "depthMethod": "authored_proxy",
+    "depthSource": "inputs/depth/proxy.json",
+    "runtime": "/media/project-01/depth-proxy.json",
+    "preview": "/media/project-01/depth-preview.png",
+    "depthEncoding": "JSON float distances + polygon boundaries; preview PNG is 8-bit and not used for geometry",
+    "referenceCamera": {
+      "fov": 38,
+      "near": 0.1,
+      "far": 30,
+      "distance": 6
+    },
+    "depthMapping": "Positive distance in arbitrary scene units. Reference camera at origin looks -Z. X=(2u-1)*aspect*tan(fov/2)*distance, Y=(1-2v)*tan(fov/2)*distance. PNG white=near; runtime polygons retain float distances.",
+    "subjectTarget": {
+      "name": "board-chip",
+      "uv": [
+        0.453,
+        0.301
+      ],
+      "layer": 1
+    },
+    "featureTargets": [
+      {
+        "name": "board-chip",
+        "uv": [
+          0.453,
+          0.301
+        ],
+        "layer": 1
+      },
+      {
+        "name": "lid-mark",
+        "uv": [
+          0.729,
+          0.69
+        ],
+        "layer": 2
+      },
+      {
+        "name": "background-texture",
+        "uv": [
+          0.9,
+          0.23
+        ],
+        "layer": 0
+      }
+    ],
+    "motionEnvelope": {
+      "horizontalDegrees": 2,
+      "verticalDegrees": 1.5
+    },
+    "desktopCrop": {
+      "x": 0,
+      "y": 0,
+      "width": 1,
+      "height": 1
+    },
+    "mobileCrop": {
+      "x": 0,
+      "y": 0,
+      "width": 1,
+      "height": 1
+    }
+  }
+}

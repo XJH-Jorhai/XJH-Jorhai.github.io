@@ -1,0 +1,93 @@
+{
+  "projectId": "project-01",
+  "sourcePath": "inputs/source/chengpintu.png",
+  "sourceSha256": "203c45a07038f98061736d80e5082206e1a04b02bd43c39e7448e782c0937ec9",
+  "sourceOriginalName": "chengpintu.png",
+  "sourceOrigin": "用户提供：project/毕业设计-基于GNSS-R和无人机的土壤遥测系统/chengpintu.png",
+  "supplement": {
+    "sourcePath": "inputs/source/pcb3dtop.png",
+    "sourceSha256": "8948c3d750f3e8d51e5416d372b32d0013377f437cbf44b3de165640ab02a7f1",
+    "sourceOriginalName": "pcb3dtop.png",
+    "sourceOrigin": "用户提供的另一张板级视图；并非由实物照片生成"
+  },
+  "strategy": "preserve-scene",
+  "presentation": "framed-photo",
+  "orientationBasis": "EXIF auto-orient 后的左上角；x 向右，y 向下；裁切为归一化源图坐标",
+  "adjustments": {
+    "brightness": 1,
+    "saturation": 1,
+    "whiteBalance": "保留；未对局部颜色或元件标记重绘",
+    "colourspace": "srgb",
+    "stripMetadata": true
+  },
+  "palette": {
+    "base": "#161b18",
+    "text": "#edece3",
+    "muted": "#b1b9ad",
+    "accent": "#cbda8c",
+    "line": "#46514a"
+  },
+  "desktopCrop": {
+    "x": 0,
+    "y": 0,
+    "width": 1,
+    "height": 1,
+    "focus": {
+      "x": 0.54,
+      "y": 0.31
+    }
+  },
+  "mobileCrop": {
+    "x": 0,
+    "y": 0,
+    "width": 1,
+    "height": 1,
+    "focus": {
+      "x": 0.54,
+      "y": 0.31
+    }
+  },
+  "detailCrop": {
+    "x": 0.23,
+    "y": 0.08,
+    "width": 0.6,
+    "height": 0.4,
+    "focus": {
+      "x": 0.52,
+      "y": 0.5
+    }
+  },
+  "focusMode": "none",
+  "blur": {
+    "referenceWidth": 1920,
+    "sigma": 4,
+    "method": "在各输出尺寸等比换算 sigma 的确定性 Gaussian blur；与清晰主图同裁切"
+  },
+  "maskPath": "inputs/masks/layers.svg",
+  "depthPath": "inputs/depth/proxy.json",
+  "descriptions": {
+    "alt": "用户提供的项目实物照片：绿色电路板置于打开的黑色外壳中，左侧连有线缆，右侧可见三个金属接口。",
+    "detailAlt": "同一张实物照片的电路板区域局部，保留板上可见元件及右侧接口。",
+    "boardAlt": "用户另外提供的板级顶视图，黑色板面与金色走线区域中分布元件，右侧有三个接口。"
+  },
+  "outputs": {
+    "directory": "public/media/project-01",
+    "format": "webp",
+    "posterWidths": [
+      640,
+      1280,
+      1920
+    ],
+    "mobileWidths": [
+      640,
+      1280
+    ],
+    "detailWidth": 1600,
+    "boardWidth": 1920,
+    "quality": 90,
+    "effort": 6,
+    "manifest": "src/data/project-01.assets.json",
+    "report": "reports/image-processing.md",
+    "contactSheet": "reports/evidence/source-vs-processed.png"
+  }
+}

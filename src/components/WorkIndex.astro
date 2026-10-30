@@ -1,0 +1,25 @@
+---
+import PageShell from './PageShell.astro';
+import IndexHeading from './IndexHeading.astro';
+import WorkGallery from './WorkGallery.astro';
+import {workThemes,type WorkTheme} from '../data/work-themes';
+interface Props {theme:WorkTheme}
+const {theme}=Astro.props;
+const palette=workThemes[theme];
+---
+<PageShell title={`Work Index — ${palette.name}`} description="Selected work in remote sensing and analog computing." english palette={palette} colorScheme={palette.scheme} iridescent={theme==='b'}>
+  <div class="work-index page-width">
+    <IndexHeading title="WORK" label="SELECTED WORK / INDEX" />
+    <WorkGallery />
+    <aside class="work-notes"><span>OFF THE WORKBENCH</span><a href="/notes/">Notes ↗</a></aside>
+    {import.meta.env.DEV && <nav class="theme-options" aria-label="Color studies">{Object.entries(workThemes).map(([key,value])=><a href={`/experiments/work-index-${key}/`} aria-current={key===theme?'page':undefined}>{key.toUpperCase()} / {value.name}</a>)}</nav>}
+  </div>
+</PageShell>
+<style>
+.work-notes {margin-top:clamp(100px,12vw,190px);padding:27px 0 65px;border-top:1px solid var(--color-line);display:flex;justify-content:space-between;align-items:baseline;gap:24px;}
+.work-notes>span {font:11px var(--font-mono);letter-spacing:.1em;color:var(--color-muted);}
+.work-notes a {font-size:17px;}
+.theme-options {display:flex;flex-wrap:wrap;gap:16px 32px;padding:0 0 32px;font-size:12px;color:var(--color-muted);}
+.theme-options [aria-current='page'] {color:var(--color-accent);text-decoration:underline;}
+@media(max-width:760px) {.work-notes {margin-top:84px;padding-bottom:40px;} .work-notes>span {max-width:100px;line-height:1.8;}}
+</style>

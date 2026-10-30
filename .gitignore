@@ -1,0 +1,23 @@
+node_modules/
+dist/
+.astro/
+test-results/
+*.log
+
+# Private input material and local-only review evidence
+inputs/source/
+inputs/work-covers/*.png
+inputs/derived/
+reports/evidence/
+reports/v1-snapshot/
+reports/v2-dof-snapshot/
+reports/*.txt
+playwright-report/
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+.DS_Store
+Thumbs.db
+.publish-check/

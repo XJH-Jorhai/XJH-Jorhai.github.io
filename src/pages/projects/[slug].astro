@@ -1,0 +1,38 @@
+---
+import { getCollection, render, type CollectionEntry } from 'astro:content';
+import PageShell from '../../components/PageShell.astro';
+import ResponsiveTitle from '../../components/ResponsiveTitle.astro';
+import ProjectVisual from '../../components/ProjectVisual.astro';
+import firstAssets from '../../data/project-01.assets.json';
+import { assetsFor } from '../../data/projects';
+export async function getStaticPaths() {
+  const entries = await getCollection('projects');
+  return entries.map(project => ({ params: { slug: project.id }, props: { project } }));
+}
+interface Props { project: CollectionEntry<'projects'>; }
+const { project } = Astro.props;
+const { Content } = await render(project);
+const { data } = project;
+const assets = assetsFor(project.id);
+---
+<PageShell title={data.title} description={data.summary}>
+  <article class="page-width">
+    <header class="project-header">
+      <a class="back-link" href="/#project"><span aria-hidden="true">←</span>所有项目</a>
+      <p class="eyebrow"><span class="index">{project.id === 'project-01' ? '01' : '02'} —</span><span>{data.category} / {data.status}</span></p>
+      <ResponsiveTitle text={data.title} />
+      <p class="project-summary">{data.summary}</p>
+      <ul class="project-meta" aria-label="项目主题">{data.topics.map(topic => <li>{topic}</li>)}</ul>
+    </header>
+    <ProjectVisual assets={assets} mode="detail" alt={data.imageAlt} caption={data.caption} />
+    <div class="reading-layout">
+      <aside class="reading-aside"><p class="aside-label">ABOUT THIS RECORD</p><p>{data.contentNote}</p><p>{project.id === 'project-01' ? '图像 / 实物照片、板级视图' : '图像 / 电路原型'}<br />阅读 / 从整体到局部</p></aside>
+      <div>
+        <div class="prose"><Content /></div>
+        {project.id === 'project-01' && <figure class="detail-insert prose"><img src={firstAssets.detail.src} width={firstAssets.detail.width} height={firstAssets.detail.height} alt={firstAssets.detailAlt} loading="lazy" decoding="async" /><figcaption>图 02 / 同一张实物照片的板内局部。裁切仅用于近距离观察，未改变元件和连接位置。</figcaption></figure>}
+        {project.id === 'project-01' && <figure class="detail-insert prose"><img src={firstAssets.board.src} width={firstAssets.board.width} height={firstAssets.board.height} alt={firstAssets.boardAlt} loading="lazy" decoding="async" /><figcaption>图 03 / 用户提供的板级三维视图，与实拍照片为两份独立输入素材。</figcaption></figure>}
+        <div class="reading-return prose"><a href="/#project">← 返回所有项目</a><a href="#main">返回顶部 ↑</a></div>
+      </div>
+    </div>
+  </article>
+</PageShell>

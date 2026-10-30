@@ -1,0 +1,52 @@
+{
+  "projectId": "project-01-cover",
+  "palette": {
+    "base": "#161b18",
+    "text": "#edece3",
+    "muted": "#b1b9ad",
+    "accent": "#cbda8c",
+    "line": "#46514a"
+  },
+  "poster": {
+    "src": "/media/project-01-cover/poster-1536.webp",
+    "width": 1536,
+    "height": 1024,
+    "bytes": 221292,
+    "srcset": "/media/project-01-cover/poster-640.webp 640w, /media/project-01-cover/poster-1280.webp 1280w, /media/project-01-cover/poster-1536.webp 1536w"
+  },
+  "mobile": {
+    "src": "/media/project-01-cover/poster-1536.webp",
+    "width": 1536,
+    "height": 1024,
+    "bytes": 221292,
+    "srcset": "/media/project-01-cover/poster-640.webp 640w, /media/project-01-cover/poster-1280.webp 1280w, /media/project-01-cover/poster-1536.webp 1536w"
+  },
+  "texture": {
+    "src": "/media/project-01-cover/poster-1536.webp",
+    "width": 1536,
+    "height": 1024,
+    "bytes": 221292
+  },
+  "spatial": {
+    "runtime": "/media/project-01-cover/depth-proxy.json"
+  },
+  "composition": {
+    "targetWidthRatio": 0.62,
+    "tolerance": 0.02,
+    "excludes": "cables and cast shadows",
+    "subjectBounds": [
+      324,
+      85,
+      1276,
+      891
+    ],
+    "measuredWidthRatio": 0.6197916666666666,
+    "crop": null
+  },
+  "source": {
+    "path": "inputs/work-covers/project-01.png",
+    "sha256": "686990b57c697f8b862d0c7dcd60c22a2426a55b0fda87d614f81fc73aaaf3c7",
+    "width": 1536,
+    "height": 1024
+  }
+}

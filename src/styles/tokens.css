@@ -1,0 +1,10 @@
+:root {
+  color-scheme: dark;
+  --font-sans: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  --font-mono: 'Cascadia Code', Consolas, monospace;
+  --gutter: clamp(22px, 4.5vw, 72px);
+  --max-width: 1440px;
+  --space-section: clamp(72px, 9vw, 136px);
+  --text-body: 17px;
+  --leading-body: 1.85;
+}

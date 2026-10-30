@@ -1,0 +1,25 @@
+---
+import type { VisualAssets } from '../data/projects';
+interface Props {
+  assets: VisualAssets;
+  mode: 'home' | 'detail';
+  alt: string;
+  caption: string;
+  sizes?: string;
+  showCaption?: boolean;
+  previewOnHover?: boolean;
+}
+const { assets, mode, alt, caption, showCaption = true, previewOnHover = false } = Astro.props;
+const sizes = Astro.props.sizes ?? (mode === 'home' ? '(max-width:650px) calc(100vw - 44px), (max-width:950px) 65vw, 76vw' : '(max-width:650px) calc(100vw - 44px), 90vw');
+---
+<figure class:list={['project-visual', { 'detail-visual': mode === 'detail' }]}>
+  <div class="visual-frame" data-project-visual data-project-id={assets.projectId} data-mode={mode} data-hover-preview={previewOnHover || undefined}>
+    <div class="visual-carrier" data-visual-carrier>
+      <picture>
+        <source media="(max-width:650px)" srcset={assets.mobile.srcset} sizes={sizes} />
+        <img src={assets.poster.src} srcset={assets.poster.srcset} sizes={sizes} width={assets.poster.width} height={assets.poster.height} alt={alt} fetchpriority="high" decoding="async" />
+      </picture>
+    </div>
+  </div>
+  {showCaption && <figcaption class="visual-caption"><span>{caption}</span><span aria-hidden="true">{assets.projectId === 'project-01' ? '01 / GNSS-R' : '02 / ANALOG'}</span></figcaption>}
+</figure>

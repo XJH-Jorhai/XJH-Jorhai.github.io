@@ -1,0 +1,28 @@
+---
+import { journalNotes } from '../data/journal';
+interface Props { expanded?: boolean; limit?: number }
+const { expanded = false, limit = journalNotes.length } = Astro.props;
+---
+<div class="note-list">
+  {journalNotes.slice(0,limit).map((note,index) => <article class="note-row" id={expanded ? note.id : undefined}>
+    <span class="note-number">{String(index+1).padStart(2,'0')}</span>
+    <div class="note-copy"><p class="note-category">{note.category}</p><h3>{expanded ? note.title : <a href={`/notes/#${note.id}`}>{note.title}<span aria-hidden="true"> ↗</span></a>}</h3><p class="note-summary">{note.summary}</p>
+      {expanded && <details><summary>查看写作提纲 <span aria-hidden="true">＋</span></summary><p>{note.outline}</p></details>}
+    </div>
+    <span class="note-status">草稿占位</span>
+  </article>)}
+</div>
+<style>
+  .note-row {border-top:1px solid var(--color-line);padding:32px 0 36px;display:grid;grid-template-columns:80px 1fr auto;gap:24px;scroll-margin-top:32px;}
+  .note-number,.note-category,.note-status {font:11px/1.7 var(--font-mono);color:var(--color-muted);}
+  .note-category {letter-spacing:.06em;margin-bottom:13px;}
+  h3 {font-size:clamp(23px,2.5vw,36px);font-weight:400;line-height:1.5;letter-spacing:-.035em;}
+  h3 a {display:inline-block;} h3 a span {color:var(--color-secondary);}
+  .note-summary {max-width:650px;margin-top:14px;font-size:15px;line-height:1.9;color:var(--color-muted);}
+  .note-status {border:1px solid var(--color-line);padding:4px 9px;align-self:start;white-space:nowrap;}
+  details {margin-top:24px;max-width:650px;font-size:14px;line-height:1.9;}
+  summary {cursor:pointer;color:var(--color-accent);width:fit-content;padding:4px 0;}
+  summary span {margin-left:12px;} details[open] summary span {display:none;}
+  details p {padding-top:14px;color:var(--color-muted);}
+  @media(max-width:650px) {.note-row {grid-template-columns:28px 1fr;gap:16px;padding-block:25px;} .note-status {grid-column:2;grid-row:2;justify-self:start;} h3 {font-size:23px;} .note-summary {font-size:14px;}}
+</style>

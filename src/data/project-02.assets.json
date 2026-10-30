@@ -1,0 +1,40 @@
+{
+  "projectId": "project-02",
+  "palette": {
+    "base": "#161b18",
+    "text": "#edece3",
+    "muted": "#b1b9ad",
+    "accent": "#cbda8c",
+    "line": "#46514a"
+  },
+  "poster": {
+    "src": "/media/project-02/poster-1920.webp",
+    "width": 1920,
+    "height": 1060,
+    "bytes": 190884,
+    "srcset": "/media/project-02/poster-640.webp 640w, /media/project-02/poster-1280.webp 1280w, /media/project-02/poster-1920.webp 1920w"
+  },
+  "mobile": {
+    "src": "/media/project-02/poster-1920.webp",
+    "width": 1920,
+    "height": 1060,
+    "bytes": 190884,
+    "srcset": "/media/project-02/poster-640.webp 640w, /media/project-02/poster-1280.webp 1280w, /media/project-02/poster-1920.webp 1920w"
+  },
+  "texture": {
+    "src": "/media/project-02/texture-2560.webp",
+    "width": 2560,
+    "height": 1413,
+    "bytes": 263560
+  },
+  "spatial": {
+    "runtime": "/media/project-02/depth-proxy.json"
+  },
+  "originalSha256": "dd5f288dda217344296a4b9627cf82d4ec7022ffbd41f9b427389b284b533444",
+  "source": {
+    "path": "inputs/source/project-02/pcb-clean.png",
+    "sha256": "59d6ce4ebb8f5c4677c1ef4b0edd99712aa2086e1743d83f182d79dc3e2f8c89",
+    "width": 1688,
+    "height": 932
+  }
+}

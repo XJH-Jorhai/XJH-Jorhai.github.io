@@ -1,0 +1,15 @@
+---
+import PageShell from '../components/PageShell.astro';
+import IndexHeading from '../components/IndexHeading.astro';
+import NoteList from '../components/NoteList.astro';
+import { workThemes } from '../data/work-themes';
+import '../styles/journal.css';
+---
+<PageShell title="Notes" description="研究、制作与观察中的过程笔记。" english language="zh-CN" palette={workThemes.b} colorScheme="light" iridescent>
+  <div class="page-width">
+    <IndexHeading title="NOTES" label="THOUGHTS IN PROGRESS / INDEX" />
+    <section class="journal-intro" aria-labelledby="notes-intro"><p class="journal-kicker">OFF THE WORKBENCH<br />工作台之外</p><div><h2 id="notes-intro">让过程有迹可循。</h2><p class="intro-text">作品之外，还有尝试、疑问和偶然的发现。这里留给研究中的思考、制作时的细节，以及那些还没有标准答案的问题。</p><p class="intro-text">以下是准备展开的写作方向，均为草稿占位；展开条目可以查看提纲。</p></div></section>
+    <section class="journal-section" aria-labelledby="notes-list"><div class="journal-section-heading"><h2 id="notes-list">WRITING DESK / 写作目录</h2><span class="journal-kicker">04 DRAFTS</span></div><NoteList expanded /></section>
+    <aside class="journal-about"><p class="journal-kicker">FROM NOTES TO OBJECTS</p><div><h2>有些想法，后来变成了作品。</h2><a class="journal-text-link" href="/work/">浏览 Work Index ↗</a></div></aside>
+  </div>
+</PageShell>

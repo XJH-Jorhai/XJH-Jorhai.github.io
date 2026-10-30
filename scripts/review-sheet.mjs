@@ -1,0 +1,4 @@
+import sharp from 'sharp';
+const names=['baseline-desktop','depth-current-view','geometry','parallax-left','parallax-right','flat-depth-left','flat-depth-right','focus-far','focus-near','coc-far','coc-near','flow-fast','flow-appearance'];
+const tiles=[];let i=0;for(const name of names){try{const img=await sharp(`reports/evidence/${name}.png`).resize(480,300,{fit:'contain'}).png().toBuffer();tiles.push({input:img,left:(i%3)*480,top:Math.floor(i/3)*320+20});const label=Buffer.from(`<svg width="480" height="20"><text x="8" y="15" fill="white" font-size="14">${name}</text></svg>`);tiles.push({input:label,left:(i%3)*480,top:Math.floor(i/3)*320});i++;}catch{}}
+await sharp({create:{width:1440,height:Math.ceil(i/3)*320,channels:3,background:'#161b18'}}).composite(tiles).jpeg().toFile('reports/evidence/review-sheet-v2.jpg');

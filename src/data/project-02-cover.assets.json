@@ -1,0 +1,57 @@
+{
+  "projectId": "project-02-cover",
+  "palette": {
+    "base": "#161b18",
+    "text": "#edece3",
+    "muted": "#b1b9ad",
+    "accent": "#cbda8c",
+    "line": "#46514a"
+  },
+  "poster": {
+    "src": "/media/project-02-cover/poster-1536.webp",
+    "width": 1536,
+    "height": 1024,
+    "bytes": 179616,
+    "srcset": "/media/project-02-cover/poster-640.webp 640w, /media/project-02-cover/poster-1280.webp 1280w, /media/project-02-cover/poster-1536.webp 1536w"
+  },
+  "mobile": {
+    "src": "/media/project-02-cover/poster-1536.webp",
+    "width": 1536,
+    "height": 1024,
+    "bytes": 179616,
+    "srcset": "/media/project-02-cover/poster-640.webp 640w, /media/project-02-cover/poster-1280.webp 1280w, /media/project-02-cover/poster-1536.webp 1536w"
+  },
+  "texture": {
+    "src": "/media/project-02-cover/poster-1536.webp",
+    "width": 1536,
+    "height": 1024,
+    "bytes": 179616
+  },
+  "spatial": {
+    "runtime": "/media/project-02-cover/depth-proxy.json"
+  },
+  "composition": {
+    "targetWidthRatio": 0.7,
+    "tolerance": 0.02,
+    "excludes": "cables and cast shadows",
+    "subjectBounds": [
+      235.07692307692307,
+      279.38461538461536,
+      1310.7692307692307,
+      732.3076923076923
+    ],
+    "measuredWidthRatio": 0.7003205128205128,
+    "crop": {
+      "left": 144,
+      "top": 64,
+      "width": 1248,
+      "height": 832
+    }
+  },
+  "source": {
+    "path": "inputs/work-covers/project-02-balanced.png",
+    "sha256": "2a6f6370c74cbbad256757a47dda245b359077664bc5dc7c49c8486a452ec583",
+    "width": 1536,
+    "height": 1024
+  }
+}

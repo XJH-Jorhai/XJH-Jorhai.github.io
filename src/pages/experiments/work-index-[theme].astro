@@ -1,0 +1,7 @@
+---
+import WorkIndex from '../../components/WorkIndex.astro';
+import {workThemes,type WorkTheme} from '../../data/work-themes';
+export function getStaticPaths(){return Object.keys(workThemes).map(theme=>({params:{theme},props:{theme:theme as WorkTheme}}));}
+const {theme}=Astro.props;
+---
+<WorkIndex theme={theme} />

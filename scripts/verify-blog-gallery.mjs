@@ -1,0 +1,13 @@
+import {chromium} from '@playwright/test';
+const b=await chromium.launch({headless:true,executablePath:'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe'});
+const p=await b.newPage({viewport:{width:1440,height:1000}});
+await p.goto('http://127.0.0.1:4330/?inspect');
+await p.locator('.work-gallery').scrollIntoViewIfNeeded();
+await p.waitForFunction(()=>window.__gallery?.snapshot().covers.every(c=>c.renders>0));
+const r=await p.locator('.work-cover').first().boundingBox();await p.mouse.move(r.x+r.width*.6,r.y+r.height*.5);
+await p.waitForFunction(()=>window.__gallery.snapshot().covers[0].active);
+await p.screenshot({path:'reports/evidence/blog-index/blog-gallery-desktop.png'});
+console.log(JSON.stringify(await p.evaluate(()=>window.__gallery.snapshot().covers.map(c=>({id:c.id,active:c.active,renders:c.renders})))));
+await p.emulateMedia({reducedMotion:'reduce'});await p.goto('http://127.0.0.1:4330/');
+await p.screenshot({path:'reports/evidence/blog-index/blog-static-full.png',fullPage:true});
+await b.close();

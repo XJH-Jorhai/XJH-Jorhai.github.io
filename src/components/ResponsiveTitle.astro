@@ -1,0 +1,12 @@
+---
+interface Props { text: string; class?: string; as?: 'h1' | 'h2'; }
+const { text, class: className, as: Tag = 'h1' } = Astro.props;
+const segmenter = new Intl.Segmenter('zh-CN', { granularity: 'word' });
+const lines = text.split('\n').map(line => line.split(/([A-Za-z0-9]+(?:[-.][A-Za-z0-9]+)*)/g).flatMap(part =>
+  /^[A-Za-z0-9]/.test(part) ? [{ text: part, keep: true }] : Array.from(segmenter.segment(part), item => ({ text: item.segment, keep: Boolean(item.isWordLike) }))
+));
+---
+<Tag class:list={['responsive-title', className]} data-responsive-title>
+  <span>{lines.map((line,index) => <Fragment>{index > 0 && <br />}{line.map(word => <span class:list={{ 'title-word':word.keep }}>{word.text}</span>)}</Fragment>)}</span>
+  <span class="title-highlight" data-title-highlight aria-hidden="true">{lines.map((line,index) => <Fragment>{index > 0 && <br />}{line.map(word => <span class:list={{ 'title-word':word.keep }}>{word.text}</span>)}</Fragment>)}</span>
+</Tag>

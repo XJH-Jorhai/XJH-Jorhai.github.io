@@ -1,0 +1,58 @@
+---
+import { site } from '../config/site';
+import assets from '../data/project-01.assets.json';
+import '../styles/tokens.css';
+import '../styles/global.css';
+interface Props { title?: string; description?: string; english?: boolean; language?: string; palette?: Record<string,string>; colorScheme?: 'light'|'dark'; iridescent?: boolean; }
+const { title, description = site.description, english = false, language, palette=assets.palette,colorScheme='dark',iridescent=false } = Astro.props;
+const pathname = Astro.url.pathname;
+const name = english ? 'FIELDNOTES' : site.name;
+const colors = Object.entries(palette).map(([role,value]) => `--color-${role}:${value}`).join(';')+`;color-scheme:${colorScheme}`;
+---
+<!doctype html>
+<html lang={language ?? (english ? 'en' : 'zh-CN')} style={colors}>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="description" content={description} />
+    <meta name="theme-color" content={palette.base} />
+    <title>{title ? `${title} · ${name}` : name}</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  </head>
+  <body class:list={{'mineral-iridescent':iridescent}}>
+    {iridescent && <div data-mineral-sheen aria-hidden="true" hidden></div>}
+    <a class="skip-link" href="#main">{english ? 'Skip to content' : '跳至正文'}</a>
+    <header class="site-header page-width">
+      <a class="wordmark" href="/" aria-label={english ? 'Fieldnotes home' : `${site.name}，主页`}><span class="wordmark-symbol" aria-hidden="true">∴</span>{name}{!english && <span class="wordmark-en" lang="en">FIELDNOTES</span>}</a>
+      <nav aria-label={english ? 'Main navigation' : '主导航'}><a href="/" aria-current={pathname === '/' ? 'page' : undefined}>Blog</a><a href="/work/" aria-current={pathname.startsWith('/work') || pathname.startsWith('/experiments/work-index') ? 'page' : undefined}>{english ? 'Work' : '项目'}</a><a href="/notes/" aria-current={pathname.startsWith('/notes') ? 'page' : undefined}>{english ? 'Notes' : '记录'}</a></nav>
+    </header>
+    <main id="main"><slot /></main>
+    <footer class="site-footer page-width"><a href="/">{name}<span aria-hidden="true"> ↗</span></a><p>{english ? 'An ongoing collection of work and thoughts.' : site.footer}</p><a href="#main">{english ? 'Back to top ↑' : '返回顶部 ↑'}</a></footer>
+    <script>
+      import { initMotion } from '../lib/motion';
+      initMotion();
+    </script>
+  </body>
+</html>
+<style>
+  .site-header nav [aria-current='page'] {color:var(--color-accent);text-decoration:underline;text-underline-offset:6px;}
+  @media(max-width:400px) {.site-header nav {gap:14px;} .wordmark {font-size:13px;gap:5px;} .wordmark-symbol {font-size:25px;}}
+  .mineral-iridescent {
+    /* Static light fields stay behind the artwork. */
+    --iridescent-cyan: 177 211 208;
+    --iridescent-violet: 196 190 216;
+    --iridescent-rose: 218 195 207;
+    background-color: var(--color-base);
+    background-image:
+      radial-gradient(ellipse 340px 260px at 88% 13%, rgb(var(--iridescent-violet) / .23), transparent 76%),
+      radial-gradient(ellipse 360px 280px at 9% 36%, rgb(var(--iridescent-cyan) / .22), transparent 76%),
+      radial-gradient(ellipse 300px 230px at 79% 66%, rgb(var(--iridescent-rose) / .18), transparent 76%),
+      radial-gradient(ellipse 340px 250px at 24% 91%, rgb(var(--iridescent-cyan) / .20), transparent 76%);
+    background-repeat:no-repeat;
+  }
+  .mineral-sheen {position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none;}
+  /* Fine, stationary dithering breaks up 8-bit gradient bands behind the content. */
+  .mineral-iridescent::after {content:'';position:fixed;inset:0;z-index:0;pointer-events:none;background:url('/media/mineral-dither.png') repeat;mix-blend-mode:soft-light;opacity:.035;}
+  @media(prefers-reduced-motion:reduce),(hover:none),(pointer:coarse) {.mineral-sheen {display:none;}}
+</style>
+

@@ -1,0 +1,17 @@
+import { chromium } from '@playwright/test';
+import { mkdir, writeFile } from 'node:fs/promises';
+const out='reports/evidence/work-index';
+await mkdir(out,{recursive:true});
+const browser=await chromium.launch({headless:true,executablePath:'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe'});
+const page=await browser.newPage({viewport:{width:1440,height:1000}});
+await page.goto('https://lusion.co/projects/',{waitUntil:'domcontentloaded',timeout:60000});
+await page.waitForTimeout(12000);
+await page.screenshot({path:`${out}/lusion-desktop.png`});
+const measurements=await page.locator('body').evaluate(el=>[...el.querySelectorAll('h1,h2,h3,h4,a,img')].map(e=>({tag:e.tagName,cls:e.className,text:e.textContent?.slice(0,130),rect:e.getBoundingClientRect().toJSON(),font:getComputedStyle(e).fontSize})).filter(e=>e.rect.width>200));
+await writeFile(`${out}/lusion-measurements.json`,JSON.stringify(measurements,null,2));
+const details=await page.locator('.project-item').first().evaluate(el=>[el,...el.querySelectorAll('*')].map(e=>({tag:e.tagName,cls:e.className,text:e.textContent?.slice(0,70),rect:e.getBoundingClientRect().toJSON(),font:getComputedStyle(e).fontSize})).filter(e=>e.rect.width>250));
+await writeFile(`${out}/lusion-card-measurements.json`,JSON.stringify(details,null,2));
+console.log(JSON.stringify(details));
+await page.mouse.wheel(0,500);await page.waitForTimeout(2000);
+await page.screenshot({path:`${out}/lusion-gallery.png`});
+await browser.close();

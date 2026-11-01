@@ -4,6 +4,7 @@ import {assetsFor} from '../../data/projects';
 import {DepthScene,type ProxyData} from './DepthScene';
 import {PostPipeline} from './PostPipeline';
 import {MineralFluid} from './MineralFluid';
+import {createPistonGolem} from './PistonGolem';
 import {sceneConfig as config,galleryTransition} from './config';
 import type {SharedPointer} from '../motion/pointer';
 import type {SceneHandle} from './index';
@@ -32,6 +33,7 @@ export async function createGallery(elements:HTMLElement[],pointer:SharedPointer
  const base=getComputedStyle(document.documentElement).getPropertyValue('--color-base').trim();
  const flow=document.querySelector('[data-mineral-sheen]')?new MineralFluid(renderer):undefined;
  const panel=flow&&location.pathname==="/experiments/work-index-b/"?createFluidPanel(flow,wake):undefined;
+ const piston=await createPistonGolem(renderer,wake,(x,y,force)=>flow?.strike(x,y,force)).catch(error=>{console.warn('Original piston poster retained.',error);return undefined;});
  let viewportWidth=innerWidth,viewportHeight=innerHeight;
  const from=new T.Vector2(),to=new T.Vector2(),velocity=new T.Vector2(),measured=new T.Vector2();
  let initialized=false,pointerVersion=pointer.version,inputElapsed=0;
@@ -51,13 +53,15 @@ export async function createGallery(elements:HTMLElement[],pointer:SharedPointer
   for(const c of covers){c.bounds=c.element.getBoundingClientRect();const w=Math.max(1,Math.round(c.bounds.width*renderer.getPixelRatio())),h=Math.max(1,Math.round(c.bounds.height*renderer.getPixelRatio()));if(w!==c.width||h!==c.height){c.pipeline.resize(w,h);c.width=w;c.height=h;}}
   if(flow&&(viewportWidth!==innerWidth||viewportHeight!==innerHeight)){flow.resize(innerWidth,innerHeight);flow.clear();initialized=false;viewportWidth=innerWidth;viewportHeight=innerHeight;}
   for(const c of covers)c.renderedX=NaN;
+  piston?.resize();
   wake();
  }
- function pause(){flow?.clear();initialized=false;canvas.style.visibility='hidden';for(const c of covers){c.element.dataset.renderer='static';c.x=c.y=0;c.active=false;c.elapsed=galleryTransition.exitDuration;}}
+ function pause(){flow?.clear();piston?.pause();initialized=false;canvas.style.visibility='hidden';for(const c of covers){c.element.dataset.renderer='static';c.x=c.y=0;c.active=false;c.elapsed=galleryTransition.exitDuration;}}
  function tick(dt:number){
   if(dead||lost)return false;
   if(document.hidden||matchMedia('(prefers-reduced-motion:reduce),(hover:none),(pointer:coarse)').matches){pause();return false;}
   dt=Math.min(dt,.05);let pending=false;
+  pending=piston?.tick(dt)??false;
   renderer.setRenderTarget(null);renderer.setScissorTest(false);renderer.setViewport(0,0,innerWidth,innerHeight);renderer.setClearColor(0,0);renderer.clear();
   if(flow){
    inputElapsed+=dt;let inject=false;
@@ -75,7 +79,7 @@ export async function createGallery(elements:HTMLElement[],pointer:SharedPointer
    pending=flow.step(dt,from,to,velocity,inject)||pending;
    from.copy(to);
    renderer.setRenderTarget(null);renderer.setViewport(0,0,innerWidth,innerHeight);
-   if(pending)flow.draw();
+   if(flow.remaining>0)flow.draw();
   }
   for(const c of covers){
    const r=c.bounds;
@@ -94,12 +98,13 @@ export async function createGallery(elements:HTMLElement[],pointer:SharedPointer
    renderer.setRenderTarget(null);renderer.setViewport(r.left,innerHeight-r.bottom,r.width,r.height);renderer.setScissor(r.left,innerHeight-r.bottom,r.width,r.height);renderer.setScissorTest(true);if(flow){flow.bind(c.pipeline.blitMaterial);c.pipeline.blitMaterial.uniforms.fluidRect!.value.set(r.left/innerWidth,1-r.bottom/innerHeight,r.width/innerWidth,r.height/innerHeight);}c.pipeline.draw();renderer.setScissorTest(false);
    c.element.dataset.renderer='webgl2';
   }
+  piston?.draw();
   canvas.style.visibility='visible';frames++;return pending;
  }
  const diagnostics=new URLSearchParams(location.search).has('inspect');
- const snapshot=()=>({renderer:'webgl2',frames,contexts:1,flow:flow?{settings:{...flow.settings},remaining:flow.remaining,steps:flow.steps,width:flow.width,height:flow.height}:null,covers:covers.map(c=>({id:c.assets.projectId,active:c.active,aim:[c.x,c.y],camera:c.camera.position.toArray(),returnElapsed:c.elapsed,renders:c.renders}))});
- if(diagnostics)Object.assign(window,{__gallery:{snapshot,inspectFlow:()=>flow?.inspect(),captureRefraction:(enabled:boolean)=>{for(const c of covers)c.pipeline.blitMaterial.uniforms.refractionStrength!.value=enabled?1:0;tick(0);return canvas.toDataURL();}}});
+ const snapshot=()=>({renderer:'webgl2',frames,contexts:1,piston:piston?.snapshot()??null,flow:flow?{settings:{...flow.settings},remaining:flow.remaining,steps:flow.steps,width:flow.width,height:flow.height,impacts:flow.impacts,lastImpact:flow.lastImpact}:null,covers:covers.map(c=>({id:c.assets.projectId,active:c.active,aim:[c.x,c.y],camera:c.camera.position.toArray(),returnElapsed:c.elapsed,renders:c.renders}))});
+ if(diagnostics)Object.assign(window,{__gallery:{snapshot,piston:piston?{seek:piston.seek,setPaused:piston.setPaused}:undefined,clearFlow:()=>{flow?.clear();wake();},inspectFlow:()=>flow?.inspect(),captureRefraction:(enabled:boolean)=>{for(const c of covers)c.pipeline.blitMaterial.uniforms.refractionStrength!.value=enabled?1:0;tick(0);return canvas.toDataURL();}}});
  const onLost=(e:Event)=>{e.preventDefault();lost=true;pause();for(const c of covers)c.element.dataset.renderer='static-context-lost';};canvas.addEventListener('webglcontextlost',onLost);
  resize();tick(0);
- return {tick,resize,pause,dispose(){if(dead)return;dead=true;canvas.removeEventListener('webglcontextlost',onLost);panel?.dispose();flow?.dispose();for(const c of covers){c.depth.dispose();c.pipeline.dispose();c.element.dataset.renderer='static';}renderer.dispose();renderer.forceContextLoss();canvas.remove();if(diagnostics)Object.assign(window,{__gallery:undefined});}};
+ return {tick,resize,pause,dispose(){if(dead)return;dead=true;canvas.removeEventListener('webglcontextlost',onLost);piston?.dispose();panel?.dispose();flow?.dispose();for(const c of covers){c.depth.dispose();c.pipeline.dispose();c.element.dataset.renderer='static';}renderer.dispose();renderer.forceContextLoss();canvas.remove();if(diagnostics)Object.assign(window,{__gallery:undefined});}};
 }

@@ -3,6 +3,7 @@ import PageShell from '../components/PageShell.astro';
 import IndexHeading from '../components/IndexHeading.astro';
 import WorkGallery from '../components/WorkGallery.astro';
 import NoteList from '../components/NoteList.astro';
+import PistonGolem from '../components/PistonGolem.astro';
 import { journal } from '../data/journal';
 import { workThemes } from '../data/work-themes';
 import '../styles/journal.css';
@@ -10,7 +11,7 @@ import '../styles/journal.css';
 <PageShell title="Blog Index" description={journal.description} english language="zh-CN" palette={workThemes.b} colorScheme="light" iridescent>
   <div class="page-width">
     <IndexHeading title="BLOG" label="A PERSONAL COLLECTION / WORK & THOUGHTS" />
-    <section class="journal-intro" aria-labelledby="intro-heading"><p class="journal-kicker">FIELDNOTES / 个人博客<br />RESEARCH · MAKING · OBSERVATION</p><div><h2 id="intro-heading">{journal.introduction}</h2><p class="intro-text">{journal.description}</p></div></section>
+    <section class="journal-intro" aria-labelledby="intro-heading"><div><p class="journal-kicker">FIELDNOTES / 个人博客<br />RESEARCH · MAKING · OBSERVATION</p><PistonGolem /></div><div><h2 id="intro-heading">{journal.introduction}</h2><p class="intro-text">{journal.description}</p></div></section>
     <section class="journal-section" id="project" aria-labelledby="work-heading"><div class="journal-section-heading"><h2 id="work-heading">01 / SELECTED WORK</h2><a href="/work/">全部作品 ↗</a></div><WorkGallery /></section>
     <section class="journal-section" id="notes" aria-labelledby="notes-heading"><div class="journal-section-heading"><h2 id="notes-heading">02 / NOTES & OBSERVATIONS</h2><a href="/notes/">全部记录 ↗</a></div><NoteList limit={3} /></section>
     <section class="journal-about" id="about" aria-labelledby="about-heading"><p class="journal-kicker">03 / ABOUT THIS SPACE</p><div><h2 id="about-heading">保持好奇，慢慢做。</h2><p>{journal.about}</p><p>这个空间会随着项目一起生长。介绍文字为初稿，文章目录暂以写作提纲占位，之后逐步换成真实的过程与记录。</p><a class="journal-text-link" href="/notes/">从一则笔记开始 ↗</a></div></section>

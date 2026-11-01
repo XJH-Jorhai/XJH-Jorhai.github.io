@@ -109,6 +109,27 @@ __spatial.set({flat:false,freeze:false,input:null,view:'color',flow:true,output:
 Mineral experiment now uses three-fluid-fx 0.1.0 for simulation (MIT; license in public/licenses). Custom optical composition and photo refraction share its velocity/density textures. Run `node scripts/verify-fluid-solver.mjs` for the current solver, refraction boundary, idle and reduced-motion checks. `verify-mineral-sheen.mjs` describes the superseded custom-field layout and is not the current mineral acceptance test.
 For current spectral behavior, `node scripts/verify-fluid-speed.mjs` compares slow/fast input and `node scripts/compare-fluid-reference.mjs` captures matching coordinate paths on Lusion and local B (requires internet). B uses 256-base velocity and 512-base optical/density targets with BFECC; the earlier 160/384 settings in historical reports are superseded.
 
+## 首页铁傀儡与凿击 — 2026-11-02
+
+首页介绍左侧使用 Piston Letter Studio v1.2.0 的 MC 原版造型、0.94 秒周期与原始曲线。源码和八张纹理固定在 `public/vendor/piston-letter-studio/`，来源和 Git blob 哈希见其中的 `source.json`。不包含音频。
+
+按用户最后确认的方向，行程 **100 → 0** 收回完成时触发一次；`force = (1 - position) * 100`。初始零位不触发，零位停留不重复，重新伸到 100 后才允许下一次。`src/lib/scene/pistonImpact.ts` 管触发，`PistonGolem.ts` 管原版结构与共享渲染，`MineralFluid.strike()` 将冲量注入现有鼠标流体场；不改动持久保存的鼠标 Force 基准。
+
+启动与验收（PowerShell，项目目录）：
+
+```powershell
+npm.cmd run check
+npm.cmd run build
+npm.cmd run preview
+# 另一终端；以上命令默认 http://127.0.0.1:4321/
+$env:PREVIEW_URL='http://127.0.0.1:4321'
+npm.cmd run test:piston
+$env:BROWSER_EXECUTABLE='C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe'
+npm.cmd run test:site
+```
+
+`test:piston` 优先本机 Edge；其他平台使用已安装的 Playwright Chromium，也可指定 `BROWSER_EXECUTABLE`。海报已提交，普通 build 不需要生成；需要重建时，在预览运行后执行 `node scripts/prepare-piston-poster.mjs`，它调用未修改的上游组件导出透明 PNG。手机、减少动效、无 JS 或 WebGL 失败显示该海报。详细证据口径见 `reports/piston-impact.md`。
+
 ## Blog / Notes / Work indexes — 2026-10-30
 
 - `/`: Blog Index，介绍、精选作品、笔记预览和 About。

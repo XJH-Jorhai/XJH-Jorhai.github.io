@@ -1,0 +1,20 @@
+<figure class="piston-golem" data-piston-golem>
+  <div class="piston-stage" data-piston-stage>
+    <img src="/media/piston-golem/poster.png" width="768" height="768" alt="雕刻南瓜头、四个铁块与三个活塞组成的 Minecraft 原版铁傀儡" />
+  </div>
+  <figcaption>
+    <a href="https://github.com/XJH-Jorhai/piston-letter-studio">铁傀儡 ↗</a>
+    <button type="button" data-piston-toggle aria-pressed="false" hidden>暂停动画</button>
+  </figcaption>
+</figure>
+
+<style>
+  .piston-golem {width:230px;max-width:100%;margin:18px 0 0;}
+  .piston-stage {width:100%;aspect-ratio:1;}
+  .piston-stage img {display:block;width:100%;height:auto;}
+  .piston-stage[data-renderer='webgl2'] img {visibility:hidden;}
+  figcaption {display:flex;justify-content:space-between;align-items:center;gap:14px;margin-top:-16px;font:11px/1.8 var(--font-sans);color:var(--color-muted);}
+  button {font:inherit;color:inherit;background:none;border:0;padding:6px 0;cursor:pointer;text-decoration:underline;text-underline-offset:4px;}
+  button[hidden] {display:none;}
+  @media(prefers-reduced-motion:reduce),(hover:none),(pointer:coarse) {.piston-stage[data-renderer] img {visibility:visible;}button {display:none;}}
+</style>

@@ -7,6 +7,7 @@
   "exclude": [
     "dist",
     "node_modules",
+    "public/vendor",
     "reports"
   ],
   "compilerOptions": {

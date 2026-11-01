@@ -29,6 +29,7 @@ export const fluidOptics=`
 export class MineralFluid {
  settings:FluidSettings={...fluidDefaults};
  solver:FluidSimulation;steps=0;remaining=0;width=1;height=1;
+ impacts=0;lastImpact:{x:number;y:number;force:number}|undefined;
  material:T.ShaderMaterial;quad:FullScreenQuad;
  opticalA=new T.WebGLRenderTarget(1,1,{type:T.HalfFloatType,depthBuffer:false});opticalB=this.opticalA.clone();
  spread:T.ShaderMaterial;
@@ -59,6 +60,19 @@ export class MineralFluid {
  bind(material:T.ShaderMaterial){const u=material.uniforms;u.lightGain!.value=this.settings.brightness;u.bendGain!.value=this.settings.refraction;u.fluidVelocity!.value=this.solver.velocityTexture;u.fluidDensity!.value=this.opticalA.texture;u.fluidTexel!.value.set(1/this.width,1/this.height);const image=this.solver.velocityTexture.image as {width:number;height:number};u.velocityTexel!.value.set(1/image.width,1/image.height);u.fluidFade!.value=T.MathUtils.smoothstep(this.remaining,0,1.5);}
  resize(w:number,h:number){this.solver.resize(w,h);const image=this.solver.densityTexture.image as {width:number;height:number};this.width=image.width;this.height=image.height;this.opticalA.setSize(this.width,this.height);this.opticalB.setSize(this.width,this.height);this.clear();}
  clear(){this.remaining=0;const s=this.solver,vd=s.velocityDissipation,dd=s.densityDissipation,pd=s.pressureDissipation;s.velocityDissipation=s.densityDissipation=s.pressureDissipation=0;s.step(1/60);s.velocityDissipation=vd;s.densityDissipation=dd;s.pressureDissipation=pd;for(const target of [this.opticalA,this.opticalB]){this.renderer.setRenderTarget(target);this.renderer.setClearColor(0,0);this.renderer.clear();}this.renderer.setRenderTarget(null);}
+ /** One radial force impulse in the very same velocity/density solver as the pointer. */
+ strike(x:number,y:number,force:number){
+  if(![x,y,force].every(Number.isFinite)||force<=0)return;
+  const strength=Math.min(force,180)/100;
+  const size=this.solver.velocityTexture.image as {width:number;height:number};
+  const radius=22/innerHeight,aspect=innerHeight/innerWidth;
+  for(let i=0;i<16;i++){
+   const angle=i/16*Math.PI*2,dx=Math.cos(angle),dy=Math.sin(angle);
+   const vx=dx*size.width*aspect*.9*strength,vy=dy*size.height*.9*strength;
+   this.solver.addSplat(x+dx*radius*aspect,y+dy*radius,vx,vy,{radius:.00012,color:[vx,vy,.45*strength]});
+  }
+  this.remaining=7;this.impacts++;this.lastImpact={x,y,force};
+ }
  step(dt:number,from:T.Vector2,to:T.Vector2,velocity:T.Vector2,inject:boolean){
   this.solver.curlStrength=this.settings.curl;
   if(dt<=0)return this.remaining>0;

@@ -1,0 +1,61 @@
+{
+  "repository": "https://github.com/XJH-Jorhai/piston-letter-studio",
+  "revision": "f4e4619eaafa825c296c61312a150a177009f5cf",
+  "files": [
+    {
+      "path": "assets/minecraft/README.md",
+      "sha": "7ee14cb390ecd7c8fd69291ca8182ecdfde21b07",
+      "match": true
+    },
+    {
+      "path": "assets/minecraft/carved_pumpkin.png",
+      "sha": "b94135fa240f7e4712e73f9ccc8d5648c3ada575",
+      "match": true
+    },
+    {
+      "path": "assets/minecraft/iron_block.png",
+      "sha": "edd266bec750c1a7cb3a0d712cfd6e39b562a7f1",
+      "match": true
+    },
+    {
+      "path": "assets/minecraft/piston_bottom.png",
+      "sha": "a1b43cad70315dd5048e4a7c33afe1c5a4757f10",
+      "match": true
+    },
+    {
+      "path": "assets/minecraft/piston_inner.png",
+      "sha": "9e124fdafd8130d417983a74377d3e30b87de4ff",
+      "match": true
+    },
+    {
+      "path": "assets/minecraft/piston_side.png",
+      "sha": "ed1dc517dbe635594daef755c1278d805113c231",
+      "match": true
+    },
+    {
+      "path": "assets/minecraft/piston_top.png",
+      "sha": "cdcec31ac50cf3a1a11efbeccaa3bd5e791ed477",
+      "match": true
+    },
+    {
+      "path": "assets/minecraft/pumpkin_side.png",
+      "sha": "0a8089a5e2848d758a96d57b896252393b3a9cbb",
+      "match": true
+    },
+    {
+      "path": "assets/minecraft/pumpkin_top.png",
+      "sha": "ac555e1c780c47c6caa7f5309a934d0e2f933d43",
+      "match": true
+    },
+    {
+      "path": "src/default-config.js",
+      "sha": "13adc0720c889ba2865dbbddb94dc5397626b6a8",
+      "match": true
+    },
+    {
+      "path": "src/piston-letters.js",
+      "sha": "3987e746c95304f8af85e4cb17543e44c248c41e",
+      "match": true
+    }
+  ]
+}

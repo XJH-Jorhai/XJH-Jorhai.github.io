@@ -17,7 +17,8 @@
     "test:browser": "node scripts/verify-parallax-refinement.mjs",
     "test:webgl": "node scripts/verify-parallax-refinement.mjs",
     "check:sources": "node scripts/validate-content.mjs --sources",
-    "test:site": "node scripts/verify-site.mjs"
+    "test:site": "node scripts/verify-site.mjs",
+    "test:piston": "node scripts/verify-piston-impact.mjs"
   },
   "dependencies": {
     "astro": "7.4.2",

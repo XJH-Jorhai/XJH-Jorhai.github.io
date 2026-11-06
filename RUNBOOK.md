@@ -10,7 +10,7 @@
 
 ---
 
-> 最新：已添加 project-02 隧道二极管作品，当前交互以 design.md v2.3 为准；本轮验证见 reports/project-02-validation.md。
+> 最新：已添加 project-02 隧道二极管作品，当前交互以 design.md v3.0 为准；本轮验证见 reports/project-02-validation.md。
 
 > 当前版本：已按用户要求取消景深与换焦，只保留清晰视差。轮廓修订及最新验证见 reports/parallax-refinement.md。
 

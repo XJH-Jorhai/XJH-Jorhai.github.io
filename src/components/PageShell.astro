@@ -13,6 +13,7 @@ const colors = Object.entries(palette).map(([role,value]) => `--color-${role}:${
 <html lang={language ?? (english ? 'en' : 'zh-CN')} style={colors}>
   <head>
     <meta charset="UTF-8" />
+    <script is:inline>document.documentElement.classList.add('js')</script>
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <meta name="description" content={description} />
     <meta name="theme-color" content={palette.base} />
@@ -30,6 +31,8 @@ const colors = Object.entries(palette).map(([role,value]) => `--color-${role}:${
     <footer class="site-footer page-width"><a href="/">{name}<span aria-hidden="true"> ↗</span></a><p>{english ? 'An ongoing collection of work and thoughts.' : site.footer}</p><a href="#main">{english ? 'Back to top ↑' : '返回顶部 ↑'}</a></footer>
     <script>
       import { initMotion } from '../lib/motion';
+      import { initReveal } from '../lib/motion/reveal';
+      initReveal();
       initMotion();
     </script>
   </body>

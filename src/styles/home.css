@@ -1,0 +1,60 @@
+/* Blog home (v2). Shared reveal rules live in global.css. */
+.home-label {font:11px/1.8 var(--font-mono);letter-spacing:.08em;color:var(--color-muted);text-transform:uppercase;}
+
+/* Hero: statement + object, then a quiet meta row. */
+.home-hero {min-height:calc(100svh - 96px);display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-rows:auto 1fr auto;column-gap:clamp(24px,4vw,72px);padding:clamp(28px,5vh,64px) 0 clamp(28px,4vh,48px);}
+.home-hero > .home-label {grid-column:1 / -1;}
+.home-statement {grid-column:1;align-self:center;margin:clamp(40px,7vh,96px) 0;font-size:clamp(44px,7.4vw,128px);font-weight:400;line-height:1.08;letter-spacing:-.045em;}
+.home-object {grid-column:2;grid-row:2;align-self:center;}
+.home-hero .home-object .piston-golem {width:clamp(200px,22vw,340px);}
+.home-hero-foot {grid-column:1 / -1;display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr) auto;gap:clamp(24px,4vw,64px);align-items:end;border-top:1px solid var(--color-line);padding-top:24px;}
+.home-intro {max-width:560px;font-size:15px;line-height:1.9;color:var(--color-muted);}
+.home-index {list-style:none;margin:0;padding:0;font:12px/1.9 var(--font-mono);color:var(--color-muted);}
+.home-index li {display:flex;justify-content:space-between;gap:24px;border-bottom:1px solid var(--color-line);padding:4px 0;}
+.home-index li span:last-child {color:var(--color-text);text-align:right;}
+.home-scroll {font:12px var(--font-mono);letter-spacing:.08em;text-transform:uppercase;display:inline-flex;gap:10px;padding:8px 0;}
+.home-scroll span {display:inline-block;animation:home-nudge 2.4s cubic-bezier(.45,0,.2,1) infinite;}
+@keyframes home-nudge {0%,60%,100% {transform:none;} 30% {transform:translateY(5px);}}
+
+/* Sections */
+.home-section {padding-top:var(--space-section);}
+.home-section-head {display:grid;grid-template-columns:120px minmax(0,1fr) auto;align-items:baseline;gap:24px;margin-bottom:clamp(32px,4vw,56px);}
+.home-section-head h2 {font-size:clamp(34px,4.6vw,76px);font-weight:400;line-height:1.1;letter-spacing:-.045em;}
+.home-more {font-size:14px;color:var(--color-accent);white-space:nowrap;}
+.home-more span {display:inline-block;transition:transform .3s cubic-bezier(.22,.61,.36,1);}
+.home-more:is(:hover,:focus-visible) span {transform:translate(3px,-3px);}
+
+/* About: one dark band for contrast. It also covers the light trail canvas. */
+.home-about {margin-top:var(--space-section);background:var(--color-text);color:var(--color-base);padding-block:clamp(88px,11vw,180px);}
+.home-about ::selection {background:var(--color-base);color:var(--color-text);}
+.home-about-grid {display:grid;grid-template-columns:minmax(160px,1fr) minmax(0,2fr);gap:40px;}
+.home-about .home-label {color:color-mix(in srgb,var(--color-base) 62%,transparent);}
+.home-about h2 {font-size:clamp(40px,5.6vw,96px);font-weight:400;line-height:1.1;letter-spacing:-.045em;margin-bottom:clamp(32px,4vw,56px);}
+.home-about p:not(.home-label) {max-width:620px;font-size:16px;line-height:1.95;color:color-mix(in srgb,var(--color-base) 78%,transparent);}
+.home-about p + p {margin-top:18px;}
+.home-about-note {font-size:14px!important;}
+.home-about .home-more {display:inline-block;margin-top:32px;color:var(--color-base);border-bottom:1px solid currentColor;padding-bottom:4px;}
+.home-about a:focus-visible {outline-color:var(--color-base);}
+
+/* Outro: links + oversized wordmark. */
+.home-outro {padding-top:clamp(72px,9vw,140px);overflow:hidden;}
+.home-outro-links {list-style:none;margin:0 0 clamp(24px,3vw,40px);padding:0;display:flex;gap:clamp(24px,4vw,64px);font-size:clamp(18px,1.6vw,24px);}
+.home-wordmark {font-family:Arial,Helvetica,sans-serif;font-size:clamp(60px,15.6vw,262px);line-height:.8;letter-spacing:-.06em;margin-left:-.04em;white-space:nowrap;color:var(--color-text);}
+
+@media(max-width:900px) {
+  .home-hero {grid-template-columns:1fr;grid-template-rows:auto auto auto auto;min-height:auto;}
+  .home-statement {margin:40px 0 24px;}
+  .home-object {grid-column:1;grid-row:auto;justify-self:start;margin-bottom:40px;}
+  .home-hero-foot {grid-template-columns:1fr;gap:24px;}
+  .home-scroll {display:none;}
+  .home-section-head {grid-template-columns:1fr auto;}
+  .home-section-head .home-label {grid-column:1 / -1;}
+  .home-about-grid {grid-template-columns:1fr;gap:24px;}
+}
+@media(max-width:650px) {
+  .home-statement {font-size:clamp(30px,9.2vw,56px);line-height:1.15;}
+  .home-section-head h2 {font-size:clamp(30px,9vw,44px);}
+  .home-about h2 {font-size:clamp(36px,10.4vw,56px);}
+  .home-outro-links {flex-wrap:wrap;gap:16px 28px;}
+}
+@media(prefers-reduced-motion:reduce) {.home-scroll span {animation:none;}}

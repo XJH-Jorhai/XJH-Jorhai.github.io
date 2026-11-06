@@ -1,19 +1,72 @@
 ---
 import PageShell from '../components/PageShell.astro';
-import IndexHeading from '../components/IndexHeading.astro';
 import WorkGallery from '../components/WorkGallery.astro';
 import NoteList from '../components/NoteList.astro';
 import PistonGolem from '../components/PistonGolem.astro';
-import { journal } from '../data/journal';
+import { journal, journalNotes } from '../data/journal';
 import { workThemes } from '../data/work-themes';
+import { getCollection } from 'astro:content';
 import '../styles/journal.css';
+import '../styles/home.css';
+const workCount = (await getCollection('projects')).length;
 ---
-<PageShell title="Blog Index" description={journal.description} english language="zh-CN" palette={workThemes.b} colorScheme="light" iridescent>
+<PageShell title="Blog" description={journal.description} english language="zh-CN" palette={workThemes.b} colorScheme="light" iridescent>
   <div class="page-width">
-    <IndexHeading title="BLOG" label="A PERSONAL COLLECTION / WORK & THOUGHTS" />
-    <section class="journal-intro" aria-labelledby="intro-heading"><div><p class="journal-kicker">FIELDNOTES / 个人博客<br />RESEARCH · MAKING · OBSERVATION</p><PistonGolem /></div><div><h2 id="intro-heading">{journal.introduction}</h2><p class="intro-text">{journal.description}</p></div></section>
-    <section class="journal-section" id="project" aria-labelledby="work-heading"><div class="journal-section-heading"><h2 id="work-heading">01 / SELECTED WORK</h2><a href="/work/">全部作品 ↗</a></div><WorkGallery /></section>
-    <section class="journal-section" id="notes" aria-labelledby="notes-heading"><div class="journal-section-heading"><h2 id="notes-heading">02 / NOTES & OBSERVATIONS</h2><a href="/notes/">全部记录 ↗</a></div><NoteList limit={3} /></section>
-    <section class="journal-about" id="about" aria-labelledby="about-heading"><p class="journal-kicker">03 / ABOUT THIS SPACE</p><div><h2 id="about-heading">保持好奇，慢慢做。</h2><p>{journal.about}</p><p>这个空间会随着项目一起生长。介绍文字为初稿，文章目录暂以写作提纲占位，之后逐步换成真实的过程与记录。</p><a class="journal-text-link" href="/notes/">从一则笔记开始 ↗</a></div></section>
+    <section class="home-hero" aria-labelledby="hero-title">
+      <p class="home-label" data-reveal>(FIELDNOTES) — A personal collection of work &amp; thoughts</p>
+      <h1 id="hero-title" class="home-statement" data-reveal="lines">
+        <span class="line"><span>把想法做成实物，</span></span>
+        <span class="line"><span>也把过程留在这里。</span></span>
+      </h1>
+      <div class="home-object" data-reveal="fade"><PistonGolem /></div>
+      <div class="home-hero-foot">
+        <p class="home-intro" data-reveal>{journal.description}</p>
+        <ul class="home-index" aria-label="站点概况" data-reveal>
+          <li><span>Work</span><span>{String(workCount).padStart(2,'0')}</span></li>
+          <li><span>Notes</span><span>{String(journalNotes.length).padStart(2,'0')}</span></li>
+          <li><span>Focus</span><span>Research · Making · Observation</span></li>
+        </ul>
+        <a class="home-scroll" href="#work" data-reveal><span aria-hidden="true">↓</span> Scroll</a>
+      </div>
+    </section>
+
+    <section class="home-section" id="work" aria-labelledby="work-heading">
+      <header class="home-section-head">
+        <p class="home-label" data-reveal>(01)</p>
+        <h2 id="work-heading" data-reveal="lines"><span class="line"><span>Selected Work</span></span></h2>
+        <a class="home-more" href="/work/" data-reveal>全部作品 <span aria-hidden="true">↗</span></a>
+      </header>
+      <WorkGallery numbered />
+    </section>
+
+    <section class="home-section" id="notes" aria-labelledby="notes-heading">
+      <header class="home-section-head">
+        <p class="home-label" data-reveal>(02)</p>
+        <h2 id="notes-heading" data-reveal="lines"><span class="line"><span>Notes &amp; Observations</span></span></h2>
+        <a class="home-more" href="/notes/" data-reveal>全部记录 <span aria-hidden="true">↗</span></a>
+      </header>
+      <NoteList limit={3} />
+    </section>
   </div>
+
+  <section class="home-about" id="about" aria-labelledby="about-heading">
+    <div class="page-width home-about-grid">
+      <p class="home-label" data-reveal>(03) About this space</p>
+      <div>
+        <h2 id="about-heading" data-reveal="lines"><span class="line"><span>保持好奇，</span></span><span class="line"><span>慢慢做。</span></span></h2>
+        <p data-reveal>{journal.about}</p>
+        <p class="home-about-note" data-reveal>这个空间会随着项目一起生长。介绍文字为初稿，笔记目录暂为写作提纲占位，之后逐步换成真实的过程与记录。</p>
+        <a class="home-more" href="/notes/" data-reveal>从一则笔记开始 <span aria-hidden="true">↗</span></a>
+      </div>
+    </div>
+  </section>
+
+  <section class="home-outro page-width" aria-label="站点导航">
+    <ul class="home-outro-links" data-reveal>
+      <li><a href="/work/">Work <span aria-hidden="true">↗</span></a></li>
+      <li><a href="/notes/">Notes <span aria-hidden="true">↗</span></a></li>
+      <li><a href="https://github.com/XJH-Jorhai">GitHub <span aria-hidden="true">↗</span></a></li>
+    </ul>
+    <p class="home-wordmark" aria-hidden="true" data-reveal="lines"><span class="line"><span>FIELDNOTES</span></span></p>
+  </section>
 </PageShell>

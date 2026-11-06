@@ -3,14 +3,16 @@ import { getCollection } from 'astro:content';
 import ProjectVisual from './ProjectVisual.astro';
 import { assetsFor } from '../data/projects';
 import { workIndexCopy } from '../data/work-index';
+interface Props { numbered?: boolean }
+const { numbered = false } = Astro.props;
 const projects = (await getCollection('projects')).sort((a,b) => a.id.localeCompare(b.id));
 ---
     <section class:list={['work-gallery',{'work-gallery--single':projects.length===1}]} aria-label="Selected work">
-      {projects.map(({id}) => <article class="work-item">
+      {projects.map(({id},index) => <article class="work-item">
         <a class="work-cover" href={`/projects/${id}/`} aria-labelledby={`${id}-title`}>
           <ProjectVisual assets={assetsFor(`${id}-cover`)} mode="home" alt={workIndexCopy[id]!.alt} caption="" sizes="(max-width:488px) calc(100vw - 44px), (max-width:760px) 91vw, (min-width:1584px) 696px, 44vw" showCaption={false} previewOnHover />
         </a>
-        <div class="work-caption"><p class="work-tags">{workIndexCopy[id]!.tags}</p><h2 id={`${id}-title`}><a class="work-title-link" href={`/projects/${id}/`}><span class="title-arrow" aria-hidden="true">→</span><span class="title-label">{workIndexCopy[id]!.title}</span></a></h2></div>
+        <div class="work-caption">{numbered && <span class="work-number" aria-hidden="true">{String(index+1).padStart(2,'0')}</span>}<p class="work-tags">{workIndexCopy[id]!.tags}</p><h2 id={`${id}-title`}><a class="work-title-link" href={`/projects/${id}/`}><span class="title-arrow" aria-hidden="true">→</span><span class="title-label">{workIndexCopy[id]!.title}</span></a></h2></div>
       </article>)}
     </section>
 
@@ -21,7 +23,8 @@ const projects = (await getCollection('projects')).sort((a,b) => a.id.localeComp
   .work-cover {display:block;}
   .work-cover :global(.project-visual) {width:100%;}
   .work-cover :global(.visual-frame) {width:100%;}
-  .work-caption {padding-top:23px;}
+  .work-caption {padding-top:23px;position:relative;}
+  .work-number {position:absolute;right:0;top:23px;font:12px var(--font-mono);letter-spacing:.08em;color:var(--color-muted);}
   .work-tags {font-size:13px;line-height:1.6;color:var(--color-muted);margin-bottom:12px;letter-spacing:0;text-transform:none;}
   h2 {font-size:clamp(23px,2.25vw,36px);font-weight:400;line-height:1.45;letter-spacing:-.035em;}
   .work-title-link {display:block;position:relative;white-space:nowrap;--arrow-space:1.2em;}

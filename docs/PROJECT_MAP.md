@@ -1,30 +1,29 @@
 # 项目资料索引
 
-## 当前站点
+## 现行文档（根目录）
 
-Astro 静态博客，三类入口：Blog `/`、Work `/work/`、Notes `/notes/`。两篇项目详情位于 `/projects/project-01/` 和 `/projects/project-02/`；原 Work 配色实验路由继续保留。
-
-| 需要修改 | 入口 |
+| 文件 | 内容 |
 | --- | --- |
-| 首页介绍与笔记占位 | `src/data/journal.ts` |
-| 项目正文与元信息 | `src/content/projects/*.md` |
-| 首页、Notes、Work 路由 | `src/pages/` |
-| 统一大标题、作品与笔记列表 | `src/components/IndexHeading.astro`、`WorkGallery.astro`、`NoteList.astro` |
-| 矿物浅色主题 | `src/data/work-themes.ts` |
-| 字体、间距及共用排版 | `src/styles/` |
-| WebGL 与流场 | `src/lib/scene/` |
-| 图片与代理深度配方 | `inputs/image-recipe.json`、`inputs/depth/` |
-| 已优化的发布素材 | `public/media/`、`src/data/*.assets.json` |
-| GitHub 自动检查与发布 | `.github/workflows/pages.yml` |
+| `README.md` | 项目简介与快速开始 |
+| `design.md` | 视觉与交互规范（现状） |
+| `REFERENCES.md` | 视觉参考与灵感网站 |
+| `RUNBOOK.md` | 命令、改内容、换图、诊断 |
+| `AGENTS.md` | 代理协作规则与已确认的用户决定 |
+| `CONTRIBUTING.md` | 分支、PR 与发布流程 |
 
-## 规范与状态
+## 技术规范（docs/）
 
-- `AGENTS.md`：代理协作规则；顶部最新约定优先于旧版本要求。
-- `CONTRIBUTING.md`：GitHub 分支、PR、检查和发布流程。
-- `RUNBOOK.md`：环境、内容维护、图片处理与历史运行记录。
-- `design.md`、`WEBGL_SPEC.md`、`IMAGE_PIPELINE.md`：设计和渲染规范。
-- `reports/blog-index.md`：Blog / Notes / Work 统一风格的验收。
-- `reports/parallax-refinement.md`、`reports/work-index.md`：既有作品视差及画廊记录。
-- `ACCEPTANCE.md`、`CODEX_TASK.md`、`UPGRADE_FROM_V1.md`、`REQUIREMENTS_README.md`：阶段任务和历史基线；景深相关旧要求已被最新清晰视差约定覆盖。
+- `docs/WEBGL_SPEC.md`：深度、几何与渲染数据约定。其中景深/换焦条款已被「作品图不模糊」的决定取代。
+- `docs/IMAGE_PIPELINE.md`：原图到发布素材的处理流程。
 
-父目录中的旧 v1 要求包、论文原件、重复素材及旧快照不复制进网站仓库。此仓库以当前可运行项目为基础整理，所有原始本地资料仍保留。
+## 素材记录（reports/）
+
+由图片脚本自动生成：`image-processing.md`、`image-depth-processing.md`、`project-02-image-processing.md`。
+
+## 历史（docs/archive/）
+
+仅供追溯，不再作为现行要求：
+
+- `brief-v2/`：v2 需求包（ACCEPTANCE、CODEX_TASK、REQUIREMENTS_README、UPGRADE_FROM_V1）。
+- `reports/`：各轮实现与验证报告。文中提到的本地截图路径大多不在仓库中。
+- `AGENTS-v2.md`、`RUNBOOK-history.md`：旧版规则与维护记录。

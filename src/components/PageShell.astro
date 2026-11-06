@@ -13,6 +13,7 @@ const colors = Object.entries(palette).map(([role,value]) => `--color-${role}:${
 <html lang={language ?? (english ? 'en' : 'zh-CN')} style={colors}>
   <head>
     <meta charset="UTF-8" />
+    <script is:inline>document.documentElement.classList.add('js')</script>
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <meta name="description" content={description} />
     <meta name="theme-color" content={palette.base} />
@@ -24,12 +25,14 @@ const colors = Object.entries(palette).map(([role,value]) => `--color-${role}:${
     <a class="skip-link" href="#main">{english ? 'Skip to content' : '跳至正文'}</a>
     <header class="site-header page-width">
       <a class="wordmark" href="/" aria-label={english ? 'Fieldnotes home' : `${site.name}，主页`}><span class="wordmark-symbol" aria-hidden="true">∴</span>{name}{!english && <span class="wordmark-en" lang="en">FIELDNOTES</span>}</a>
-      <nav aria-label={english ? 'Main navigation' : '主导航'}><a href="/" aria-current={pathname === '/' ? 'page' : undefined}>Blog</a><a href="/work/" aria-current={pathname.startsWith('/work') || pathname.startsWith('/experiments/work-index') ? 'page' : undefined}>{english ? 'Work' : '项目'}</a><a href="/notes/" aria-current={pathname.startsWith('/notes') ? 'page' : undefined}>{english ? 'Notes' : '记录'}</a></nav>
+      <nav aria-label={english ? 'Main navigation' : '主导航'}><a href="/" aria-current={pathname === '/' ? 'page' : undefined}>Blog</a><a href="/work/" aria-current={pathname.startsWith('/work') ? 'page' : undefined}>{english ? 'Work' : '项目'}</a><a href="/notes/" aria-current={pathname.startsWith('/notes') ? 'page' : undefined}>{english ? 'Notes' : '记录'}</a></nav>
     </header>
     <main id="main"><slot /></main>
     <footer class="site-footer page-width"><a href="/">{name}<span aria-hidden="true"> ↗</span></a><p>{english ? 'An ongoing collection of work and thoughts.' : site.footer}</p><a href="#main">{english ? 'Back to top ↑' : '返回顶部 ↑'}</a></footer>
     <script>
       import { initMotion } from '../lib/motion';
+      import { initReveal } from '../lib/motion/reveal';
+      initReveal();
       initMotion();
     </script>
   </body>

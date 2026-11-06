@@ -32,4 +32,4 @@ Positive distance in arbitrary scene units. Reference camera at origin looks -Z.
 
 ## 对照与重建
 
-原图／海报对照：reports/evidence/source-vs-processed.png；完整验证见 reports/validation.md。运行 npm run images 可重建颜色、代理JSON、深度PNG与环境延展；构建不执行推理或联网。换照片必须重新核对多边形与焦点，不可沿用旧轮廓。
+原图／海报对照：reports/evidence/source-vs-processed.png；完整验证见 docs/archive/reports/validation.md。运行 npm run images 可重建颜色、代理JSON、深度PNG与环境延展；构建不执行推理或联网。换照片必须重新核对多边形与焦点，不可沿用旧轮廓。

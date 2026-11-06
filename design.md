@@ -1,8 +1,8 @@
 # design.md
 
-版本 3.0 · 2026-11-06
+版本 3.1 · 2026-11-06
 
-这份文档说明 FIELDNOTES 博客**现在**长什么样、怎么动、为什么这样做。它只描述现状，不记录过程；历史版本见 `reports/design-v2.3-before-rewrite.md`。
+这份文档说明 FIELDNOTES 博客**现在**长什么样、怎么动、为什么这样做。它只描述现状，不记录过程；历史版本见 `docs/archive/reports/design-v2.3-before-rewrite.md`。
 
 修改设计时：先改代码，再改本文对应小节，保持两者一致。数值以代码为准。
 
@@ -28,14 +28,18 @@
 | `/work/` | 作品索引 | Mineral Fog（浅色） |
 | `/notes/` | 笔记目录（当前为明确标注的草稿占位） | Mineral Fog（浅色） |
 | `/projects/<id>/` | 项目详情，长文阅读 | 取自项目素材（深色） |
-| `/experiments/work-index-*` | 配色实验页，仅保留 | 各自主题 |
 
-索引页（首页、Work、Notes）共用同一骨架：
+所有页面共用页头（字标 `∴ FIELDNOTES` + 导航 Blog / Work / Notes）和页脚（站名、一句话、返回顶部）。
 
-1. 页头：字标 `∴ FIELDNOTES` + 导航 Blog / Work / Notes。
-2. 超大标题（`IndexHeading`）：如 `BLOG`、`WORK`、`NOTES`，右下角一个斜向箭头和一行等宽小字标签。
-3. 两栏分区：左窄栏放编号小标题（`01 / SELECTED WORK`），右宽栏放内容。分区之间用一条细线分隔。
-4. 页脚：站名、一句话、返回顶部。
+**首页 `/`**（v2，2026-11-06，参考 Lusion 的节奏）：
+
+1. 首屏（约一屏高）：等宽小标签 `(FIELDNOTES) — …` → 超大中文主张「把想法做成实物，也把过程留在这里。」作为 `h1` → 右侧铁傀儡作为首屏「实物」→ 底部细线下一行：简介、站点概况（Work / Notes 数量、关注方向）、`↓ Scroll`。
+2. `(01) Selected Work`：大号英文分区标题，作品双栏封面，标题下带编号。
+3. `(02) Notes & Observations`：三条笔记预览。
+4. `(03) About`：全宽深色带（底色用 text 色、文字用 base 色），全站唯一的深色区块，用来制造节奏对比。
+5. 结尾：Work / Notes / GitHub 链接 + 一行超大 `FIELDNOTES` 字标。
+
+**Work、Notes**：超大标题（`IndexHeading`：`WORK`、`NOTES`）+ 右下斜向箭头与等宽小标签；下方为两栏分区，左窄栏放编号小标题，右宽栏放内容，分区间用细线分隔。
 
 详情页：返回链接 → 编号与类别 → 标题 → 摘要 → 主题标签 → 主图 → 左侧说明栏 + 右侧正文。
 
@@ -64,12 +68,14 @@
 
 - 正文：无衬线，`Segoe UI → PingFang SC → Microsoft YaHei`。
 - 小标签、编号、元信息：等宽，`Cascadia Code → Consolas`，常配合字距 `.08em`。
-- 索引页大标题：Arial，`clamp(108px, 22.4vw, 376px)`，行高 0.82，字距 -0.05em。
+- 首页主张：`clamp(44px, 7.4vw, 128px)`，字重 400，行高 1.08，字距 -0.045em；手机 `clamp(30px, 9.2vw, 56px)`。
+- 首页分区标题：`clamp(34px, 4.6vw, 76px)`；结尾字标 Arial `clamp(60px, 15.6vw, 262px)`。
+- Work / Notes 大标题：Arial，`clamp(108px, 22.4vw, 376px)`，行高 0.82，字距 -0.05em。
 - 详情页标题：`clamp(40px, 4.75vw, 72px)`，字重 450。
 - 正文 17px（手机 16px），行高 1.85，宽度上限 650px。
 - 层级用尺寸和位置表达，少用加粗。正文与元信息对比度至少 4.5:1。
 
-来源：`src/styles/tokens.css`、`global.css`、`journal.css`。
+来源：`src/styles/tokens.css`、`global.css`、`journal.css`、`home.css`。
 
 ### 间距
 
@@ -79,7 +85,7 @@
 
 ## 5. 交互
 
-所有动效只在「桌面 + 精细指针 + 未要求减少动效」时启用。其他情况一律显示静态版本。
+WebGL 和鼠标相关动效只在「桌面 + 精细指针 + 未要求减少动效」时启用，其他情况显示静态版本。滚动出现（5.6）在手机上也生效，只在减少动效时关闭。
 
 ### 5.1 项目主图（详情页）
 
@@ -99,11 +105,13 @@
 - 封面之下有一层流体光效（`MineralFluid`），会在封面内产生轻微折射。
 - 标题 hover / 键盘聚焦时，左侧滑出一个 `→`，文字右移让位。
 
-### 5.3 背景流场
+### 5.3 鼠标流光（索引页）与背景流场（详情页）
 
-- 鼠标划过页面时留下低对比、会扩散和慢慢消失的流动痕迹（约 2.8s 内消退），静止后停止渲染。
-- 覆盖整个 main 区域，不只在照片后面。
-- 永远不扭曲正文或照片本身，不拦截点击。
+- **索引页**（`MineralFluid`，基于 three-fluid-fx）：鼠标划过留下一条柔和的粉彩光带（青 → 紫 → 杏），像一层薄膜的反光。光带是有体积的柔边，不是细线轮廓；随流体惯性甩开、扩散，约 2–3 秒淡出。最大不透明度 0.6，边缘只有很淡的高光。
+- 铁傀儡每次活塞收回会在原地轻轻推开一圈流光（强度已调低，避免盖过鼠标轨迹）。
+- **详情页**（`FlowField`）：低对比的流动痕迹，约 2.8s 内消退。
+- 两者都在静止后停止渲染，不扭曲正文，不拦截点击。深色 About 区块会盖住流光。
+- 不要回到：硬边彩虹描线、方形光框、残留拖影。
 
 ### 5.4 文字与链接
 
@@ -113,9 +121,16 @@
 
 ### 5.5 首页铁傀儡
 
-首页介绍区有一个小型 WebGL 铁傀儡活塞动画，带暂停按钮；静态模式下显示海报图并隐藏按钮。
+首页首屏右侧的 WebGL 铁傀儡活塞动画（宽 `clamp(200px, 22vw, 340px)`），带暂停按钮；静态模式下显示海报图并隐藏按钮。
 
-### 5.6 降级规则
+### 5.6 滚动出现（首页）
+
+- 带 `data-reveal` 的元素进入视口时出现一次：大标题按行从遮罩下方升起（1.15s，`cubic-bezier(.16,1,.3,1)`，逐行错开 0.08s）；其他文字上移 28px 并淡入；铁傀儡只淡入（WebGL 按测得的位置绘制，不能位移）。
+- **作品封面不加出现动画**，原因同上。
+- 只有 JS 可用且未要求减少动效时才隐藏初始状态；无 JS、减少动效时内容直接可见。
+- 实现：`src/lib/motion/reveal.ts` + `global.css` 末尾的规则。
+
+### 5.7 降级规则
 
 | 情况 | 行为 |
 | --- | --- |
@@ -148,7 +163,10 @@
 | 相机与入场时间轴（详情页） | `src/lib/scene/runtime.ts` |
 | 封面画廊 | `src/lib/scene/GalleryScene.ts` |
 | 边缘拉伸 shader | `src/lib/scene/PostPipeline.ts` |
-| 背景流场 | `src/lib/scene/FlowField.ts` |
+| 鼠标流光（索引页） | `src/lib/scene/MineralFluid.ts`（着色）、`fluidSettings.ts`（力度、半径、淡出等） |
+| 背景流场（详情页） | `src/lib/scene/FlowField.ts` |
+| 首页结构与样式 | `src/pages/index.astro`、`src/styles/home.css` |
+| 滚动出现 | `src/lib/motion/reveal.ts` |
 | 文字滞后、共享帧调度 | `src/lib/motion/` |
 | 配色 | `src/data/work-themes.ts`、`src/data/*.assets.json` |
 | 字体、间距、箭头、减少动效样式 | `src/styles/` |
@@ -177,5 +195,5 @@
 5. 视角幅度沿用共享参数，不设项目级覆盖。
 6. 运行 `npm run check`、`npm run build`，并在浏览器里实际看一遍。
 
-详细流程见 `IMAGE_PIPELINE.md`、`RUNBOOK.md`。
+详细流程见 `docs/IMAGE_PIPELINE.md`、`RUNBOOK.md`。
 

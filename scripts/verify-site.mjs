@@ -20,9 +20,9 @@ try {
   for (const width of [1440, 768, 360]) {
     const page=await browser.newPage({viewport:{width,height:1000},reducedMotion:'reduce',isMobile:width===360,hasTouch:width===360});
     page.on('pageerror', error => errors.push(String(error)));
-    for (const [path,title] of [['/','BLOG'],['/notes/','NOTES'],['/work/','WORK']]) {
+    for (const [path,title] of [['/','把想法做成实物'],['/notes/','NOTES'],['/work/','WORK']]) {
       assert.equal((await page.goto(base+path)).status(),200);
-      assert.equal(await page.locator('h1').textContent(),title);
+      assert.ok((await page.locator('h1').textContent()).includes(title),`${path}: h1`);
       assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),`${path}: overflow at ${width}`);
       await page.locator('img').evaluateAll(images=>Promise.all(images.map(image=>image.decode())));
     }

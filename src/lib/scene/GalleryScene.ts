@@ -1,4 +1,3 @@
-import {createFluidPanel} from './FluidPanel';
 import * as T from 'three';
 import {assetsFor} from '../../data/projects';
 import {DepthScene,type ProxyData} from './DepthScene';
@@ -32,7 +31,6 @@ export async function createGallery(elements:HTMLElement[],pointer:SharedPointer
  const canvas=renderer.domElement;canvas.className='spatial-canvas';canvas.setAttribute('aria-hidden','true');document.querySelector('main')!.prepend(canvas);
  const base=getComputedStyle(document.documentElement).getPropertyValue('--color-base').trim();
  const flow=document.querySelector('[data-mineral-sheen]')?new MineralFluid(renderer):undefined;
- const panel=flow&&location.pathname==="/experiments/work-index-b/"?createFluidPanel(flow,wake):undefined;
  const piston=await createPistonGolem(renderer,wake,(x,y,force)=>flow?.strike(x,y,force)).catch(error=>{console.warn('Original piston poster retained.',error);return undefined;});
  let viewportWidth=innerWidth,viewportHeight=innerHeight;
  const from=new T.Vector2(),to=new T.Vector2(),velocity=new T.Vector2(),measured=new T.Vector2();
@@ -65,7 +63,6 @@ export async function createGallery(elements:HTMLElement[],pointer:SharedPointer
   renderer.setRenderTarget(null);renderer.setScissorTest(false);renderer.setViewport(0,0,innerWidth,innerHeight);renderer.setClearColor(0,0);renderer.clear();
   if(flow){
    inputElapsed+=dt;let inject=false;
-   if(panel?.hovered){initialized=false;pointerVersion=pointer.version;inputElapsed=0;}
    if(pointer.version!==pointerVersion){
     to.set(pointer.x/innerWidth,1-pointer.y/innerHeight);
     if(pointer.inside){
@@ -84,7 +81,7 @@ export async function createGallery(elements:HTMLElement[],pointer:SharedPointer
   for(const c of covers){
    const r=c.bounds;
    if(r.bottom<=0||r.top>=innerHeight){c.x=c.y=0;c.active=false;c.elapsed=galleryTransition.exitDuration;c.element.dataset.renderer='static';continue;}
-   const active=!panel?.hovered&&pointer.inside&&pointer.x>=r.left&&pointer.x<=r.right&&pointer.y>=r.top&&pointer.y<=r.bottom;
+   const active=pointer.inside&&pointer.x>=r.left&&pointer.x<=r.right&&pointer.y>=r.top&&pointer.y<=r.bottom;
    if(active){const tx=(pointer.x-r.left)/r.width*2-1,ty=(pointer.y-r.top)/r.height*2-1,a=1-Math.exp(-dt/config.response);c.x+=(tx-c.x)*a;c.y+=(ty-c.y)*a;pending ||= Math.abs(tx-c.x)>.0001||Math.abs(ty-c.y)>.0001;}
    else{
     if(c.active){c.exitX=c.x;c.exitY=c.y;c.elapsed=0;}
@@ -106,5 +103,5 @@ export async function createGallery(elements:HTMLElement[],pointer:SharedPointer
  if(diagnostics)Object.assign(window,{__gallery:{snapshot,piston:piston?{seek:piston.seek,setPaused:piston.setPaused}:undefined,clearFlow:()=>{flow?.clear();wake();},inspectFlow:()=>flow?.inspect(),captureRefraction:(enabled:boolean)=>{for(const c of covers)c.pipeline.blitMaterial.uniforms.refractionStrength!.value=enabled?1:0;tick(0);return canvas.toDataURL();}}});
  const onLost=(e:Event)=>{e.preventDefault();lost=true;pause();for(const c of covers)c.element.dataset.renderer='static-context-lost';};canvas.addEventListener('webglcontextlost',onLost);
  resize();tick(0);
- return {tick,resize,pause,dispose(){if(dead)return;dead=true;canvas.removeEventListener('webglcontextlost',onLost);piston?.dispose();panel?.dispose();flow?.dispose();for(const c of covers){c.depth.dispose();c.pipeline.dispose();c.element.dataset.renderer='static';}renderer.dispose();renderer.forceContextLoss();canvas.remove();if(diagnostics)Object.assign(window,{__gallery:undefined});}};
+ return {tick,resize,pause,dispose(){if(dead)return;dead=true;canvas.removeEventListener('webglcontextlost',onLost);piston?.dispose();flow?.dispose();for(const c of covers){c.depth.dispose();c.pipeline.dispose();c.element.dataset.renderer='static';}renderer.dispose();renderer.forceContextLoss();canvas.remove();if(diagnostics)Object.assign(window,{__gallery:undefined});}};
 }

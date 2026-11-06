@@ -14,8 +14,6 @@
     "check": "node scripts/astro.mjs check && node scripts/validate-content.mjs",
     "build": "node scripts/astro.mjs build",
     "preview": "node scripts/astro.mjs preview --host 127.0.0.1 --port 4321",
-    "test:browser": "node scripts/verify-parallax-refinement.mjs",
-    "test:webgl": "node scripts/verify-parallax-refinement.mjs",
     "check:sources": "node scripts/validate-content.mjs --sources",
     "test:site": "node scripts/verify-site.mjs",
     "test:piston": "node scripts/verify-piston-impact.mjs"

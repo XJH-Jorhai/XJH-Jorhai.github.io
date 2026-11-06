@@ -57,7 +57,7 @@ ${proxy.mapping}
 
 ## 对照与重建
 
-原图／海报对照：reports/evidence/source-vs-processed.png；完整验证见 reports/validation.md。运行 npm run images 可重建颜色、代理JSON、深度PNG与环境延展；构建不执行推理或联网。换照片必须重新核对多边形与焦点，不可沿用旧轮廓。
+原图／海报对照：reports/evidence/source-vs-processed.png；完整验证见 docs/archive/reports/validation.md。运行 npm run images 可重建颜色、代理JSON、深度PNG与环境延展；构建不执行推理或联网。换照片必须重新核对多边形与焦点，不可沿用旧轮廓。
 `;
 await writeFile('reports/image-depth-processing.md',report);
 await writeFile('reports/image-processing.md','# v2 图片流程\n\n当前完整记录见 [image-depth-processing.md](image-depth-processing.md)。v1 记录与实现保存在 v1-snapshot；其屏幕空间聚焦描述不再适用于当前网页。\n');

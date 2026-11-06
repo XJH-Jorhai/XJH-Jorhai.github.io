@@ -6,24 +6,28 @@ const vertexShader=`varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMa
 /** Shared optical response; field coordinates are viewport UV, independent of photo UV. */
 export const fluidOptics=`
  uniform sampler2D fluidVelocity,fluidDensity;uniform vec2 fluidTexel,velocityTexel;uniform float fluidFade,lightGain,bendGain;
+ // Soft 13-tap gather: the band reads as a body of light, not an outline.
+ vec3 fluidSample(vec2 uv){
+  vec2 t=fluidTexel*2.5;vec3 s=texture2D(fluidDensity,uv).xyz*.2;
+  for(int i=0;i<12;i++){float a=float(i)*.5235988;float r=i<6?1.:2.;s+=texture2D(fluidDensity,uv+vec2(cos(a),sin(a))*t*r).xyz*(i<6?.08:.0533);}
+  return s;
+ }
  vec3 fluidLight(vec2 uv,out float alpha,out vec2 bend){
-  vec2 v=(texture2D(fluidDensity,uv).xy*4.+texture2D(fluidDensity,uv+vec2(fluidTexel.x,0)).xy+texture2D(fluidDensity,uv-vec2(fluidTexel.x,0)).xy+texture2D(fluidDensity,uv+vec2(0,fluidTexel.y)).xy+texture2D(fluidDensity,uv-vec2(0,fluidTexel.y)).xy)/8.;
-  float d=max(0.,texture2D(fluidDensity,uv).b);
-  vec2 g=vec2(texture2D(fluidDensity,uv+vec2(fluidTexel.x,0)).b-texture2D(fluidDensity,uv-vec2(fluidTexel.x,0)).b,
-   texture2D(fluidDensity,uv+vec2(0,fluidTexel.y)).b-texture2D(fluidDensity,uv-vec2(0,fluidTexel.y)).b);
+  vec3 f=fluidSample(uv);
+  vec2 v=f.xy;float d=max(0.,f.z);
   float speed=length(v);
-  float energy=1.-exp(-speed*24.);
-  float presence=1.-exp(-d*28.);
-  // Optical color follows the local transported momentum, not a density outline.
-  float phase=6.*speed/(speed+.5)+dot(v,vec2(.5,-.25));
-  float hue=.5+.5*sin(phase*2.-1.);
-  vec3 color=mix(vec3(.22,.70,.96),vec3(.68,.43,.82),smoothstep(.05,.55,hue));
-  color=mix(color,vec3(1.,.65,.41),smoothstep(.55,1.,hue));
-  vec2 shear=vec2(length(texture2D(fluidDensity,uv+vec2(fluidTexel.x,0)).xy)-length(texture2D(fluidDensity,uv-vec2(fluidTexel.x,0)).xy),length(texture2D(fluidDensity,uv+vec2(0,fluidTexel.y)).xy)-length(texture2D(fluidDensity,uv-vec2(0,fluidTexel.y)).xy));
-  float rim=pow(1.-exp(-length(shear)*14.),1.5);
-  alpha=clamp(lightGain*energy*presence*fluidFade*(.012+.8*rim),0.,.8);
-  bend=(v*.08+g*.005)*presence*fluidFade;
-  bend=clamp(bend*bendGain,vec2(-.018),vec2(.018));
+  float presence=smoothstep(0.,.32,1.-exp(-d*10.));
+  float energy=1.-exp(-speed*14.);
+  vec2 g=vec2(fluidSample(uv+vec2(fluidTexel.x*3.,0)).z-fluidSample(uv-vec2(fluidTexel.x*3.,0)).z,fluidSample(uv+vec2(0,fluidTexel.y*3.)).z-fluidSample(uv-vec2(0,fluidTexel.y*3.)).z);
+  // Thin-film style hue: travel direction plus thickness, drifting slowly through a pastel ramp.
+  float hue=fract(atan(v.y,v.x)/6.2831853+d*.9+.15);
+  vec3 cyan=vec3(.40,.76,.92),violet=vec3(.62,.53,.92),peach=vec3(1.,.70,.56);
+  vec3 color=hue<.33?mix(cyan,violet,hue*3.):hue<.66?mix(violet,peach,hue*3.-1.):mix(peach,cyan,hue*3.-2.);
+  float sheen=smoothstep(.0,.06,length(g))*presence;
+  color=mix(color,vec3(1.),sheen*.35);
+  alpha=clamp(lightGain*fluidFade*presence*(.30+.28*energy+.10*sheen),0.,.6);
+  bend=(v*.06+g*.02)*presence*fluidFade;
+  bend=clamp(bend*bendGain,vec2(-.012),vec2(.012));
   return color;
  }`;
 export class MineralFluid {
@@ -63,7 +67,7 @@ export class MineralFluid {
  /** One radial force impulse in the very same velocity/density solver as the pointer. */
  strike(x:number,y:number,force:number){
   if(![x,y,force].every(Number.isFinite)||force<=0)return;
-  const strength=Math.min(force,180)/100;
+  const strength=Math.min(force,180)/100*.35;
   const size=this.solver.velocityTexture.image as {width:number;height:number};
   const radius=22/innerHeight,aspect=innerHeight/innerWidth;
   for(let i=0;i<16;i++){

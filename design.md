@@ -2,7 +2,7 @@
 
 版本 3.0 · 2026-11-06
 
-这份文档说明 FIELDNOTES 博客**现在**长什么样、怎么动、为什么这样做。它只描述现状，不记录过程；历史版本见 `reports/design-v2.3-before-rewrite.md`。
+这份文档说明 FIELDNOTES 博客**现在**长什么样、怎么动、为什么这样做。它只描述现状，不记录过程；历史版本见 `docs/archive/reports/design-v2.3-before-rewrite.md`。
 
 修改设计时：先改代码，再改本文对应小节，保持两者一致。数值以代码为准。
 
@@ -177,5 +177,5 @@
 5. 视角幅度沿用共享参数，不设项目级覆盖。
 6. 运行 `npm run check`、`npm run build`，并在浏览器里实际看一遍。
 
-详细流程见 `IMAGE_PIPELINE.md`、`RUNBOOK.md`。
+详细流程见 `docs/IMAGE_PIPELINE.md`、`RUNBOOK.md`。
 

@@ -89,12 +89,12 @@
 - **幅度**：横向 yaw 0.7°，纵向 pitch 0.45°。这是用户确认的统一基线，所有作品共用，**不要擅自加大**。
 - **方向**：鼠标在哪一侧，那一侧向内收。
 - **跟随**：观察时约 0.08s 跟上鼠标；离开后约 0.45s 回到正面。
-- **鼠标进入时**：一次 0.36s 的短过渡——画面轻微失焦（峰值 3.3px）并带极小抖动（≤0.75px），同时相机转到目标视角；结束时模糊和抖动精确归零，相机正好到位。鼠标在图内移动不会再次触发。
-- **边缘**：外圈约 1.6px 的轻柔焦 + 很浅的内阴影，外围画面平滑拉伸贴到框边（中央不变形）。没有黑边、镜像带或拼接。
+- **鼠标进入时**：一次 0.36s 的短过渡——相机转到目标视角，带极小抖动（≤0.75px）；结束时抖动精确归零，相机正好到位。全程**不模糊、不闪亮**，画面始终清晰。鼠标在图内移动不会再次触发。
+- **边缘**：很浅的内阴影，外围画面平滑拉伸贴到框边（中央不变形）。没有柔焦、黑边、镜像带或拼接。
 
 ### 5.2 作品封面（首页、Work）
 
-- 使用同样的视角参数（0.7° / 0.45°）和分层，但**没有**入场失焦和边缘柔焦，画面始终清晰。
+- 使用同样的视角参数（0.7° / 0.45°）和分层，画面始终清晰。
 - 鼠标离开后，用 6 秒平滑缓慢回到正面。
 - 封面之下有一层流体光效（`MineralFluid`），会在封面内产生轻微折射。
 - 标题 hover / 键盘聚焦时，左侧滑出一个 `→`，文字右移让位。
@@ -132,7 +132,7 @@
 - 照片出框、卡片向外凸起
 - 明显的黑色镜框、镜像边带、拼接侧壁
 - 色散、曝光闪烁
-- 随鼠标持续变化的景深 / 换焦
+- 任何模糊：景深、换焦、入场失焦、边缘柔焦
 - 绕圈或持续漂移的抖动
 - 过渡结束后还在慢慢追赶的相机
 - 用 CSS transform 平移整张图代替真实视差
@@ -142,12 +142,12 @@
 
 | 想改什么 | 文件 |
 | --- | --- |
-| 视角幅度、跟随/回正时间、入场过渡、边缘柔焦、DPR、流场尺寸 | `src/lib/scene/config.ts` |
+| 视角幅度、跟随/回正时间、入场过渡、DPR、流场尺寸 | `src/lib/scene/config.ts` |
 | 封面回正时长 | `src/lib/scene/config.ts` → `galleryTransition` |
 | 封面流体光效 | `src/lib/scene/fluidSettings.ts` |
 | 相机与入场时间轴（详情页） | `src/lib/scene/runtime.ts` |
 | 封面画廊 | `src/lib/scene/GalleryScene.ts` |
-| 边缘拉伸与柔焦 shader | `src/lib/scene/PostPipeline.ts` |
+| 边缘拉伸 shader | `src/lib/scene/PostPipeline.ts` |
 | 背景流场 | `src/lib/scene/FlowField.ts` |
 | 文字滞后、共享帧调度 | `src/lib/motion/` |
 | 配色 | `src/data/work-themes.ts`、`src/data/*.assets.json` |
@@ -161,8 +161,8 @@
 | --- | --- |
 | yaw / pitch | 0.7° / 0.45° |
 | response / returnTime | 0.08s / 0.45s |
-| entryDuration / entryBlur / entryJitter / entryFlash | 0.36s / 3.3px / 0.75px / 0 |
-| edgeBlur | 1.6px |
+| entryDuration / entryJitter | 0.36s / 0.75px |
+| entryBlur / edgeBlur / entryFlash | 0 / 0 / 0（保持为 0） |
 | insetPerspective | 1.025 |
 | dpr 上限 | 2 |
 | flowSize / flowLifetime | 256 / 2.8s |
@@ -179,6 +179,3 @@
 
 详细流程见 `IMAGE_PIPELINE.md`、`RUNBOOK.md`。
 
-## 9. 待确认
-
-- `AGENTS.md` 顶部 2026-10-25 的备注写着「主图移除景深模糊与对焦切换」，另一条又允许「约 700ms 的轻微亮度闪动、脱焦再恢复」。而当前代码是：详情页保留 0.36s 入场失焦（3.3px）且无亮度闪动（entryFlash = 0），封面完全没有失焦。本文按代码描述现状；需要用户确认最终想要哪一种，再统一代码和 AGENTS.md。

@@ -1,6 +1,6 @@
 # design.md
 
-版本 3.1 · 2026-11-06
+版本 3.2 · 2026-11-15
 
 这份文档说明 FIELDNOTES 博客**现在**长什么样、怎么动、为什么这样做。它只描述现状，不记录过程；历史版本见 `docs/archive/reports/design-v2.3-before-rewrite.md`。
 
@@ -31,13 +31,15 @@
 
 所有页面共用页头（字标 `∴ FIELDNOTES` + 导航 Blog / Work / Notes）和页脚（站名、一句话、返回顶部）。
 
-**首页 `/`**（v2，2026-11-06，参考 Lusion 的节奏）：
+**首页 `/`**（v3，2026-11-15）：首屏有三个可选方向，组件在 `src/components/home/`：
 
-1. 首屏（约一屏高）：等宽小标签 `(FIELDNOTES) — …` → 超大中文主张「把想法做成实物，也把过程留在这里。」作为 `h1` → 右侧铁傀儡作为首屏「实物」→ 底部细线下一行：简介、站点概况（Work / Notes 数量、关注方向）、`↓ Scroll`。
-2. `(01) Selected Work`：大号英文分区标题，作品双栏封面，标题下带编号。
-3. `(02) Notes & Observations`：三条笔记预览。
-4. `(03) About`：全宽深色带（底色用 text 色、文字用 base 色），全站唯一的深色区块，用来制造节奏对比。
-5. 结尾：Work / Notes / GitHub 链接 + 一行超大 `FIELDNOTES` 字标。
+- **A 徽标**（`HeroEmblem`，当前默认）：首屏几乎是空的，只有居中的 `∴` 三点标志、字距很宽的 `FIELDNOTES` 和一行小字「研究 · 制作 · 观察 ／ 个人博客」。三个点依次出现，文字随后淡入；下滑时整组后退淡出。
+- **B 影像**（`HeroCinema`）：作品封面全宽轮播，每张 7 秒，缓慢推近（不模糊），左下角是编号、标题和标签，右下角是进度条，右上角有暂停按钮。减少动效时不自动播放。
+- **C 身份卡**（`HeroCard`）：居中一张像名片/标签的半透明卡片，写着 FIELDNOTES、关注方向、作品与笔记数量、GitHub。鼠标下有很轻的倾斜和高光。
+
+首屏之后依次是：`(00) Hello` 简介带（左边铁傀儡，右边一句介绍、简介和站点概况）→ `(01) Selected Work` → `(02) Notes` → `(03) About` 深色带 → 链接与超大 `FIELDNOTES` 字标。
+
+三个方向都可在 `/preview/emblem/`、`/preview/cinema/`、`/preview/card/` 对比（带 noindex，右下角有切换条）。选定后删除 `src/pages/preview/` 和没选中的组件。
 
 **Work、Notes**：超大标题（`IndexHeading`：`WORK`、`NOTES`）+ 右下斜向箭头与等宽小标签；下方为两栏分区，左窄栏放编号小标题，右宽栏放内容，分区间用细线分隔。
 
@@ -68,7 +70,7 @@
 
 - 正文：无衬线，`Segoe UI → PingFang SC → Microsoft YaHei`。
 - 小标签、编号、元信息：等宽，`Cascadia Code → Consolas`，常配合字距 `.08em`。
-- 首页主张：`clamp(44px, 7.4vw, 128px)`，字重 400，行高 1.08，字距 -0.045em；手机 `clamp(30px, 9.2vw, 56px)`。
+- 首页徽标字：`FIELDNOTES` 字距 0.42em，`clamp(15px, 1.25vw, 19px)`；简介带标题 `clamp(24px, 2.4vw, 36px)`。
 - 首页分区标题：`clamp(34px, 4.6vw, 76px)`；结尾字标 Arial `clamp(60px, 15.6vw, 262px)`。
 - Work / Notes 大标题：Arial，`clamp(108px, 22.4vw, 376px)`，行高 0.82，字距 -0.05em。
 - 详情页标题：`clamp(40px, 4.75vw, 72px)`，字重 450。
@@ -121,7 +123,7 @@ WebGL 和鼠标相关动效只在「桌面 + 精细指针 + 未要求减少动�
 
 ### 5.5 首页铁傀儡
 
-首页首屏右侧的 WebGL 铁傀儡活塞动画（宽 `clamp(200px, 22vw, 340px)`），带暂停按钮；静态模式下显示海报图并隐藏按钮。
+首页 `(00) Hello` 简介带左侧的 WebGL 铁傀儡活塞动画（宽 `clamp(180px, 18vw, 280px)`），带暂停按钮；静态模式下显示海报图并隐藏按钮。
 
 ### 5.6 滚动出现（首页）
 
@@ -165,7 +167,8 @@ WebGL 和鼠标相关动效只在「桌面 + 精细指针 + 未要求减少动�
 | 边缘拉伸 shader | `src/lib/scene/PostPipeline.ts` |
 | 鼠标流光（索引页） | `src/lib/scene/MineralFluid.ts`（着色）、`fluidSettings.ts`（力度、半径、淡出等） |
 | 背景流场（详情页） | `src/lib/scene/FlowField.ts` |
-| 首页结构与样式 | `src/pages/index.astro`、`src/styles/home.css` |
+| 首页结构与样式 | `src/components/home/`、`src/styles/home.css`；默认首屏在 `src/pages/index.astro` 里选 |
+| 首屏行为（下滑后退、卡片倾斜、轮播） | `src/lib/motion/hero.ts` |
 | 滚动出现 | `src/lib/motion/reveal.ts` |
 | 文字滞后、共享帧调度 | `src/lib/motion/` |
 | 配色 | `src/data/work-themes.ts`、`src/data/*.assets.json` |

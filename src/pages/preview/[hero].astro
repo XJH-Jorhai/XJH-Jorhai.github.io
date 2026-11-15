@@ -1,0 +1,9 @@
+---
+// 临时：首屏方向对比。用户选定后删除本目录。
+import HomePage, { type HeroVariant } from '../../components/home/HomePage.astro';
+export function getStaticPaths() {
+  return (['emblem','cinema','card'] as const).map(hero => ({ params: { hero } }));
+}
+const { hero } = Astro.params as { hero: HeroVariant };
+---
+<HomePage hero={hero} preview />

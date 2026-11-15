@@ -1,0 +1,23 @@
+---
+// B: 影像式。作品照片全宽轮播，缓慢推近，像一段无声的视频。
+import { getCollection } from 'astro:content';
+import { assetsFor } from '../../data/projects';
+import { workIndexCopy } from '../../data/work-index';
+const projects = (await getCollection('projects')).sort((a,b) => a.id.localeCompare(b.id));
+const slides = projects.map(({id}) => ({id, assets: assetsFor(`${id}-cover`), copy: workIndexCopy[id]!}));
+---
+<section class="hero hero-cinema" aria-labelledby="hero-title" data-cinema style={`--slides:${slides.length}`}>
+  <h1 id="hero-title" class="visually-hidden">FIELDNOTES — 作品影像</h1>
+  <div class="cinema-stage">
+    {slides.map((s,i) => <figure class="cinema-slide" style={`--i:${i}`} aria-hidden={i>0 ? 'true' : undefined}>
+      <img src={s.assets.poster.src} srcset={s.assets.poster.srcset} sizes="100vw" width={s.assets.poster.width} height={s.assets.poster.height} alt={i===0 ? s.copy.alt : ''} loading={i===0 ? 'eager' : 'lazy'} decoding="async" />
+      <figcaption>
+        <span class="cinema-index">{String(i+1).padStart(2,'0')} / {String(slides.length).padStart(2,'0')}</span>
+        <a href={`/projects/${s.id}/`} tabindex={i>0 ? -1 : undefined}><span class="cinema-title">{s.copy.title}</span><span aria-hidden="true"> →</span></a>
+        <span class="cinema-tags">{s.copy.tags}</span>
+      </figcaption>
+    </figure>)}
+    <div class="cinema-progress" aria-hidden="true">{slides.map((_,i) => <span style={`--i:${i}`}></span>)}</div>
+    <button class="cinema-toggle" type="button" data-cinema-toggle aria-pressed="false">暂停</button>
+  </div>
+</section>

@@ -3,8 +3,9 @@ import PageShell from '../PageShell.astro';
 import WorkGallery from '../WorkGallery.astro';
 import NoteList from '../NoteList.astro';
 import PistonGolem from '../PistonGolem.astro';
-import HeroUnlock from './HeroUnlock.astro';
-import { journal, journalNotes } from '../../data/journal';
+import Gate from './Gate.astro';
+import Foyer from './Foyer.astro';
+import { journal } from '../../data/journal';
 import { workThemes } from '../../data/work-themes';
 import { getCollection } from 'astro:content';
 import '../../styles/journal.css';
@@ -12,23 +13,10 @@ import '../../styles/home.css';
 const workCount = (await getCollection('projects')).length;
 ---
 <PageShell title="Blog" description={journal.description} english language="zh-CN" palette={workThemes.b} colorScheme="light" iridescent>
-  <HeroUnlock />
+  <Gate />
+  <Foyer workCount={workCount} />
 
   <div class="page-width">
-    <section class="home-intro-band" id="intro" aria-labelledby="intro-heading">
-      <div class="home-intro-object" data-reveal="fade"><PistonGolem /></div>
-      <div>
-        <p class="home-label" data-reveal>(00) Hello</p>
-        <h2 id="intro-heading" data-reveal="lines"><span class="line"><span>{journal.introduction}</span></span></h2>
-        <p class="home-intro" data-reveal>{journal.description}</p>
-        <ul class="home-index" aria-label="站点概况" data-reveal>
-          <li><span>Work</span><span>{String(workCount).padStart(2,'0')}</span></li>
-          <li><span>Notes</span><span>{String(journalNotes.length).padStart(2,'0')}</span></li>
-          <li><span>Focus</span><span>Research · Making · Observation</span></li>
-        </ul>
-      </div>
-    </section>
-
     <section class="home-section" id="work" aria-labelledby="work-heading">
       <header class="home-section-head">
         <p class="home-label" data-reveal>(01)</p>
@@ -50,13 +38,7 @@ const workCount = (await getCollection('projects')).length;
 
   <section class="home-about" id="about" aria-labelledby="about-heading">
     <div class="page-width home-about-grid">
-      <div class="home-about-side">
-        <p class="home-label" data-reveal>(03) About this space</p>
-        <figure class="home-portrait" data-reveal>
-          <img src="/media/persona/portrait-960.webp" srcset="/media/persona/portrait-480.webp 480w, /media/persona/portrait-960.webp 960w" sizes="(max-width:900px) 70vw, 28vw" width="960" height="960" alt="水彩人物插画：戴白色渔夫帽、系红色缎带的金色短发少女，侧脸望向一旁。" loading="lazy" decoding="async" />
-          <figcaption>人物设定</figcaption>
-        </figure>
-      </div>
+      <p class="home-label" data-reveal>(03) About this space</p>
       <div>
         <h2 id="about-heading" data-reveal="lines"><span class="line"><span>保持好奇，</span></span><span class="line"><span>慢慢做。</span></span></h2>
         <p data-reveal>{journal.about}</p>
@@ -67,16 +49,19 @@ const workCount = (await getCollection('projects')).length;
   </section>
 
   <section class="home-outro page-width" aria-label="站点导航">
+    <div class="home-outro-row">
+    <div class="home-outro-object" data-reveal="fade"><PistonGolem /></div>
     <ul class="home-outro-links" data-reveal>
       <li><a href="/work/">Work <span aria-hidden="true">↗</span></a></li>
       <li><a href="/notes/">Notes <span aria-hidden="true">↗</span></a></li>
       <li><a href="https://github.com/XJH-Jorhai">GitHub <span aria-hidden="true">↗</span></a></li>
     </ul>
+    </div>
     <p class="home-wordmark" aria-hidden="true" data-reveal="lines"><span class="line"><span>FIELDNOTES</span></span></p>
   </section>
 
   <script>
-    import { initHero } from '../../lib/motion/hero';
-    initHero();
+    import { initGate } from '../../lib/motion/gate';
+    initGate();
   </script>
 </PageShell>

@@ -1,0 +1,11 @@
+---
+// 开幕层：只在 JS 可用、未要求减少动效时由 gate.ts 显示。默认 hidden，无 JS 时不出现。
+import brand from '../../data/brand.json';
+const order = ['tl','br','tr','bl','ru','rl','c'] as const;
+---
+<div class="gate" data-gate hidden>
+  <div class="gate-mark" data-gate-mark aria-hidden="true">
+    {order.map(key => <svg class="piece" data-piece={key} viewBox="0 0 720 720"><path d={brand.pieces[key]} fill={key.startsWith('r') ? brand.colors.red : brand.colors.navy} /></svg>)}
+  </div>
+  <button class="gate-hint" type="button" data-gate-open><span>Scroll to unlock</span><span class="gate-line" aria-hidden="true"></span></button>
+</div>

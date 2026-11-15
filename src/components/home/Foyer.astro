@@ -1,0 +1,50 @@
+---
+// 玄关：开幕之后看到的第一屏，也是无 JS／减少动效时的首屏。
+import brand from '../../data/brand.json';
+import { journal, journalNotes } from '../../data/journal';
+interface Props { workCount: number }
+const { workCount } = Astro.props;
+const L = brand.letters as Record<string,string>;
+const doors = [
+  { no: '01', href: '/work/', name: 'Work', zh: '作品', count: String(workCount).padStart(2,'0') },
+  { no: '02', href: '/notes/', name: 'Notes', zh: '记录', count: String(journalNotes.length).padStart(2,'0') },
+  { no: '03', href: '#about', name: 'About', zh: '关于', count: '' },
+];
+---
+<section class="foyer page-width" data-foyer aria-labelledby="foyer-title">
+  <figure class="foyer-portrait" data-f style="--d:.05s">
+    <div class="foyer-portrait-frame">
+      <img src="/media/persona/portrait-960.webp" srcset="/media/persona/portrait-480.webp 480w, /media/persona/portrait-960.webp 960w" sizes="(max-width:900px) 72vw, 34vw" width="960" height="960" alt="水彩人物插画：戴白色渔夫帽、系红色缎带的金色短发少女，侧脸望向一旁。" fetchpriority="high" decoding="async" />
+    </div>
+    <figcaption><span>人物设定</span><span>TEISU</span></figcaption>
+  </figure>
+  <div class="foyer-main">
+    <p class="foyer-label" data-f style="--d:.15s">(TEISU) — Personal Fieldnotes</p>
+    <h1 id="foyer-title" class="foyer-title">
+      <span class="visually-hidden">TEISU · FIELDNOTES 个人博客</span>
+      <svg class="foyer-word" viewBox="190 1250 1620 384" aria-hidden="true">
+        <defs><clipPath id="foyer-word-clip"><rect x="190" y="1250" width="1660" height="384" /></clipPath></defs>
+        <g clip-path="url(#foyer-word-clip)">
+          <g class="l l-T" fill={brand.colors.navy} set:html={L.T} />
+          <g class="l l-E l-E1" fill={brand.colors.navy} set:html={L.E1} />
+          <g class="l l-E l-E2" fill={brand.colors.red} set:html={L.E2} />
+          <g class="l l-E l-E3" fill={brand.colors.navy} set:html={L.E3} />
+          <g class="l l-I" fill={brand.colors.navy} set:html={L.I} />
+          <g class="l l-S" fill={brand.colors.navy} set:html={L.S} />
+          <g class="l l-U" fill={brand.colors.navy} set:html={L.U} />
+        </g>
+      </svg>
+    </h1>
+    <p class="foyer-line" data-f style="--d:.75s">把想法做成实物，也把过程留在这里。</p>
+    <p class="foyer-desc" data-f style="--d:.85s">{journal.description}</p>
+    <nav class="foyer-doors" aria-label="入口">
+      {doors.map((door,i) => <a href={door.href} data-f style={`--d:${.95+i*.08}s`}>
+        <span class="door-no">{door.no}</span>
+        <span class="door-name">{door.name}<small>{door.zh}</small></span>
+        <span class="door-count">{door.count}</span>
+        <span class="door-arrow" aria-hidden="true">→</span>
+      </a>)}
+    </nav>
+  </div>
+  <a class="foyer-down" href="#work" data-f style="--d:1.3s"><span aria-hidden="true">↓</span> Selected Work</a>
+</section>

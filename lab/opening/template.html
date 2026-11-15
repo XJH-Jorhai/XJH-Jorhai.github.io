@@ -199,37 +199,75 @@ const rnd = () => { seed = (seed*16807) % 2147483647; return (seed-1)/2147483646
 const range = (a,b) => a + (b-a)*rnd();
 const CLICKS = [.3,.6,.9];
 let clickTimes = [];
-/** Rings of arms. Ring 0 is the mark's own arms; the rest are irregular, heavier with distance. */
+/**
+ * Rings of arms. Ring 0 is the mark's own arms. Outer rings are ordered — concentric, axis-aligned,
+ * centrally symmetric like the mark — but every line's shape is loose: uneven ends, broken into
+ * dashes, 45° chamfered corners and 45° jogs (circuit-trace style), slightly uneven weight.
+ */
+const rot180 = pts => pts.map(([x,y]) => [-x,-y]);
+function hookArm(R){            // top-left: up the left side, along the top, a tip turning inward
+  const a = range(-.3,.35), b = range(-.45,.22), t = range(.1,.3), c = rnd() < .45 ? range(.1,.24) : 0;
+  const pts = [[-1, a]];
+  if (c) pts.push([-1,-1+c],[-1+c,-1]); else pts.push([-1,-1]);
+  if (rnd() < .5) { const j = lerp(-1+c+.15, b-.15, rnd()), d = range(.05,.1)*(rnd() < .5 ? 1 : -1); if (j < b-.2) pts.push([j,-1],[j+Math.abs(d),-1+d],[b,-1+d]); else pts.push([b,-1]); }
+  else pts.push([b,-1]);
+  const last = pts[pts.length-1]; pts.push([last[0], last[1] + t]);
+  return pts.map(([x,y]) => [x*R, y*R]);
+}
+function elbowArm(R){           // top-right: along the top, down the right side
+  const s0 = range(-.12,.35), e = range(-.35,.22), c = rnd() < .45 ? range(.1,.24) : 0;
+  const pts = [[s0,-1]];
+  if (c) pts.push([1-c,-1],[1,-1+c]); else pts.push([1,-1]);
+  if (rnd() < .5) { const j = lerp(-1+c+.15, e-.15, rnd()), d = range(.05,.1)*(rnd() < .5 ? 1 : -1); if (j < e-.2) pts.push([1,j],[1+d,j+Math.abs(d)],[1+d,e]); else pts.push([1,e]); }
+  else pts.push([1,e]);
+  return pts.map(([x,y]) => [x*R, y*R]);
+}
+function dashes(){              // 0–2 breaks along the line, as a canvas dash pattern over its length
+  const n = rnd() < .35 ? 0 : rnd() < .6 ? 1 : 2, cuts = [];
+  for (let i=0;i<n;i++) cuts.push(range(.2,.8));
+  cuts.sort((x,y)=>x-y); const gap = range(.04,.09), pattern = []; let at = 0;
+  for (const c of cuts) { pattern.push(Math.max(.02, c - at - gap/2), gap); at = c + gap/2; }
+  pattern.push(1 - at + 1, 0); return pattern;          // fractions of the line's length
+}
 function buildRings(){
-  seed = 7; const u = L/720, reach = Math.hypot(W,H)/2;
-  rings = [{k:0, scale:1, w:ARM_W*u, alpha:1, base:0, turns:[0,0,0], drift:0, arms:Object.values(ARM).map(pts=>({pts, len:1, delay:0}))}];
-  // enough rings to keep filling the screen while the camera pulls back by ZOOM
-  for (let k=1, sc=range(1.55,1.75); 308*u*sc < reach*ZOOM*1.15; k++, sc*=range(1.24,1.46)) {
-    const arms = ringArms(sc).filter(() => k < 2 || rnd() > .14).map(pts => ({pts, len:range(.5,1), delay:range(0,.32)}));
-    const turns = [0,1,2].map(() => (rnd() < .5 ? -1 : 1)*range(35,130));
-    rings.push({k, scale:sc, w:ARM_W*u*range(.42,.62)*Math.pow(sc,.45), alpha:Math.max(.42, .95 - k*.045),
-      base:range(-180,180), turns, drift:(rnd() < .5 ? -1 : 1)*range(2,9), arms});
+  seed = 11; const u = L/720, reach = Math.hypot(W,H)/2;
+  rings = [{k:0, scale:1, w:ARM_W*u, alpha:1, quarter:[0,0,0], arms:Object.values(ARM).map(pts=>({pts, len:1, delay:0, dash:null, wm:1}))}];
+  for (let k=1, sc=range(1.55,1.72); 308*u*sc < reach*ZOOM*1.15; k++, sc*=range(1.26,1.42)) {
+    const R = 308*sc;
+    const tl = hookArm(R), tr = elbowArm(R);
+    const one = () => ({len:range(.6,1), delay:range(0,.3), dash:dashes(), wm:range(.75,1.15)});
+    const A = one(), B = one();
+    const arms = [{pts:tl,...A},{pts:tr,...B},{pts:rot180(tl),...A},{pts:rot180(tr),...B}];
+    // quarter turns at the clicks; the ring starts that many quarters back, so it ends aligned
+    const n = 1 + Math.floor(rnd()*3), dir = rnd() < .5 ? -1 : 1;
+    const quarter = [0,1,2].map(c => c >= 3 - n ? dir : 0);
+    rings.push({k, scale:sc, w:ARM_W*u*range(.5,.62)*Math.pow(sc,.42), alpha:Math.max(.45, .95 - k*.04), quarter, arms});
   }
 }
 function ringTurn(r, sec){
-  if (r.k === 0) return 0;
-  let a = r.base + r.drift*sec*.1;
-  r.turns.forEach((turn,c) => { const t = clickTimes[c]; if (t == null) return; a += turn*outBack(seg(sec - t - r.k*.035, 0, .7)); });
+  let a = -90*r.quarter.reduce((x,y)=>x+y,0);
+  r.quarter.forEach((q,c) => { const t = clickTimes[c]; if (!q || t == null) return; a += 90*q*outBack(seg(sec - t - r.k*.035, 0, .7)); });
   return a*Math.PI/180;
 }
 /** Arm length for progress p: every arm is there from the start, each grows on its own schedule. */
 const armLen = (arm, p) => .05 + .95*arm.len*inOutSine(seg(p, arm.delay, Math.min(1, arm.delay + .68)));
-function drawSigil(p, sec, cam=1, spin=0, exact=0){
+function polyLength(pts){ let l = 0; for (let i=1;i<pts.length;i++) l += Math.hypot(pts[i][0]-pts[i-1][0], pts[i][1]-pts[i-1][1]); return l; }
+function drawSigil(p, sec, cam=1, exact=0){
   const u = L/720*cam, cx = W/2, cy = H/2;
   ctx.save(); ctx.setTransform(dpr,0,0,dpr,0,0); ctx.lineCap = 'butt'; ctx.lineJoin = 'miter';
   for (const r of rings) {
-    const R = 308*u*r.scale; if (R*.7 > Math.hypot(W,H)/2 + r.w) continue;   // off screen
-    const w = Math.max(r.w*cam, Math.min(r.w, 3.2));
-    const path = new Path2D(), m = {x:cx, y:cy, s:u}, rot = ringTurn(r, sec) + spin*(r.k ? r.drift : 0)*Math.PI/180;
-    for (const arm of r.arms) partial(path, arm.pts, r.k === 0 ? .05 + .95*inOutSine(p) : armLen(arm, p), m, rot);
-    ctx.globalAlpha = r.alpha*(r.k === 0 ? 1 - exact : 1); ctx.strokeStyle = INK; ctx.lineWidth = w; ctx.stroke(path);
+    if (308*u*r.scale*.6 > Math.hypot(W,H)/2 + r.w) continue;        // off screen
+    const rot = ringTurn(r, sec), m = {x:cx, y:cy, s:u};
+    ctx.globalAlpha = r.alpha*(r.k === 0 ? 1 - exact : 1); ctx.strokeStyle = INK;
+    for (const arm of r.arms) {
+      const f = r.k === 0 ? .05 + .95*inOutSine(p) : armLen(arm, p);
+      const path = new Path2D(); partial(path, arm.pts, f, m, rot);
+      ctx.lineWidth = Math.max(r.w*arm.wm*cam, Math.min(r.w, 3.2));
+      if (arm.dash) { const len = polyLength(arm.pts)*u; ctx.setLineDash(arm.dash.map(v => v*len)); } else ctx.setLineDash([]);
+      ctx.stroke(path);
+    }
   }
-  ctx.restore();
+  ctx.setLineDash([]); ctx.restore();
   const s = L*cam;
   if (exact < 1) { ctx.save(); ctx.setTransform(dpr,0,0,dpr,0,0); ctx.globalAlpha = 1 - exact; drawCore(ctx, cx, cy, s, inOutCubic(seg(p,.05,.95))); ctx.restore(); }
   ctx.save(); ctx.setTransform(dpr,0,0,dpr,0,0); drawExact(ctx, cx, cy, s, exact); ctx.restore();
@@ -250,7 +288,7 @@ function drawB(tb, sec){
   const cam = Math.pow(1/ZOOM, z);                            // exponential: an even pull-back
   const exact = seg(tb,...TB.settle)*(1 - seg(tb, .35, .7));
   // sigil on the main canvas, then copy it into the layer so it can take colour
-  paintDark(); drawSigil(1, sec, cam, z*14, exact);
+  paintDark(); drawSigil(1, sec, cam, exact);
   const lf = inOutQuart(seg(tb,...TB.lines)), ff = inOutQuart(seg(tb,...TB.fill));
   if (lf <= 0) return;
   // ground: the swept part fills with the hero behind its coloured lines
@@ -263,7 +301,7 @@ const lineCanvas = document.createElement('canvas'), lnctx = lineCanvas.getConte
 function lineMask(lf, cam, sec, z, exact){
   if (lineCanvas.width !== canvas.width || lineCanvas.height !== canvas.height) { lineCanvas.width = canvas.width; lineCanvas.height = canvas.height; }
   lnctx.setTransform(1,0,0,1,0,0); lnctx.clearRect(0,0,lineCanvas.width,lineCanvas.height);
-  ctxSwap(lnctx, () => drawSigil(1, sec, cam, z*14, exact));
+  ctxSwap(lnctx, () => drawSigil(1, sec, cam, exact));
   lnctx.save(); lnctx.setTransform(dpr,0,0,dpr,0,0); lnctx.globalCompositeOperation = 'destination-in'; lnctx.fillStyle = '#000'; lnctx.fill(sweep(lf)); lnctx.restore();
   lnctx.globalCompositeOperation = 'source-atop'; lnctx.setTransform(1,0,0,1,0,0); lnctx.drawImage(comp,0,0); lnctx.globalCompositeOperation = 'source-over';
   return lineCanvas;

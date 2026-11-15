@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>TEISU · 开幕原型 v5（本地）</title>
+<title>TEISU · 开幕原型 v7（本地）</title>
 <style>
   :root {--navy:#083366;--red:#EF3025;--paper:#F3EDE2;--ink:#1D2733;--muted:#615F58;}
   * {box-sizing:border-box;}
@@ -23,12 +23,6 @@
   .piece.is-red path {fill:#EF3025;}
   .gate:not(.is-opening):not(.is-settled) .piece.is-red {filter:drop-shadow(0 0 14px rgb(239 48 37 / .5));}
   .gate:not(.is-opening):not(.is-settled) .piece.is-ink {filter:drop-shadow(0 0 20px rgb(233 227 214 / .16));}
-  /* Thick white square, two strokes from opposite corners; progress = scroll. */
-  .frame {position:absolute;left:50%;top:50%;width:calc(clamp(116px,11vw,176px) * 1.9);aspect-ratio:1;overflow:visible;pointer-events:none;transform:translate(-50%,-50%);opacity:0;transition:opacity .8s cubic-bezier(.16,1,.3,1);}
-  .frame path {fill:none;stroke-width:3.4;stroke-linecap:square;}
-  .frame .a,.frame .b {stroke:#EFE9DC;stroke-dasharray:1 1;stroke-dashoffset:calc(1 - var(--draw));}
-  .gate.is-ready .frame {opacity:1;}
-  .gate.is-opening .frame,.gate.is-settled .frame {opacity:0;transition-duration:.35s;}
 
   /* ================= Hero: paper, framed painting, wordmark ================= */
   .hero {position:relative;height:100vh;min-height:560px;display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);align-items:center;column-gap:clamp(32px,6vw,110px);padding:0 clamp(48px,9vw,160px);max-width:1500px;margin:0 auto;}
@@ -75,8 +69,7 @@
 <div class="gate" id="gate">
   <canvas class="dust" id="dust" aria-hidden="true"></canvas>
   <div class="space">
-    <svg class="frame" id="frame" viewBox="0 0 100 100" aria-hidden="true"><path class="a" pathLength="1" d="M0 0H100V100"/><path class="b" pathLength="1" d="M100 100H0V0"/></svg>
-    <button class="mark" id="mark" type="button" aria-label="进入 TEISU 的博客（向下滚动描完方框，或点击）">__PIECES__</button>
+    <button class="mark" id="mark" type="button" aria-label="进入 TEISU 的博客（滚动或点击）">__PIECES__</button>
   </div>
 </div>
 
@@ -102,16 +95,16 @@
 
 <script>
 /* ===================================================================================
-   TEISU opening — prototype v5. No rotation anywhere.
+   TEISU opening — prototype v7.
    1 Load: dark stage; the mark blooms out of its centre — every piece scales up from the
      centre point, key first, then the brackets in symmetric pairs, then the blades.
-   2 Scroll draws a thick white square (two strokes from opposite corners); the blades
-     ease apart a little with it. A full square unlocks; click / Enter fills it.
-   3 Unlock: the mark lights up (paper-white → navy), zooms, and its pieces ease into the
-     corners as the hero's colour-block frame; the dark stage fades; the hero rises inside.
+   2 It waits. One scroll, swipe, click or key opens it.
+   3 Opening: the mark turns 180° the whole way while it zooms and its pieces ease into the
+     corners as the hero's colour-block frame. Only as it lands does it turn from paper-white
+     to navy and the dark lift; the hero rises inside the frame.
    =================================================================================== */
 const $ = id => document.getElementById(id);
-const gate = $('gate'), markEl = $('mark'), frameEl = $('frame'), hero = $('hero'), readout = $('readout'), root = document.documentElement;
+const gate = $('gate'), markEl = $('mark'), hero = $('hero'), readout = $('readout'), root = document.documentElement;
 const pieces = new Map([...gate.querySelectorAll('[data-piece]')].map(el => [el.dataset.piece, el]));
 const KEYS = ['tl','br','tr','bl','ru','rl','c'];
 const dir = {tl:[-1,-1],br:[1,1],tr:[1,-1],bl:[-1,1],ru:[1,1],rl:[-1,-1],c:[0,0]};
@@ -133,15 +126,14 @@ function intro(t){
   const p = pose();
   for (const k of KEYS) { const a = BLOOM[k], e = k==='c' ? outBack(seg(t,a,a+.9)) : outExpo(seg(t,a,a+1.4)); p[k].s = e; p[k].o = clamp(seg(t,a,a+.35)); }
   const d = outCubic(seg(t,0,2.4));
-  return {p, mark:{scale:lerp(.88,1,d), z:lerp(-360,0,d)}, bg:1, lit:0, dust:clamp(t/1.2), draw:0};
+  return {p, mark:{scale:lerp(.88,1,d), z:lerp(-360,0,d)}, bg:1, lit:0, dust:clamp(t/1.2)};
 }
 const INTRO_END = 2.4;
-function idle(time, draw){
+/** Waiting: a slow breath; hovering unlatches the blades a little. */
+function idle(time, peek){
   const f = intro(INTRO_END);
-  for (const k of ['ru','rl']) { f.p[k].x = dir[k][0]*.06*inOutSine(draw); f.p[k].y = dir[k][1]*.06*inOutSine(draw); }
-  f.p.c.s = 1 - .12*inOutSine(draw);
-  f.mark.scale = 1 + .03*Math.sin(time*1.1)*(1 - draw) + .04*inOutSine(draw);
-  f.draw = draw; return f;
+  for (const k of ['ru','rl']) { f.p[k].x = dir[k][0]*.05*peek; f.p[k].y = dir[k][1]*.05*peek; }
+  f.mark.scale = 1 + .025*Math.sin(time*1.1); return f;
 }
 
 /* ---------- 3 unlock → corner blocks ---------- */
@@ -151,21 +143,23 @@ const FINAL = {outer:1.5, keep:-.025, leave:.75, blade:-.11};
 const FINAL_NARROW = {outer:1.7, keep:-.04, blade:-.1};
 const final = () => innerWidth/innerHeight < .8 ? {...FINAL, ...FINAL_NARROW} : FINAL;
 const zoomTo = () => final().outer*(innerWidth+innerHeight)/2/241*720/Math.max(markEl.offsetWidth,1);
-const T = {lit:[.05,.7], spin:[.05,2.2], zoom:[.25,1.25], settle:[.7,2.2], bg:[.75,1.55], key:[.35,.85], home:1.15, end:2.25};
+// Colour comes late: the mark stays paper-white while it turns and grows, and turns navy as it lands;
+// the dark lifts at the same time, so the white pieces never sit on the paper ground.
+const T = {spin:[.05,2.2], zoom:[.25,1.25], settle:[.7,2.2], lit:[.98,1.65], bg:[1.02,1.72], key:[.35,.85], home:1.25, end:2.25};
 const SPIN = 180;   // must stay a multiple of 180: the mark is centrally symmetric, so the frame lands the same
 function opening(t, from){
   const f = final(), p = pose(), s = outQuint(seg(t,...T.settle));
   for (const k of ['tl','br','tr','bl']) { const d = lerp(0, k==='tl'||k==='br' ? f.keep : f.leave, s); p[k].x = dir[k][0]*d; p[k].y = dir[k][1]*d; }
-  for (const k of ['ru','rl']) { const d = lerp(.06*from.draw, f.blade, s); p[k].x = dir[k][0]*d; p[k].y = dir[k][1]*d; }
-  p.c.s = (1-.12)*(1 - inOutCubic(seg(t,...T.key)));
+  for (const k of ['ru','rl']) { const d = lerp(.05*from.peek, f.blade, s); p[k].x = dir[k][0]*d; p[k].y = dir[k][1]*d; }
+  p.c.s = 1 - inOutCubic(seg(t,...T.key));
   const z = inOutCubic(seg(t,...T.zoom));
-  return {p, mark:{scale:lerp(from.scale, zoomTo(), z), z:0, rot:SPIN*inOutCubic(seg(t,...T.spin))}, bg:1 - inOutCubic(seg(t,...T.bg)), lit:inOutCubic(seg(t,...T.lit)), dust:1 - seg(t,.4,1), draw:1};
+  return {p, mark:{scale:lerp(from.scale, zoomTo(), z), z:0, rot:SPIN*inOutCubic(seg(t,...T.spin))}, bg:1 - inOutCubic(seg(t,...T.bg)), lit:inOutCubic(seg(t,...T.lit)), dust:1 - seg(t,.4,1)};
 }
 
 /* ---------- render ---------- */
 function apply(f){
   markEl.style.transform = `translateZ(${f.mark.z.toFixed(1)}px) rotate(${(f.mark.rot ?? 0).toFixed(2)}deg) scale(${f.mark.scale.toFixed(4)})`;
-  gate.style.setProperty('--bg', f.bg.toFixed(3)); gate.style.setProperty('--lit', f.lit.toFixed(3)); gate.style.setProperty('--draw', f.draw.toFixed(4));
+  gate.style.setProperty('--bg', f.bg.toFixed(3)); gate.style.setProperty('--lit', f.lit.toFixed(3));
   for (const [k,el] of pieces) { const q = f.p[k]; el.style.transform = `translate(${(q.x*100).toFixed(3)}%,${(q.y*100).toFixed(3)}%) scale(${q.s.toFixed(4)})`; el.style.opacity = q.o.toFixed(3); }
 }
 const dustC = $('dust'), dctx = dustC.getContext('2d');
@@ -181,52 +175,50 @@ function dust(dt, a){
 }
 
 /* ---------- state ---------- */
-let phase = 'intro', t0 = performance.now(), last = t0, target = 0, shown = 0, auto = false, lastInput = 0, from = {scale:1, draw:0}, frozen = null;
-function feed(d){ if (phase !== 'idle' && phase !== 'intro') return; target = clamp(target + d); lastInput = performance.now(); }
-function open(){ if (phase === 'open' || phase === 'done') return; from = {scale: idle(0, shown).mark.scale, draw: shown}; phase = 'open'; t0 = performance.now(); gate.classList.add('is-opening'); }
+let phase = 'intro', t0 = performance.now(), last = t0, peek = 0, peekTarget = 0, from = {scale:1, peek:0}, frozen = null;
+function open(){
+  if (phase === 'open' || phase === 'done') return;
+  from = {scale: phase === 'idle' ? idle(performance.now()/1000, peek).mark.scale : intro((performance.now()-t0)/1000).mark.scale, peek};
+  phase = 'open'; t0 = performance.now(); gate.classList.add('is-opening');
+}
 function settle(){ phase = 'done'; gate.classList.remove('is-opening'); gate.classList.add('is-settled'); apply(opening(T.end, from)); dust(0,0); hero.classList.add('is-open'); root.classList.remove('locked'); }
 function reset(){
-  scrollTo(0,0); phase = 'intro'; t0 = performance.now(); target = shown = 0; auto = false; frozen = null;
+  scrollTo(0,0); phase = 'intro'; t0 = performance.now(); peek = peekTarget = 0; frozen = null;
   gate.className = 'gate'; hero.classList.remove('is-open'); root.classList.add('locked');
 }
 function frame(now){
   if (frozen !== null) { now = frozen; last = now - 16; }
   const dt = Math.min(.05,(now-last)/1000); last = now; const t = (now - t0)/1000; let f = null;
-  if (phase === 'intro') { f = intro(t); if (t >= INTRO_END) { phase = 'idle'; gate.classList.add('is-ready'); } }
-  else if (phase === 'idle') {
-    if (auto) target = Math.min(1, target + dt*1.6);
-    else if (target < 1 && now - lastInput > 900) target = Math.max(0, target - dt*.2);
-    shown += (target - shown)*(1 - Math.exp(-dt/.09)); if (target >= 1 && shown > .996) shown = 1;
-    f = idle(now/1000, shown); if (shown >= 1) open();
-    readout.value = `描框 ${Math.round(shown*100)}%`;
-  } else if (phase === 'open') {
+  if (phase === 'intro') { f = intro(t); if (t >= INTRO_END) { phase = 'idle'; gate.classList.add('is-ready'); } readout.value = `绽放 ${t.toFixed(2)}s`; }
+  else if (phase === 'idle') { peek += (peekTarget - peek)*(1 - Math.exp(-dt/.18)); f = idle(now/1000, peek); readout.value = '等待：滚动 / 点击'; }
+  else if (phase === 'open') {
     f = opening(t, from); if (t >= T.home) hero.classList.add('is-open');
     readout.value = `开幕 ${t.toFixed(2)}s`; if (t >= T.end) settle();
   } else readout.value = '落地';
   if (f) { apply(f); dust(dt, f.dust); }
   requestAnimationFrame(frame);
 }
-addEventListener('wheel', e => { if (phase === 'done') return; e.preventDefault(); feed(e.deltaY*(e.deltaMode===1?18:e.deltaMode===2?innerHeight:1)/900); }, {passive:false});
+// Any of these opens it (once the bloom has started); the page stays locked until it has landed.
+addEventListener('wheel', e => { if (phase === 'done') return; e.preventDefault(); if (e.deltaY > 2) open(); }, {passive:false});
 let ty = 0;
 addEventListener('touchstart', e => { ty = e.touches[0].clientY; }, {passive:true});
-addEventListener('touchmove', e => { if (phase === 'done') return; e.preventDefault(); const y = e.touches[0].clientY; feed((ty-y)/360); ty = y; }, {passive:false});
+addEventListener('touchmove', e => { if (phase === 'done') return; e.preventDefault(); if (ty - e.touches[0].clientY > 16) open(); }, {passive:false});
 addEventListener('keydown', e => {
   const k = e.key.toLowerCase();
-  if (k==='r') return reset(); if (k==='s') { shown = target = 1; return open(); } if (k==='h') return $('lab').classList.toggle('hidden');
+  if (k==='r') return reset(); if (k==='s') return open(); if (k==='h') return $('lab').classList.toggle('hidden');
   if (phase === 'done') return;
-  if (['arrowdown','pagedown',' '].includes(k)) { e.preventDefault(); feed(.2); }
-  else if (['arrowup','pageup'].includes(k)) { e.preventDefault(); feed(-.2); }
-  else if (k==='enter') { e.preventDefault(); auto = true; }
+  if (['arrowdown','pagedown',' ','enter'].includes(k)) { e.preventDefault(); open(); }
 });
-markEl.addEventListener('click', () => { auto = true; lastInput = performance.now(); });
-$('replay').onclick = reset; $('skip').onclick = () => { shown = target = 1; open(); }; $('hide').onclick = () => $('lab').classList.add('hidden');
+markEl.addEventListener('click', open);
+markEl.addEventListener('pointerenter', () => { peekTarget = 1; }); markEl.addEventListener('pointerleave', () => { peekTarget = 0; });
+$('replay').onclick = reset; $('skip').onclick = open; $('hide').onclick = () => $('lab').classList.add('hidden');
 addEventListener('resize', () => { if (phase === 'done') apply(opening(T.end, from)); });
 
 /* Snapshot hook for automated checks (lab only). */
 window.__lab = {
   intro(t){ reset(); frozen = performance.now(); t0 = frozen - t*1000; },
-  idle(d){ reset(); phase='idle'; gate.classList.add('is-ready'); shown = target = d; auto = false; frozen = performance.now(); lastInput = frozen; },
-  open(t){ reset(); from = {scale:1.04, draw:1}; phase='open'; gate.classList.add('is-opening'); frozen = performance.now(); t0 = frozen - t*1000; },
+  idle(){ reset(); phase='idle'; gate.classList.add('is-ready'); frozen = performance.now(); },
+  open(t){ reset(); from = {scale:1, peek:0}; phase='open'; gate.classList.add('is-opening'); frozen = performance.now(); t0 = frozen - t*1000; },
   run(){ frozen = null; }, T,
 };
 if (matchMedia('(prefers-reduced-motion: reduce)').matches) { gate.remove(); hero.classList.add('is-open'); }

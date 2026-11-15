@@ -19,6 +19,7 @@
     "test:piston": "node scripts/verify-piston-impact.mjs"
   },
   "dependencies": {
+    "@fontsource/space-grotesk": "^5.3.0",
     "astro": "7.4.2",
     "motion": "14.6.0",
     "three": "^0.186.1",

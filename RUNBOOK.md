@@ -4,7 +4,7 @@
 
 ## 环境
 
-Node.js 24（最低见 `package.json`）、npm、唯一的 `package-lock.json`。主要依赖：Astro、Three.js、Motion、three-fluid-fx、Sharp、Playwright。
+Node.js 24（最低见 `package.json`）、npm、唯一的 `package-lock.json`。主要依赖：Astro、Three.js、Motion、three-fluid-fx、Sharp、Playwright、@fontsource/space-grotesk（展示字体，OFL）。
 
 ## 常用命令
 

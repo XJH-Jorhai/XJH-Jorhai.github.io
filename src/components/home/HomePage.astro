@@ -3,22 +3,16 @@ import PageShell from '../PageShell.astro';
 import WorkGallery from '../WorkGallery.astro';
 import NoteList from '../NoteList.astro';
 import PistonGolem from '../PistonGolem.astro';
-import HeroEmblem from './HeroEmblem.astro';
-import HeroCinema from './HeroCinema.astro';
-import HeroCard from './HeroCard.astro';
+import HeroUnlock from './HeroUnlock.astro';
 import { journal, journalNotes } from '../../data/journal';
 import { workThemes } from '../../data/work-themes';
 import { getCollection } from 'astro:content';
 import '../../styles/journal.css';
 import '../../styles/home.css';
-export type HeroVariant = 'emblem' | 'cinema' | 'card';
-interface Props { hero: HeroVariant; preview?: boolean }
-const { hero, preview = false } = Astro.props;
 const workCount = (await getCollection('projects')).length;
-const variants: [HeroVariant, string][] = [['emblem','A 徽标'],['cinema','B 影像'],['card','C 身份卡']];
 ---
-<PageShell title="Blog" description={journal.description} english language="zh-CN" palette={workThemes.b} colorScheme="light" iridescent noindex={preview}>
-  {hero === 'cinema' ? <HeroCinema /> : <div class="page-width">{hero === 'card' ? <HeroCard workCount={workCount} /> : <HeroEmblem />}</div>}
+<PageShell title="Blog" description={journal.description} english language="zh-CN" palette={workThemes.b} colorScheme="light" iridescent>
+  <HeroUnlock />
 
   <div class="page-width">
     <section class="home-intro-band" id="intro" aria-labelledby="intro-heading">
@@ -56,7 +50,13 @@ const variants: [HeroVariant, string][] = [['emblem','A 徽标'],['cinema','B �
 
   <section class="home-about" id="about" aria-labelledby="about-heading">
     <div class="page-width home-about-grid">
-      <p class="home-label" data-reveal>(03) About this space</p>
+      <div class="home-about-side">
+        <p class="home-label" data-reveal>(03) About this space</p>
+        <figure class="home-portrait" data-reveal>
+          <img src="/media/persona/portrait-960.webp" srcset="/media/persona/portrait-480.webp 480w, /media/persona/portrait-960.webp 960w" sizes="(max-width:900px) 70vw, 28vw" width="960" height="960" alt="水彩人物插画：戴白色渔夫帽、系红色缎带的金色短发少女，侧脸望向一旁。" loading="lazy" decoding="async" />
+          <figcaption>人物设定</figcaption>
+        </figure>
+      </div>
       <div>
         <h2 id="about-heading" data-reveal="lines"><span class="line"><span>保持好奇，</span></span><span class="line"><span>慢慢做。</span></span></h2>
         <p data-reveal>{journal.about}</p>
@@ -75,10 +75,6 @@ const variants: [HeroVariant, string][] = [['emblem','A 徽标'],['cinema','B �
     <p class="home-wordmark" aria-hidden="true" data-reveal="lines"><span class="line"><span>FIELDNOTES</span></span></p>
   </section>
 
-  {preview && <nav class="hero-switch" aria-label="首屏方向预览">
-    <span>首屏预览</span>
-    {variants.map(([key,label]) => <a href={`/preview/${key}/`} aria-current={key===hero ? 'page' : undefined}>{label}</a>)}
-  </nav>}
   <script>
     import { initHero } from '../../lib/motion/hero';
     initHero();

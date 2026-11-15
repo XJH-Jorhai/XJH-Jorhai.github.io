@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>TEISU · 开幕原型 v7（本地）</title>
+<title>TEISU · 开幕原型 v8（本地）</title>
 <style>
   :root {--navy:#083366;--red:#EF3025;--paper:#F3EDE2;--ink:#1D2733;--muted:#615F58;}
   * {box-sizing:border-box;}
@@ -69,7 +69,7 @@
 <div class="gate" id="gate">
   <canvas class="dust" id="dust" aria-hidden="true"></canvas>
   <div class="space">
-    <button class="mark" id="mark" type="button" aria-label="进入 TEISU 的博客（滚动或点击）">__PIECES__</button>
+    <button class="mark" id="mark" type="button" aria-label="进入 TEISU 的博客（按住后松开，或滚动）">__PIECES__</button>
   </div>
 </div>
 
@@ -95,11 +95,13 @@
 
 <script>
 /* ===================================================================================
-   TEISU opening — prototype v7.
+   TEISU opening — prototype v8.
    1 Load: dark stage; the mark blooms out of its centre — every piece scales up from the
      centre point, key first, then the brackets in symmetric pairs, then the blades.
-   2 It waits. One scroll, swipe, click or key opens it.
-   3 Opening: the mark turns 180° the whole way while it zooms and its pieces ease into the
+   2 It waits. Press and hold: it winds up — shrinks and turns back a little; let go and it
+     springs open. Scroll, swipe and keys do a short wind-up on their own.
+   3 Opening: from the wound-up angle the mark turns to 180° — fastest at release, slowing into
+     the landing — while it zooms and its pieces ease into the
      corners as the hero's colour-block frame. Only as it lands does it turn from paper-white
      to navy and the dark lift; the hero rises inside the frame.
    =================================================================================== */
@@ -135,6 +137,14 @@ function idle(time, peek){
   for (const k of ['ru','rl']) { f.p[k].x = dir[k][0]*.05*peek; f.p[k].y = dir[k][1]*.05*peek; }
   f.mark.scale = 1 + .025*Math.sin(time*1.1); return f;
 }
+/** Wind-up while pressed: the mark shrinks and turns back a little, blades tuck in, the key tightens. */
+const WIND = 28;
+function charge(time, peek, w){
+  const f = idle(time, peek), e = outCubic(w);
+  f.mark.scale *= 1 - .14*e; f.mark.rot = -WIND*e;
+  for (const k of ['ru','rl']) { f.p[k].x -= dir[k][0]*.03*e; f.p[k].y -= dir[k][1]*.03*e; }
+  f.p.c.s = 1 - .12*e; return f;
+}
 
 /* ---------- 3 unlock → corner blocks ---------- */
 // Final pose in mark units; q = px per unit. Because the mark is centrally symmetric this is the same
@@ -145,15 +155,17 @@ const final = () => innerWidth/innerHeight < .8 ? {...FINAL, ...FINAL_NARROW} : 
 const zoomTo = () => final().outer*(innerWidth+innerHeight)/2/241*720/Math.max(markEl.offsetWidth,1);
 // Colour comes late: the mark stays paper-white while it turns and grows, and turns navy as it lands;
 // the dark lifts at the same time, so the white pieces never sit on the paper ground.
-const T = {spin:[.05,2.2], zoom:[.25,1.25], settle:[.7,2.2], lit:[.98,1.65], bg:[1.02,1.72], key:[.35,.85], home:1.25, end:2.25};
+// Spin starts at release at full speed (outCubic) from the wound-up angle and slows into the landing.
+const T = {spin:[0,2.1], zoom:[.1,1.1], settle:[.6,2.1], lit:[.9,1.55], bg:[.94,1.62], key:[.25,.75], home:1.15, end:2.15};
 const SPIN = 180;   // must stay a multiple of 180: the mark is centrally symmetric, so the frame lands the same
 function opening(t, from){
   const f = final(), p = pose(), s = outQuint(seg(t,...T.settle));
   for (const k of ['tl','br','tr','bl']) { const d = lerp(0, k==='tl'||k==='br' ? f.keep : f.leave, s); p[k].x = dir[k][0]*d; p[k].y = dir[k][1]*d; }
-  for (const k of ['ru','rl']) { const d = lerp(.05*from.peek, f.blade, s); p[k].x = dir[k][0]*d; p[k].y = dir[k][1]*d; }
-  p.c.s = 1 - inOutCubic(seg(t,...T.key));
-  const z = inOutCubic(seg(t,...T.zoom));
-  return {p, mark:{scale:lerp(from.scale, zoomTo(), z), z:0, rot:SPIN*inOutCubic(seg(t,...T.spin))}, bg:1 - inOutCubic(seg(t,...T.bg)), lit:inOutCubic(seg(t,...T.lit)), dust:1 - seg(t,.4,1)};
+  const tuck = .03*outCubic(from.w);
+  for (const k of ['ru','rl']) { const d = lerp(.05*from.peek - tuck, f.blade, s); p[k].x = dir[k][0]*d; p[k].y = dir[k][1]*d; }
+  p.c.s = (1 - .12*outCubic(from.w))*(1 - inOutCubic(seg(t,...T.key)));
+  const base = lerp(from.scale, 1, outCubic(seg(t,0,.3))), z = inOutCubic(seg(t,...T.zoom));
+  return {p, mark:{scale:base*lerp(1, zoomTo(), z), z:0, rot:lerp(from.rot, SPIN, outCubic(seg(t,...T.spin)))}, bg:1 - inOutCubic(seg(t,...T.bg)), lit:inOutCubic(seg(t,...T.lit)), dust:1 - seg(t,.4,1)};
 }
 
 /* ---------- render ---------- */
@@ -175,22 +187,38 @@ function dust(dt, a){
 }
 
 /* ---------- state ---------- */
-let phase = 'intro', t0 = performance.now(), last = t0, peek = 0, peekTarget = 0, from = {scale:1, peek:0}, frozen = null;
-function open(){
+let phase = 'intro', t0 = performance.now(), last = t0, peek = 0, peekTarget = 0, frozen = null;
+let w = 0, holding = false, released = false, from = {scale:1, rot:0, peek:0, w:0};
+const MIN_WIND = .6;   // a quick tap still gets a visible wind-up before it lets go
+/** Press (or scroll / key, which wind up on their own): start winding. */
+function press(auto=false){
   if (phase === 'open' || phase === 'done') return;
-  from = {scale: phase === 'idle' ? idle(performance.now()/1000, peek).mark.scale : intro((performance.now()-t0)/1000).mark.scale, peek};
+  if (phase !== 'charge') { phase = 'charge'; w = 0; }
+  holding = !auto; released = auto;
+}
+function release(){ if (phase === 'charge') { holding = false; released = true; } }
+function open(){
+  const f = charge(performance.now()/1000, peek, w);
+  from = {scale:f.mark.scale, rot:f.mark.rot, peek, w};
   phase = 'open'; t0 = performance.now(); gate.classList.add('is-opening');
 }
 function settle(){ phase = 'done'; gate.classList.remove('is-opening'); gate.classList.add('is-settled'); apply(opening(T.end, from)); dust(0,0); hero.classList.add('is-open'); root.classList.remove('locked'); }
 function reset(){
-  scrollTo(0,0); phase = 'intro'; t0 = performance.now(); peek = peekTarget = 0; frozen = null;
+  scrollTo(0,0); phase = 'intro'; t0 = performance.now(); peek = peekTarget = 0; w = 0; holding = released = false; frozen = null;
   gate.className = 'gate'; hero.classList.remove('is-open'); root.classList.add('locked');
 }
 function frame(now){
   if (frozen !== null) { now = frozen; last = now - 16; }
   const dt = Math.min(.05,(now-last)/1000); last = now; const t = (now - t0)/1000; let f = null;
+  peek += (peekTarget - peek)*(1 - Math.exp(-dt/.18));
   if (phase === 'intro') { f = intro(t); if (t >= INTRO_END) { phase = 'idle'; gate.classList.add('is-ready'); } readout.value = `绽放 ${t.toFixed(2)}s`; }
-  else if (phase === 'idle') { peek += (peekTarget - peek)*(1 - Math.exp(-dt/.18)); f = idle(now/1000, peek); readout.value = '等待：滚动 / 点击'; }
+  else if (phase === 'idle') { f = idle(now/1000, peek); readout.value = '等待：按住 / 滚动'; }
+  else if (phase === 'charge') {
+    // wind up towards 1 while held; once released, let go as soon as the wind-up is visible
+    w = Math.min(1, w + dt/(holding ? .45 : .22));
+    f = charge(now/1000, peek, w); readout.value = `蓄力 ${Math.round(w*100)}%`;
+    if (released && w >= MIN_WIND) open();
+  }
   else if (phase === 'open') {
     f = opening(t, from); if (t >= T.home) hero.classList.add('is-open');
     readout.value = `开幕 ${t.toFixed(2)}s`; if (t >= T.end) settle();
@@ -198,27 +226,29 @@ function frame(now){
   if (f) { apply(f); dust(dt, f.dust); }
   requestAnimationFrame(frame);
 }
-// Any of these opens it (once the bloom has started); the page stays locked until it has landed.
-addEventListener('wheel', e => { if (phase === 'done') return; e.preventDefault(); if (e.deltaY > 2) open(); }, {passive:false});
+// Press and hold winds up, release lets go. Scroll, swipe and keys do a short wind-up on their own.
+addEventListener('wheel', e => { if (phase === 'done') return; e.preventDefault(); if (e.deltaY > 2) press(true); }, {passive:false});
 let ty = 0;
-addEventListener('touchstart', e => { ty = e.touches[0].clientY; }, {passive:true});
-addEventListener('touchmove', e => { if (phase === 'done') return; e.preventDefault(); if (ty - e.touches[0].clientY > 16) open(); }, {passive:false});
+addEventListener('touchmove', e => { if (phase === 'done') return; e.preventDefault(); if (ty - e.touches[0].clientY > 16) press(true); }, {passive:false});
+gate.addEventListener('pointerdown', e => { if (e.button === 0) { ty = e.clientY; press(); } });
+addEventListener('pointerup', release); addEventListener('pointercancel', release);
 addEventListener('keydown', e => {
   const k = e.key.toLowerCase();
-  if (k==='r') return reset(); if (k==='s') return open(); if (k==='h') return $('lab').classList.toggle('hidden');
+  if (k==='r') return reset(); if (k==='s') return press(true); if (k==='h') return $('lab').classList.toggle('hidden');
   if (phase === 'done') return;
-  if (['arrowdown','pagedown',' ','enter'].includes(k)) { e.preventDefault(); open(); }
+  if (['arrowdown','pagedown',' ','enter'].includes(k)) { e.preventDefault(); if (!e.repeat) press(k === ' ' || k === 'enter' ? false : true); }
 });
-markEl.addEventListener('click', open);
+addEventListener('keyup', e => { if ([' ','enter'].includes(e.key.toLowerCase())) release(); });
 markEl.addEventListener('pointerenter', () => { peekTarget = 1; }); markEl.addEventListener('pointerleave', () => { peekTarget = 0; });
-$('replay').onclick = reset; $('skip').onclick = open; $('hide').onclick = () => $('lab').classList.add('hidden');
+$('replay').onclick = reset; $('skip').onclick = () => press(true); $('hide').onclick = () => $('lab').classList.add('hidden');
 addEventListener('resize', () => { if (phase === 'done') apply(opening(T.end, from)); });
 
 /* Snapshot hook for automated checks (lab only). */
 window.__lab = {
   intro(t){ reset(); frozen = performance.now(); t0 = frozen - t*1000; },
   idle(){ reset(); phase='idle'; gate.classList.add('is-ready'); frozen = performance.now(); },
-  open(t){ reset(); from = {scale:1, peek:0}; phase='open'; gate.classList.add('is-opening'); frozen = performance.now(); t0 = frozen - t*1000; },
+  charge(v){ reset(); phase='charge'; w=v; holding=true; gate.classList.add('is-ready'); frozen = performance.now(); },
+  open(t){ reset(); const c = charge(0,0,1); from = {scale:c.mark.scale, rot:c.mark.rot, peek:0, w:1}; phase='open'; gate.classList.add('is-opening'); frozen = performance.now(); t0 = frozen - t*1000; },
   run(){ frozen = null; }, T,
 };
 if (matchMedia('(prefers-reduced-motion: reduce)').matches) { gate.remove(); hero.classList.add('is-open'); }

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>TEISU · 开幕原型 v8（本地）</title>
+<title>TEISU · 开幕原型 v9（本地）</title>
 <style>
   :root {--navy:#083366;--red:#EF3025;--paper:#F3EDE2;--ink:#1D2733;--muted:#615F58;}
   * {box-sizing:border-box;}
@@ -95,7 +95,7 @@
 
 <script>
 /* ===================================================================================
-   TEISU opening — prototype v8.
+   TEISU opening — prototype v9.
    1 Load: dark stage; the mark blooms out of its centre — every piece scales up from the
      centre point, key first, then the brackets in symmetric pairs, then the blades.
    2 It waits. Press and hold: it winds up — shrinks and turns back a little; let go and it
@@ -156,16 +156,19 @@ const zoomTo = () => final().outer*(innerWidth+innerHeight)/2/241*720/Math.max(m
 // Colour comes late: the mark stays paper-white while it turns and grows, and turns navy as it lands;
 // the dark lifts at the same time, so the white pieces never sit on the paper ground.
 // Spin starts at release at full speed (outCubic) from the wound-up angle and slows into the landing.
-const T = {spin:[0,2.1], zoom:[.1,1.1], settle:[.6,2.1], lit:[.9,1.55], bg:[.94,1.62], key:[.25,.75], home:1.15, end:2.15};
+// Springs: under-damped, they overshoot and come back. f(1) ≈ 1 (residue < 0.3 %).
+const spring = (t, k=6, w=9.5) => t >= 1 ? 1 : 1 - Math.exp(-k*t)*Math.cos(w*t);
+const SPRING = {spin:[6.5,8.2], settle:[6,9.5], pop:[7,13]};    // [damping, frequency] — lower damping = bouncier
+const T = {spin:[0,1.35], zoom:[.04,.62], settle:[.3,1.35], lit:[.55,.98], bg:[.58,1.02], key:[.12,.42], home:.68, end:1.4};
 const SPIN = 180;   // must stay a multiple of 180: the mark is centrally symmetric, so the frame lands the same
 function opening(t, from){
-  const f = final(), p = pose(), s = outQuint(seg(t,...T.settle));
+  const f = final(), p = pose(), s = spring(seg(t,...T.settle), ...SPRING.settle);
   for (const k of ['tl','br','tr','bl']) { const d = lerp(0, k==='tl'||k==='br' ? f.keep : f.leave, s); p[k].x = dir[k][0]*d; p[k].y = dir[k][1]*d; }
   const tuck = .03*outCubic(from.w);
   for (const k of ['ru','rl']) { const d = lerp(.05*from.peek - tuck, f.blade, s); p[k].x = dir[k][0]*d; p[k].y = dir[k][1]*d; }
   p.c.s = (1 - .12*outCubic(from.w))*(1 - inOutCubic(seg(t,...T.key)));
-  const base = lerp(from.scale, 1, outCubic(seg(t,0,.3))), z = inOutCubic(seg(t,...T.zoom));
-  return {p, mark:{scale:base*lerp(1, zoomTo(), z), z:0, rot:lerp(from.rot, SPIN, outCubic(seg(t,...T.spin)))}, bg:1 - inOutCubic(seg(t,...T.bg)), lit:inOutCubic(seg(t,...T.lit)), dust:1 - seg(t,.4,1)};
+  const base = lerp(from.scale, 1, spring(seg(t,0,.45), ...SPRING.pop)), z = outCubic(seg(t,...T.zoom));
+  return {p, mark:{scale:base*lerp(1, zoomTo(), z), z:0, rot:lerp(from.rot, SPIN, spring(seg(t,...T.spin), ...SPRING.spin))}, bg:1 - inOutCubic(seg(t,...T.bg)), lit:inOutCubic(seg(t,...T.lit)), dust:1 - seg(t,.2,.6)};
 }
 
 /* ---------- render ---------- */
@@ -215,7 +218,7 @@ function frame(now){
   else if (phase === 'idle') { f = idle(now/1000, peek); readout.value = '等待：按住 / 滚动'; }
   else if (phase === 'charge') {
     // wind up towards 1 while held; once released, let go as soon as the wind-up is visible
-    w = Math.min(1, w + dt/(holding ? .45 : .22));
+    w = Math.min(1, w + dt/(holding ? .38 : .16));
     f = charge(now/1000, peek, w); readout.value = `蓄力 ${Math.round(w*100)}%`;
     if (released && w >= MIN_WIND) open();
   }

@@ -1,6 +1,6 @@
 # design.md
 
-版本 3.2 · 2026-11-15
+版本 3.3 · 2026-11-15
 
 这份文档说明 FIELDNOTES 博客**现在**长什么样、怎么动、为什么这样做。它只描述现状，不记录过程；历史版本见 `docs/archive/reports/design-v2.3-before-rewrite.md`。
 
@@ -29,17 +29,23 @@
 | `/notes/` | 笔记目录（当前为明确标注的草稿占位） | Mineral Fog（浅色） |
 | `/projects/<id>/` | 项目详情，长文阅读 | 取自项目素材（深色） |
 
-所有页面共用页头（字标 `∴ FIELDNOTES` + 导航 Blog / Work / Notes）和页脚（站名、一句话、返回顶部）。
+所有页面共用页头（TEISU 小标志 + `FIELDNOTES` + 导航 Blog / Work / Notes）和页脚（站名、一句话、返回顶部）。
 
-**首页 `/`**（v3，2026-11-15）：首屏有三个可选方向，组件在 `src/components/home/`：
+**首页 `/`**（v4，2026-11-15）：首屏是 TEISU 个人标志的「解锁」开幕，组件 `src/components/home/HeroUnlock.astro`。
 
-- **A 徽标**（`HeroEmblem`，当前默认）：首屏几乎是空的，只有居中的 `∴` 三点标志、字距很宽的 `FIELDNOTES` 和一行小字「研究 · 制作 · 观察 ／ 个人博客」。三个点依次出现，文字随后淡入；下滑时整组后退淡出。
-- **B 影像**（`HeroCinema`）：作品封面全宽轮播，每张 7 秒，缓慢推近（不模糊），左下角是编号、标题和标签，右下角是进度条，右上角有暂停按钮。减少动效时不自动播放。
-- **C 身份卡**（`HeroCard`）：居中一张像名片/标签的半透明卡片，写着 FIELDNOTES、关注方向、作品与笔记数量、GitHub。鼠标下有很轻的倾斜和高光。
+- **静止画面**：居中的 TEISU 标志（深蓝 `#083366` + 红 `#EF3025`），下方依次是 TEISU 字标、两条细线夹着的等宽 `FIELDNOTES`（字距 0.46em）、一行「研究 · 制作 · 观察」（间隔点用红色）。底部是 `Scroll to unlock` 和一条随滚动填充的细进度线。
+- **载入**：四个深蓝角件成对从对角方向合拢（左上/右下先，右上/左下后），两片红刃沿各自斜线滑回，中心方块最后弹入；随后字标从中间向两边展开，细线伸出，小字淡入。约 2 秒完成。
+- **下滑解锁**（舞台吸附在视口，整段约 2.8 屏）：
+  1. 钥匙转动（0–20%）：中心方块转 90°，红刃沿斜线松开一点，字标与小字淡出。
+  2. 旋转（12–50%）：整枚标志旋转 180°。标志是中心对称的，转完仍是原形，同时移到画面正中、角件微微张开。
+  3. 开幕（46–84%）：四个角件退到视口四角，淡成取景框；红刃沿斜线滑出画面；中心方块收回。
+  4. 显字（70–94%）：取景框中央出现「把想法做成实物，也把过程留在这里。」
+- 减少动效或无 JS：不吸附、不动画，标志、字标、小字和那句话静态排在一屏内，不显示滚动提示。
+- 页头字标左侧的符号和站点图标都换成 TEISU 标志。
 
-首屏之后依次是：`(00) Hello` 简介带（左边铁傀儡，右边一句介绍、简介和站点概况）→ `(01) Selected Work` → `(02) Notes` → `(03) About` 深色带 → 链接与超大 `FIELDNOTES` 字标。
+首屏之后依次是：`(00) Hello` 简介带（左边铁傀儡）→ `(01) Selected Work` → `(02) Notes` → `(03) About` 深色带（左栏放人物设定插画）→ 链接与超大 `FIELDNOTES` 字标。
 
-三个方向都可在 `/preview/emblem/`、`/preview/cinema/`、`/preview/card/` 对比（带 noindex，右下角有切换条）。选定后删除 `src/pages/preview/` 和没选中的组件。
+**品牌素材**：`public/media/brand/teisu-mark.svg`、`teisu-logo.svg` 是由用户提供的 PNG 描出的矢量（与原图重合度：标志 98.8%、字标 99.4%）；组件使用 `src/data/brand.json` 中的分块路径。原图保存在本地 `inputs/source/brand/`，不提交。
 
 **Work、Notes**：超大标题（`IndexHeading`：`WORK`、`NOTES`）+ 右下斜向箭头与等宽小标签；下方为两栏分区，左窄栏放编号小标题，右宽栏放内容，分区间用细线分隔。
 
@@ -59,6 +65,7 @@
 | line 分隔线 | `#C9D1D0` | `#46514a` |
 | accent 强调 | `#586F80` | `#cbda8c` |
 
+- TEISU 标志只用自己的两种颜色（深蓝 `#083366`、红 `#EF3025`），不跟随页面配色。
 - 每页一个底色、一个强调色。强调色只用于链接、当前导航、编号和选中状态。
 - 索引页背景有几块极淡的静态彩色光斑（青、紫、玫瑰），加一层细微抖动纹理防止色带。它们不动。
 - 详情页配色从照片外围环境取色，不改变照片里有意义的颜色。
@@ -70,7 +77,7 @@
 
 - 正文：无衬线，`Segoe UI → PingFang SC → Microsoft YaHei`。
 - 小标签、编号、元信息：等宽，`Cascadia Code → Consolas`，常配合字距 `.08em`。
-- 首页徽标字：`FIELDNOTES` 字距 0.42em，`clamp(15px, 1.25vw, 19px)`；简介带标题 `clamp(24px, 2.4vw, 36px)`。
+- 首页标志宽 `clamp(132px, 13vw, 208px)`，字标宽为标志的 1.18 倍；`FIELDNOTES` 11px 等宽、字距 0.46em；简介带标题 `clamp(24px, 2.4vw, 36px)`。
 - 首页分区标题：`clamp(34px, 4.6vw, 76px)`；结尾字标 Arial `clamp(60px, 15.6vw, 262px)`。
 - Work / Notes 大标题：Arial，`clamp(108px, 22.4vw, 376px)`，行高 0.82，字距 -0.05em。
 - 详情页标题：`clamp(40px, 4.75vw, 72px)`，字重 450。
@@ -167,8 +174,9 @@ WebGL 和鼠标相关动效只在「桌面 + 精细指针 + 未要求减少动�
 | 边缘拉伸 shader | `src/lib/scene/PostPipeline.ts` |
 | 鼠标流光（索引页） | `src/lib/scene/MineralFluid.ts`（着色）、`fluidSettings.ts`（力度、半径、淡出等） |
 | 背景流场（详情页） | `src/lib/scene/FlowField.ts` |
-| 首页结构与样式 | `src/components/home/`、`src/styles/home.css`；默认首屏在 `src/pages/index.astro` 里选 |
-| 首屏行为（下滑后退、卡片倾斜、轮播） | `src/lib/motion/hero.ts` |
+| 首页结构与样式 | `src/components/home/`、`src/styles/home.css` |
+| 解锁动效的阶段划分 | `src/lib/motion/hero.ts`（各阶段区间）、`home.css` 中 `.js .piece-*`（每块的位移） |
+| 品牌标志 | `src/data/brand.json`、`public/media/brand/` |
 | 滚动出现 | `src/lib/motion/reveal.ts` |
 | 文字滞后、共享帧调度 | `src/lib/motion/` |
 | 配色 | `src/data/work-themes.ts`、`src/data/*.assets.json` |

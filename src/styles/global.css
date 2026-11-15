@@ -18,7 +18,7 @@ p,h1,h2,h3,figure { margin: 0; }
 .skip-link:focus { transform: none; }
 .site-header { height: 96px; display: flex; align-items: center; justify-content: space-between; position: relative; z-index: 3; }
 .wordmark { display: inline-flex; align-items: center; gap: 12px; font-size: 17px; font-weight: 500; }
-.wordmark-symbol { color: var(--color-accent); font-size: 35px; line-height: 1; transform: rotate(-90deg); }
+.wordmark-mark { width: 22px; height: 22px; display: block; }
 .wordmark-en { font: 10px var(--font-mono); margin-left: 8px; letter-spacing: .12em; }
 nav { display:flex; gap: 38px; font-size: 14px; }
 nav span { color: var(--color-muted); font: 11px var(--font-mono); margin-left: 5px; }
@@ -89,7 +89,7 @@ nav span { color: var(--color-muted); font: 11px var(--font-mono); margin-left: 
 @media(max-width:650px) {
   .site-header { height:88px; }
   .wordmark { font-size:15px; gap:8px; }
-  .wordmark-symbol { font-size:30px; }
+  .wordmark-mark { width:20px; height:20px; }
   nav { gap:23px; font-size:13px; }
   .hero-field { padding-top:28px; padding-bottom:39px; }
   .responsive-title { font-size:42px; margin-top:23px; line-height:1.27; letter-spacing:-.04em; }

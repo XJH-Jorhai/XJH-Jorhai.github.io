@@ -25,7 +25,7 @@ const colors = Object.entries(palette).map(([role,value]) => `--color-${role}:${
     {iridescent && <div data-mineral-sheen aria-hidden="true" hidden></div>}
     <a class="skip-link" href="#main">{english ? 'Skip to content' : '跳至正文'}</a>
     <header class="site-header page-width">
-      <a class="wordmark" href="/" aria-label={english ? 'Fieldnotes home' : `${site.name}，主页`}><span class="wordmark-symbol" aria-hidden="true">∴</span>{name}{!english && <span class="wordmark-en" lang="en">FIELDNOTES</span>}</a>
+      <a class="wordmark" href="/" aria-label={english ? 'Fieldnotes home' : `${site.name}，主页`}><img class="wordmark-mark" src="/media/brand/teisu-mark.svg" width="22" height="22" alt="" />{name}{!english && <span class="wordmark-en" lang="en">FIELDNOTES</span>}</a>
       <nav aria-label={english ? 'Main navigation' : '主导航'}><a href="/" aria-current={pathname === '/' ? 'page' : undefined}>Blog</a><a href="/work/" aria-current={pathname.startsWith('/work') ? 'page' : undefined}>{english ? 'Work' : '项目'}</a><a href="/notes/" aria-current={pathname.startsWith('/notes') ? 'page' : undefined}>{english ? 'Notes' : '记录'}</a></nav>
     </header>
     <main id="main"><slot /></main>
@@ -40,7 +40,7 @@ const colors = Object.entries(palette).map(([role,value]) => `--color-${role}:${
 </html>
 <style>
   .site-header nav [aria-current='page'] {color:var(--color-accent);text-decoration:underline;text-underline-offset:6px;}
-  @media(max-width:400px) {.site-header nav {gap:14px;} .wordmark {font-size:13px;gap:5px;} .wordmark-symbol {font-size:25px;}}
+  @media(max-width:400px) {.site-header nav {gap:14px;} .wordmark {font-size:13px;gap:5px;} .wordmark-mark {width:18px;height:18px;}}
   .mineral-iridescent {
     /* Static light fields stay behind the artwork. */
     --iridescent-cyan: 177 211 208;

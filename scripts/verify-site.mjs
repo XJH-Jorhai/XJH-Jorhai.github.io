@@ -24,7 +24,7 @@ try {
       assert.equal((await page.goto(base+path)).status(),200);
       assert.ok((await page.locator('h1').textContent()).includes(title),`${path}: h1`);
       assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),`${path}: overflow at ${width}`);
-      await page.locator('img').evaluateAll(images=>Promise.all(images.map(image=>image.decode())));
+      await page.locator('img').evaluateAll(images=>{for(const image of images)image.loading='eager';return Promise.all(images.map(image=>image.decode()));});
     }
     await page.close();
   }

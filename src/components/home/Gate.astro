@@ -1,5 +1,6 @@
 ---
-// 开幕层：深夜色的舞台。标志从中心绽放；粗白方框随滚动从左上、右下两角同时描出，描满即展开。
+// 开幕层：深夜色的舞台。标志从中心绽放；按住蓄力、松开（或滚动）后边转边弹开，
+// 碎片落到首屏四角成为色块边框（落位后这一层留在首屏，位于内容之下）。
 // 只有 gate.ts 会显示它（默认 hidden）。无 JS 时不存在，首页直接可读。
 import brand from '../../data/brand.json';
 const order = ['tl','br','tr','bl','ru','rl','c'] as const;
@@ -7,12 +8,7 @@ const order = ['tl','br','tr','bl','ru','rl','c'] as const;
 <div class="gate" data-gate hidden>
   <canvas class="gate-dust" data-gate-dust aria-hidden="true"></canvas>
   <div class="gate-space">
-    <svg class="gate-frame" data-gate-frame viewBox="0 0 100 100" aria-hidden="true">
-      <path class="frame-track" d="M0 0H100V100H0Z" />
-      <path class="frame-a" pathLength="1" d="M0 0H100V100" />
-      <path class="frame-b" pathLength="1" d="M100 100H0V0" />
-    </svg>
-    <button class="gate-mark" type="button" data-gate-mark aria-label="进入 TEISU 的博客（向下滚动描完方框，或点击）">
+    <button class="gate-mark" type="button" data-gate-mark aria-label="进入 TEISU 的博客（按住后松开，或向下滚动）">
       {order.map(key => <svg class:list={['piece', key.startsWith('r') ? 'is-red' : 'is-ink']} data-piece={key} viewBox="0 0 720 720" aria-hidden="true"><path d={brand.pieces[key]} /></svg>)}
     </button>
   </div>

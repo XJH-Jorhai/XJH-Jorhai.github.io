@@ -17,15 +17,17 @@ const pad = (n: number) => String(n).padStart(2, '0');
   <Gate slot="overlay" />
   <div class="home" data-home>
     <section class="hero" aria-labelledby="hero-title">
-      <div class="hero-field is-left" aria-hidden="true"></div>
-      <div class="hero-field is-right" aria-hidden="true"></div>
-      <figure class="hero-art" data-h style="--d:0s">
-        <img src="/media/persona/oil-1254.webp" srcset="/media/persona/oil-720.webp 720w, /media/persona/oil-1254.webp 1254w" sizes="(max-width:900px) 100vw, 100vh" width="1254" height="1254" alt="油画风格的人物插画：戴白色渔夫帽、系红色缎带的金色短发少女，背景左侧钴蓝、右侧朱红的厚涂笔触。" fetchpriority="high" decoding="async" />
+      <figure class="hero-art" data-h style="--d:.05s">
+        <div class="hero-art-frame">
+          <img src="/media/persona/oil-1254.webp" srcset="/media/persona/oil-720.webp 720w, /media/persona/oil-1254.webp 1254w" sizes="(max-width:900px) 72vw, min(64vh, 560px)" width="1254" height="1254" alt="油画风格的人物插画：戴白色渔夫帽、系红色缎带的金色短发少女，背景左侧钴蓝、右侧朱红的厚涂笔触。" fetchpriority="high" decoding="async" />
+        </div>
+        <figcaption><span>人物设定</span><span>TEISU</span></figcaption>
       </figure>
-      <h1 id="hero-title" class="hero-title"><span class="visually-hidden">TEISU · FIELDNOTES 个人博客</span><Wordmark animated tone="light" /></h1>
-      <p class="hero-side" data-h style="--d:.7s"><span>FIELDNOTES</span><span>研究 · 制作 · 观察</span></p>
-      <p class="hero-caption" data-h style="--d:.85s"><span>人物设定</span><span>{journal.introduction}</span></p>
-      <a class="hero-down" href="#work" data-h style="--d:1s" aria-label="向下浏览"><span aria-hidden="true">↓</span></a>
+      <div class="hero-copy">
+        <h1 id="hero-title" class="hero-title"><span class="visually-hidden">TEISU · FIELDNOTES 个人博客</span><Wordmark animated /></h1>
+        <p class="hero-line" data-h style="--d:.7s">{journal.introduction}</p>
+        <p class="hero-side" data-h style="--d:.82s"><span>FIELDNOTES</span><span>研究 · 制作 · 观察</span></p>
+      </div>
     </section>
 
     <section class="h-work page-width" id="work" aria-labelledby="work-heading">

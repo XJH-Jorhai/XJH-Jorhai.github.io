@@ -12,45 +12,21 @@ import '../../styles/journal.css';
 import '../../styles/home.css';
 const workCount = (await getCollection('projects')).length;
 const pad = (n: number) => String(n).padStart(2, '0');
-const doors = [
-  { no: '01', href: '/work/', name: 'Work', zh: '作品', count: pad(workCount) },
-  { no: '02', href: '/notes/', name: 'Notes', zh: '记录', count: pad(journalNotes.length) },
-  { no: '03', href: '#about', name: 'About', zh: '关于', count: '' },
-];
-const ticker = ['TEISU', 'FIELDNOTES', 'RESEARCH', '研究', 'MAKING', '制作', 'OBSERVATION', '观察'];
 ---
-<PageShell title="Blog" description={journal.description} english language="zh-CN" palette={workThemes.paper} colorScheme="light" iridescent>
+<PageShell title="Blog" description={journal.description} english language="zh-CN" palette={workThemes.paper} colorScheme="light" iridescent homeMark={false}>
   <Gate slot="overlay" />
   <div class="home" data-home>
     <section class="hero" aria-labelledby="hero-title">
-      <div class="hero-grid page-width">
-        <figure class="hero-portrait" data-h style="--d:.1s">
-          <div class="hero-portrait-cut">
-            <img src="/media/persona/portrait-960.webp" srcset="/media/persona/portrait-480.webp 480w, /media/persona/portrait-960.webp 960w" sizes="(max-width:900px) 80vw, 32vw" width="960" height="960" alt="水彩人物插画：戴白色渔夫帽、系红色缎带的金色短发少女，侧脸望向一旁。" fetchpriority="high" decoding="async" />
-          </div>
-          <figcaption><span class="tag">人物设定</span><span>TEISU</span></figcaption>
-        </figure>
-        <div class="hero-copy">
-          <p class="hero-kicker" data-h style="--d:.1s"><span>(TEISU) Personal Fieldnotes</span><span>Research · Making · Observation</span></p>
-          <h1 id="hero-title" class="hero-title"><span class="visually-hidden">TEISU · FIELDNOTES 个人博客</span><Wordmark animated /></h1>
-          <p class="hero-line" data-h style="--d:.75s">{journal.introduction}</p>
-          <nav class="hero-doors" aria-label="入口">
-            {doors.map((door, i) => <a href={door.href} data-h style={`--d:${.85 + i * .07}s`}>
-              <span class="door-no">{door.no}</span>
-              <span class="door-name">{door.name}</span>
-              <span class="door-zh">{door.zh}{door.count && <sup>{door.count}</sup>}</span>
-              <span class="door-arrow" aria-hidden="true">↗</span>
-            </a>)}
-          </nav>
-        </div>
-        <a class="hero-down" href="#work" data-h style="--d:1.15s"><span aria-hidden="true">↓</span> Scroll</a>
-      </div>
+      <div class="hero-field is-left" aria-hidden="true"></div>
+      <div class="hero-field is-right" aria-hidden="true"></div>
+      <figure class="hero-art" data-h style="--d:0s">
+        <img src="/media/persona/oil-1254.webp" srcset="/media/persona/oil-720.webp 720w, /media/persona/oil-1254.webp 1254w" sizes="(max-width:900px) 100vw, 100vh" width="1254" height="1254" alt="油画风格的人物插画：戴白色渔夫帽、系红色缎带的金色短发少女，背景左侧钴蓝、右侧朱红的厚涂笔触。" fetchpriority="high" decoding="async" />
+      </figure>
+      <h1 id="hero-title" class="hero-title"><span class="visually-hidden">TEISU · FIELDNOTES 个人博客</span><Wordmark animated tone="light" /></h1>
+      <p class="hero-side" data-h style="--d:.7s"><span>FIELDNOTES</span><span>研究 · 制作 · 观察</span></p>
+      <p class="hero-caption" data-h style="--d:.85s"><span>人物设定</span><span>{journal.introduction}</span></p>
+      <a class="hero-down" href="#work" data-h style="--d:1s" aria-label="向下浏览"><span aria-hidden="true">↓</span></a>
     </section>
-
-    <div class="ticker" aria-hidden="true">
-      <div class="ticker-band is-red"><div class="ticker-run">{[0,1].map(() => <span>{ticker.map(w => <>{w}<i>✕</i></>)}</span>)}</div></div>
-      <div class="ticker-band is-ink"><div class="ticker-run">{[0,1].map(() => <span>{ticker.map(w => <>{w}<i>✕</i></>)}</span>)}</div></div>
-    </div>
 
     <section class="h-work page-width" id="work" aria-labelledby="work-heading">
       <header class="h-head">

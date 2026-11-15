@@ -12,7 +12,7 @@ import '../../styles/journal.css';
 import '../../styles/home.css';
 const workCount = (await getCollection('projects')).length;
 ---
-<PageShell title="Blog" description={journal.description} english language="zh-CN" palette={workThemes.b} colorScheme="light" iridescent>
+<PageShell title="Blog" description={journal.description} english language="zh-CN" palette={workThemes.paper} colorScheme="light" iridescent>
   <Gate />
   <Foyer workCount={workCount} />
 

@@ -6,8 +6,8 @@ import '@fontsource/space-grotesk/500.css';
 import '@fontsource/space-grotesk/700.css';
 import '../styles/tokens.css';
 import '../styles/global.css';
-interface Props { title?: string; description?: string; english?: boolean; language?: string; palette?: Record<string,string>; colorScheme?: 'light'|'dark'; iridescent?: boolean; noindex?: boolean; }
-const { title, description = site.description, english = false, language, palette=assets.palette,colorScheme='dark',iridescent=false,noindex=false } = Astro.props;
+interface Props { title?: string; description?: string; english?: boolean; language?: string; palette?: Record<string,string>; colorScheme?: 'light'|'dark'; iridescent?: boolean; noindex?: boolean; homeMark?: boolean; }
+const { title, description = site.description, english = false, language, palette=assets.palette,colorScheme='dark',iridescent=false,noindex=false,homeMark=true } = Astro.props;
 const pathname = Astro.url.pathname;
 const name = english ? 'FIELDNOTES' : site.name;
 const colors = Object.entries(palette).map(([role,value]) => `--color-${role}:${value}`).join(';')+`;color-scheme:${colorScheme}`;
@@ -28,23 +28,22 @@ const colors = Object.entries(palette).map(([role,value]) => `--color-${role}:${
     {iridescent && <div data-mineral-sheen aria-hidden="true" hidden></div>}
     <a class="skip-link" href="#main">{english ? 'Skip to content' : '跳至正文'}</a>
     <slot name="overlay" />
-    <header class="site-header page-width" data-site-header>
-      <a class="brand" href="/" aria-label={english ? 'TEISU Fieldnotes home' : `${site.name}，主页`}><img class="brand-mark" src="/media/brand/teisu-mark.svg" width="26" height="26" alt="" /><span class="brand-name">TEISU</span><span class="brand-sub">{english ? 'Fieldnotes' : site.name}</span></a>
-      <nav class="site-nav" aria-label={english ? 'Main navigation' : '主导航'}>
+    {homeMark && <a class="home-mark" href="/" aria-label={english ? 'TEISU Fieldnotes home' : `${site.name}，主页`}><img src="/media/brand/teisu-mark.svg" width="30" height="30" alt="" /></a>}
+    <main id="main"><slot /></main>
+    <footer class="site-footer page-width">
+      <a class="footer-brand" href="/"><img src="/media/brand/teisu-mark.svg" width="20" height="20" alt="" />TEISU<span>{english ? 'Fieldnotes' : site.name}</span></a>
+      <nav class="footer-nav" aria-label={english ? 'Main navigation' : '主导航'}>
         <a href="/" aria-current={pathname === '/' ? 'page' : undefined}>Blog</a>
         <a href="/work/" aria-current={pathname.startsWith('/work') ? 'page' : undefined}>{english ? 'Work' : '项目'}</a>
         <a href="/notes/" aria-current={pathname.startsWith('/notes') ? 'page' : undefined}>{english ? 'Notes' : '记录'}</a>
         <a href="/#about">{english ? 'About' : '关于'}</a>
       </nav>
-    </header>
-    <main id="main"><slot /></main>
-    <footer class="site-footer page-width"><a href="/">{name}<span aria-hidden="true"> ↗</span></a><p>{english ? 'An ongoing collection of work and thoughts.' : site.footer}</p><a href="#main">{english ? 'Back to top ↑' : '返回顶部 ↑'}</a></footer>
+      <a href="#main">{english ? 'Back to top ↑' : '返回顶部 ↑'}</a>
+    </footer>
     <script>
       import { initMotion } from '../lib/motion';
       import { initReveal } from '../lib/motion/reveal';
-      import { initHeader } from '../lib/motion/header';
       initReveal();
-      initHeader();
       initMotion();
     </script>
   </body>

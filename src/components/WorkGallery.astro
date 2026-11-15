@@ -3,11 +3,11 @@ import { getCollection } from 'astro:content';
 import ProjectVisual from './ProjectVisual.astro';
 import { assetsFor } from '../data/projects';
 import { workIndexCopy } from '../data/work-index';
-interface Props { numbered?: boolean }
-const { numbered = false } = Astro.props;
+interface Props { numbered?: boolean; variant?: 'grid' | 'poster' }
+const { numbered = false, variant = 'grid' } = Astro.props;
 const projects = (await getCollection('projects')).sort((a,b) => a.id.localeCompare(b.id));
 ---
-    <section class:list={['work-gallery',{'work-gallery--single':projects.length===1}]} aria-label="Selected work">
+    <section class:list={['work-gallery',`work-gallery--${variant}`,{'work-gallery--single':projects.length===1}]} aria-label="Selected work">
       {projects.map(({id},index) => <article class="work-item">
         <a class="work-cover" href={`/projects/${id}/`} aria-labelledby={`${id}-title`}>
           <ProjectVisual assets={assetsFor(`${id}-cover`)} mode="home" alt={workIndexCopy[id]!.alt} caption="" sizes="(max-width:488px) calc(100vw - 44px), (max-width:760px) 91vw, (min-width:1584px) 696px, 44vw" showCaption={false} previewOnHover />

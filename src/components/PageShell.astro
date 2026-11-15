@@ -1,6 +1,9 @@
 ---
 import { site } from '../config/site';
 import assets from '../data/project-01.assets.json';
+import '@fontsource/space-grotesk/400.css';
+import '@fontsource/space-grotesk/500.css';
+import '@fontsource/space-grotesk/700.css';
 import '../styles/tokens.css';
 import '../styles/global.css';
 interface Props { title?: string; description?: string; english?: boolean; language?: string; palette?: Record<string,string>; colorScheme?: 'light'|'dark'; iridescent?: boolean; noindex?: boolean; }
@@ -24,23 +27,29 @@ const colors = Object.entries(palette).map(([role,value]) => `--color-${role}:${
   <body class:list={{'mineral-iridescent':iridescent}}>
     {iridescent && <div data-mineral-sheen aria-hidden="true" hidden></div>}
     <a class="skip-link" href="#main">{english ? 'Skip to content' : '跳至正文'}</a>
-    <header class="site-header page-width">
-      <a class="wordmark" href="/" aria-label={english ? 'Fieldnotes home' : `${site.name}，主页`}><img class="wordmark-mark" src="/media/brand/teisu-mark.svg" width="22" height="22" alt="" />{name}{!english && <span class="wordmark-en" lang="en">FIELDNOTES</span>}</a>
-      <nav aria-label={english ? 'Main navigation' : '主导航'}><a href="/" aria-current={pathname === '/' ? 'page' : undefined}>Blog</a><a href="/work/" aria-current={pathname.startsWith('/work') ? 'page' : undefined}>{english ? 'Work' : '项目'}</a><a href="/notes/" aria-current={pathname.startsWith('/notes') ? 'page' : undefined}>{english ? 'Notes' : '记录'}</a><a href="/#about">{english ? 'About' : '关于'}</a></nav>
+    <slot name="overlay" />
+    <header class="site-header page-width" data-site-header>
+      <a class="brand" href="/" aria-label={english ? 'TEISU Fieldnotes home' : `${site.name}，主页`}><img class="brand-mark" src="/media/brand/teisu-mark.svg" width="26" height="26" alt="" /><span class="brand-name">TEISU</span><span class="brand-sub">{english ? 'Fieldnotes' : site.name}</span></a>
+      <nav class="site-nav" aria-label={english ? 'Main navigation' : '主导航'}>
+        <a href="/" aria-current={pathname === '/' ? 'page' : undefined}>Blog</a>
+        <a href="/work/" aria-current={pathname.startsWith('/work') ? 'page' : undefined}>{english ? 'Work' : '项目'}</a>
+        <a href="/notes/" aria-current={pathname.startsWith('/notes') ? 'page' : undefined}>{english ? 'Notes' : '记录'}</a>
+        <a href="/#about">{english ? 'About' : '关于'}</a>
+      </nav>
     </header>
     <main id="main"><slot /></main>
     <footer class="site-footer page-width"><a href="/">{name}<span aria-hidden="true"> ↗</span></a><p>{english ? 'An ongoing collection of work and thoughts.' : site.footer}</p><a href="#main">{english ? 'Back to top ↑' : '返回顶部 ↑'}</a></footer>
     <script>
       import { initMotion } from '../lib/motion';
       import { initReveal } from '../lib/motion/reveal';
+      import { initHeader } from '../lib/motion/header';
       initReveal();
+      initHeader();
       initMotion();
     </script>
   </body>
 </html>
 <style>
-  .site-header nav [aria-current='page'] {color:var(--color-accent);text-decoration:underline;text-underline-offset:6px;}
-  @media(max-width:400px) {.site-header nav {gap:14px;} .wordmark {font-size:13px;gap:5px;} .wordmark-mark {width:18px;height:18px;}}
   .mineral-iridescent {
     /* Static light fields stay behind the artwork. */
     --iridescent-cyan: 177 211 208;

@@ -26,7 +26,6 @@
   /* Thick white square, two strokes from opposite corners; progress = scroll. */
   .frame {position:absolute;left:50%;top:50%;width:calc(clamp(116px,11vw,176px) * 1.9);aspect-ratio:1;overflow:visible;pointer-events:none;transform:translate(-50%,-50%);opacity:0;transition:opacity .8s cubic-bezier(.16,1,.3,1);}
   .frame path {fill:none;stroke-width:3.4;stroke-linecap:square;}
-  .frame .track {stroke:rgb(239 48 37 / .28);}
   .frame .a,.frame .b {stroke:#EFE9DC;stroke-dasharray:1 1;stroke-dashoffset:calc(1 - var(--draw));}
   .gate.is-ready .frame {opacity:1;}
   .gate.is-opening .frame,.gate.is-settled .frame {opacity:0;transition-duration:.35s;}
@@ -76,7 +75,7 @@
 <div class="gate" id="gate">
   <canvas class="dust" id="dust" aria-hidden="true"></canvas>
   <div class="space">
-    <svg class="frame" id="frame" viewBox="0 0 100 100" aria-hidden="true"><path class="track" d="M0 0H100V100H0Z"/><path class="a" pathLength="1" d="M0 0H100V100"/><path class="b" pathLength="1" d="M100 100H0V0"/></svg>
+    <svg class="frame" id="frame" viewBox="0 0 100 100" aria-hidden="true"><path class="a" pathLength="1" d="M0 0H100V100"/><path class="b" pathLength="1" d="M100 100H0V0"/></svg>
     <button class="mark" id="mark" type="button" aria-label="进入 TEISU 的博客（向下滚动描完方框，或点击）">__PIECES__</button>
   </div>
 </div>
@@ -152,19 +151,20 @@ const FINAL = {outer:1.5, keep:-.025, leave:.75, blade:-.11};
 const FINAL_NARROW = {outer:1.7, keep:-.04, blade:-.1};
 const final = () => innerWidth/innerHeight < .8 ? {...FINAL, ...FINAL_NARROW} : FINAL;
 const zoomTo = () => final().outer*(innerWidth+innerHeight)/2/241*720/Math.max(markEl.offsetWidth,1);
-const T = {lit:[.05,.7], zoom:[.25,1.25], settle:[.7,2.2], bg:[.75,1.55], key:[.35,.85], home:1.15, end:2.25};
+const T = {lit:[.05,.7], spin:[.05,2.2], zoom:[.25,1.25], settle:[.7,2.2], bg:[.75,1.55], key:[.35,.85], home:1.15, end:2.25};
+const SPIN = 180;   // must stay a multiple of 180: the mark is centrally symmetric, so the frame lands the same
 function opening(t, from){
   const f = final(), p = pose(), s = outQuint(seg(t,...T.settle));
   for (const k of ['tl','br','tr','bl']) { const d = lerp(0, k==='tl'||k==='br' ? f.keep : f.leave, s); p[k].x = dir[k][0]*d; p[k].y = dir[k][1]*d; }
   for (const k of ['ru','rl']) { const d = lerp(.06*from.draw, f.blade, s); p[k].x = dir[k][0]*d; p[k].y = dir[k][1]*d; }
   p.c.s = (1-.12)*(1 - inOutCubic(seg(t,...T.key)));
   const z = inOutCubic(seg(t,...T.zoom));
-  return {p, mark:{scale:lerp(from.scale, zoomTo(), z), z:0}, bg:1 - inOutCubic(seg(t,...T.bg)), lit:inOutCubic(seg(t,...T.lit)), dust:1 - seg(t,.4,1), draw:1};
+  return {p, mark:{scale:lerp(from.scale, zoomTo(), z), z:0, rot:SPIN*inOutCubic(seg(t,...T.spin))}, bg:1 - inOutCubic(seg(t,...T.bg)), lit:inOutCubic(seg(t,...T.lit)), dust:1 - seg(t,.4,1), draw:1};
 }
 
 /* ---------- render ---------- */
 function apply(f){
-  markEl.style.transform = `translateZ(${f.mark.z.toFixed(1)}px) scale(${f.mark.scale.toFixed(4)})`;
+  markEl.style.transform = `translateZ(${f.mark.z.toFixed(1)}px) rotate(${(f.mark.rot ?? 0).toFixed(2)}deg) scale(${f.mark.scale.toFixed(4)})`;
   gate.style.setProperty('--bg', f.bg.toFixed(3)); gate.style.setProperty('--lit', f.lit.toFixed(3)); gate.style.setProperty('--draw', f.draw.toFixed(4));
   for (const [k,el] of pieces) { const q = f.p[k]; el.style.transform = `translate(${(q.x*100).toFixed(3)}%,${(q.y*100).toFixed(3)}%) scale(${q.s.toFixed(4)})`; el.style.opacity = q.o.toFixed(3); }
 }

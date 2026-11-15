@@ -82,7 +82,7 @@ const BRAND = __BRAND__;
       and the mosaic is the hero.
    =================================================================================== */
 const canvas = document.getElementById('stage');
-const ctx = canvas.getContext('2d');
+let ctx = canvas.getContext('2d');
 const hero = document.getElementById('hero');
 const painting = document.getElementById('painting');
 const readout = document.getElementById('readout');
@@ -163,12 +163,6 @@ function resize(){
   L = Math.max(110, Math.min(170, Math.min(W,H)*.17));
   buildRings(); buildComp();
 }
-function buildRings(){
-  const u = L/720, reach = Math.hypot(W,H)/2 + 40;
-  rings = [{k:0, scale:1, w:ARM_W*u, alpha:1, dir:1, n:1}];
-  for (let k=1, sc=1.62; 308*u*sc < reach + 200*u; k++, sc*=1.36)
-    rings.push({k, scale:sc, w:Math.min(2.4 + k*.5, 6), alpha:Math.max(.32, .9 - k*.07), dir:k%2 ? -1 : 1, n:1 + k%3});
-}
 /** Paint the hero exactly as the DOM lays it out, so the mosaic resolves into it. */
 function buildComp(){
   const c = cctx; c.setTransform(dpr,0,0,dpr,0,0);
@@ -198,77 +192,83 @@ function paintDark(){
   ctx.fillStyle = g; ctx.fillRect(0,0,W,H);
 }
 
-/* ================= A: the lock ================= */
+/* ================= A: an irregular sigil ================= */
+// Seeded randomness: the same "random" sigil every visit.
+let seed = 7;
+const rnd = () => { seed = (seed*16807) % 2147483647; return (seed-1)/2147483646; };
+const range = (a,b) => a + (b-a)*rnd();
 const CLICKS = [.3,.6,.9];
-let clickTimes = [];             // time each click fired (null when undone)
-/** Ring k turns at the last n_k clicks; by the last click every ring is aligned (0°). */
-function ringTurn(r, now){
-  let a = -r.dir*90*r.n;
-  CLICKS.forEach((_,c) => { if (c < 3 - r.n) return; const t = clickTimes[c]; if (t == null) return;
-    a += r.dir*90*outBack(seg(now - t - r.k*.06, 0, .6)); });
+let clickTimes = [];
+/** Rings of arms. Ring 0 is the mark's own arms; the rest are irregular, heavier with distance. */
+function buildRings(){
+  seed = 7; const u = L/720, reach = Math.hypot(W,H)/2;
+  rings = [{k:0, scale:1, w:ARM_W*u, alpha:1, base:0, turns:[0,0,0], drift:0, arms:Object.values(ARM).map(pts=>({pts, len:1, delay:0}))}];
+  // enough rings to keep filling the screen while the camera pulls back by ZOOM
+  for (let k=1, sc=range(1.55,1.75); 308*u*sc < reach*ZOOM*1.15; k++, sc*=range(1.24,1.46)) {
+    const arms = ringArms(sc).filter(() => k < 2 || rnd() > .14).map(pts => ({pts, len:range(.5,1), delay:range(0,.32)}));
+    const turns = [0,1,2].map(() => (rnd() < .5 ? -1 : 1)*range(35,130));
+    rings.push({k, scale:sc, w:ARM_W*u*range(.42,.62)*Math.pow(sc,.45), alpha:Math.max(.42, .95 - k*.045),
+      base:range(-180,180), turns, drift:(rnd() < .5 ? -1 : 1)*range(2,9), arms});
+  }
+}
+function ringTurn(r, sec){
+  if (r.k === 0) return 0;
+  let a = r.base + r.drift*sec*.1;
+  r.turns.forEach((turn,c) => { const t = clickTimes[c]; if (t == null) return; a += turn*outBack(seg(sec - t - r.k*.035, 0, .7)); });
   return a*Math.PI/180;
 }
-/** Draw rings + core. len: arm length 0–1 per ring; morph: core twist 0–1. */
-function drawLock(len, morph, turnOf, exact=0){
-  const u = L/720, cx = W/2, cy = H/2;
+/** Arm length for progress p: every arm is there from the start, each grows on its own schedule. */
+const armLen = (arm, p) => .05 + .95*arm.len*inOutSine(seg(p, arm.delay, Math.min(1, arm.delay + .68)));
+function drawSigil(p, sec, cam=1, spin=0, exact=0){
+  const u = L/720*cam, cx = W/2, cy = H/2;
   ctx.save(); ctx.setTransform(dpr,0,0,dpr,0,0); ctx.lineCap = 'butt'; ctx.lineJoin = 'miter';
   for (const r of rings) {
-    const f = len(r); if (f <= 0) continue;
-    const path = new Path2D(), m = {x:cx, y:cy, s:u}, rot = turnOf(r);
-    for (const pts of (r.k === 0 ? Object.values(ARM) : ringArms(r.scale))) partial(path, pts, f, m, rot);
-    ctx.globalAlpha = r.alpha*(r.k === 0 ? 1 - exact : 1); ctx.strokeStyle = INK; ctx.lineWidth = r.w; ctx.stroke(path);
+    const R = 308*u*r.scale; if (R*.7 > Math.hypot(W,H)/2 + r.w) continue;   // off screen
+    const w = Math.max(r.w*cam, Math.min(r.w, 3.2));
+    const path = new Path2D(), m = {x:cx, y:cy, s:u}, rot = ringTurn(r, sec) + spin*(r.k ? r.drift : 0)*Math.PI/180;
+    for (const arm of r.arms) partial(path, arm.pts, r.k === 0 ? .05 + .95*inOutSine(p) : armLen(arm, p), m, rot);
+    ctx.globalAlpha = r.alpha*(r.k === 0 ? 1 - exact : 1); ctx.strokeStyle = INK; ctx.lineWidth = w; ctx.stroke(path);
   }
   ctx.restore();
-  if (exact < 1) { ctx.save(); ctx.setTransform(dpr,0,0,dpr,0,0); ctx.globalAlpha = 1 - exact; drawCore(ctx, cx, cy, L, morph); ctx.restore(); }
-  ctx.save(); ctx.setTransform(dpr,0,0,dpr,0,0); drawExact(ctx, cx, cy, L, exact); ctx.restore();
+  const s = L*cam;
+  if (exact < 1) { ctx.save(); ctx.setTransform(dpr,0,0,dpr,0,0); ctx.globalAlpha = 1 - exact; drawCore(ctx, cx, cy, s, inOutCubic(seg(p,.05,.95))); ctx.restore(); }
+  ctx.save(); ctx.setTransform(dpr,0,0,dpr,0,0); drawExact(ctx, cx, cy, s, exact); ctx.restore();
 }
-const armLen = p => .05 + .95*inOutSine(p);
 
-/* ================= B: release, play back, pull back, colour ================= */
-const TB = {hold:[0,.55], back:[.55,1.45], regrow:[1.45,2.25], zoom:[1.85,3.9], colour:[3.25,4.45], fill:[3.75,4.95], fade:[4.85,5.35], end:5.35};
-function drawField(tb){
+/* ================= B: pull back, colour from the side ================= */
+const ZOOM = 6;
+const TB = {settle:[0,.3], zoom:[.15,2.4], lines:[1.45,3.0], fill:[2.05,3.6], fade:[3.5,3.9], end:3.9};
+const inOutQuart = t => t<.5 ? 8*t**4 : 1-Math.pow(-2*t+2,4)/2;
+/** A 45° edge (the blades' angle) sweeping from the left: polygon of everything already swept. */
+function sweep(f){
+  const slant = H, x = lerp(-slant - 40, W + 40, f);           // top edge leads, bottom trails
+  const path = new Path2D(); path.moveTo(-10,-10); path.lineTo(x + slant, -10); path.lineTo(x, H + 10); path.lineTo(-10, H + 10); path.closePath();
+  return path;
+}
+function drawB(tb, sec){
   const z = inOutCubic(seg(tb,...TB.zoom));
-  const cell0 = L/.86, cellMin = W < 700 ? 28 : 40;
-  const c = cell0*Math.pow(cellMin/cell0, z);                   // exponential: an even pull-back
-  const s = c*.86, u = s/720, cx = W/2, cy = H/2;
-  const grow = inOutCubic(seg(tb,...TB.regrow));
-  const reachCells = (Math.hypot(W,H)/2)/c;
-  const nx = Math.ceil(W/2/c)+1, ny = Math.ceil(H/2/c)+1;
-  lctx.setTransform(1,0,0,1,0,0); lctx.globalCompositeOperation = 'source-over'; lctx.clearRect(0,0,layer.width,layer.height);
-  lctx.setTransform(dpr,0,0,dpr,0,0); lctx.lineCap = 'butt'; lctx.lineJoin = 'miter';
-  const lines = new Path2D(), keys = new Path2D();
-  for (let j=-ny;j<=ny;j++) for (let i=-nx;i<=nx;i++) {
-    const x = cx + i*c, y = cy + j*c, dw = Math.hypot(i,j);
-    // copies replicate outward with the pull-back; the centre one regrows first
-    const f = dw === 0 ? grow : clamp((reachCells*z*1.15 - dw + 1)/1.6);
-    if (f <= 0) continue;
-    for (const pts of Object.values(ARM)) partial(lines, pts, f, {x, y, s:u});
-    if (dw > 0) { const k = 51*u*Math.min(1, f*1.4); keys.rect(x-k, y-k, 2*k, 2*k); }
-  }
-  lctx.strokeStyle = INK; lctx.lineWidth = Math.max(1.2, lerp(ARM_W, 58, z)*u); lctx.stroke(lines);
-  lctx.fillStyle = INK; lctx.fill(keys);
-  drawCore(lctx, cx, cy, s, grow);                               // red stays only at the centre
-  return {c, cx, cy, nx, ny};
+  const cam = Math.pow(1/ZOOM, z);                            // exponential: an even pull-back
+  const exact = seg(tb,...TB.settle)*(1 - seg(tb, .35, .7));
+  // sigil on the main canvas, then copy it into the layer so it can take colour
+  paintDark(); drawSigil(1, sec, cam, z*14, exact);
+  const lf = inOutQuart(seg(tb,...TB.lines)), ff = inOutQuart(seg(tb,...TB.fill));
+  if (lf <= 0) return;
+  // ground: the swept part fills with the hero behind its coloured lines
+  if (ff > 0) { ctx.save(); ctx.setTransform(dpr,0,0,dpr,0,0); ctx.clip(sweep(ff)); ctx.setTransform(1,0,0,1,0,0); ctx.drawImage(comp,0,0); ctx.restore(); }
+  ctx.save(); ctx.setTransform(1,0,0,1,0,0); ctx.globalAlpha = 1 - seg(ff,.8,1);
+  ctx.drawImage(lineMask(lf, cam, sec, z, exact),0,0); ctx.restore();
 }
-function colourField(tb, g){
-  const R = Math.hypot(W,H)*.56;
-  const cr = inOutCubic(seg(tb,...TB.colour))*R;                 // lines take the hero's colours
-  if (cr > 0) {
-    lctx.save(); lctx.setTransform(1,0,0,1,0,0); lctx.globalCompositeOperation = 'source-atop';
-    lctx.beginPath(); lctx.arc(g.cx*dpr, g.cy*dpr, cr*dpr, 0, Math.PI*2); lctx.clip(); lctx.drawImage(comp,0,0); lctx.restore();
-  }
-  const fp = inOutCubic(seg(tb,...TB.fill));                      // then every cell fills, centre first
-  if (fp > 0) {
-    const cells = new Path2D();
-    for (let j=-g.ny;j<=g.ny;j++) for (let i=-g.nx;i<=g.nx;i++) {
-      const x = g.cx + i*g.c, y = g.cy + j*g.c, d = Math.hypot(x-g.cx, y-g.cy)/R;
-      const k = outCubic(clamp((fp*1.35 - d)/.35))*g.c/2*1.02; if (k <= 0) continue;
-      cells.rect(x-k, y-k, 2*k, 2*k);
-    }
-    ctx.save(); ctx.setTransform(dpr,0,0,dpr,0,0); ctx.clip(cells); ctx.setTransform(1,0,0,1,0,0); ctx.drawImage(comp,0,0); ctx.restore();
-  }
-  ctx.save(); ctx.setTransform(1,0,0,1,0,0); ctx.globalAlpha = 1 - seg(fp, .55, 1); ctx.drawImage(layer,0,0); ctx.restore();
+/** Coloured lines only (a separate pass draws the sigil without its ground, tinted by the hero). */
+const lineCanvas = document.createElement('canvas'), lnctx = lineCanvas.getContext('2d');
+function lineMask(lf, cam, sec, z, exact){
+  if (lineCanvas.width !== canvas.width || lineCanvas.height !== canvas.height) { lineCanvas.width = canvas.width; lineCanvas.height = canvas.height; }
+  lnctx.setTransform(1,0,0,1,0,0); lnctx.clearRect(0,0,lineCanvas.width,lineCanvas.height);
+  ctxSwap(lnctx, () => drawSigil(1, sec, cam, z*14, exact));
+  lnctx.save(); lnctx.setTransform(dpr,0,0,dpr,0,0); lnctx.globalCompositeOperation = 'destination-in'; lnctx.fillStyle = '#000'; lnctx.fill(sweep(lf)); lnctx.restore();
+  lnctx.globalCompositeOperation = 'source-atop'; lnctx.setTransform(1,0,0,1,0,0); lnctx.drawImage(comp,0,0); lnctx.globalCompositeOperation = 'source-over';
+  return lineCanvas;
 }
+function ctxSwap(c, fn){ const keep = ctx; ctx = c; try { fn(); } finally { ctx = keep; } }
 
 /* ================= state & input ================= */
 let phase = 'A', target = 0, shown = 0, auto = false, lastInput = 0, tB0 = 0;
@@ -311,24 +311,14 @@ function frame(now){
     else if (target < 1 && now - lastInput > 900) target = Math.max(0, target - dt*.18);
     shown += (target - shown)*(1 - Math.exp(-dt/.1)); if (target >= 1 && shown > .997) shown = 1;
     CLICKS.forEach((c,i) => { if (shown >= c && clickTimes[i] == null) clickTimes[i] = sec; if (shown < c - .02) clickTimes[i] = null; });
-    paintDark(); drawLock(() => armLen(shown), inOutCubic(seg(shown,.05,.95)), r => ringTurn(r, sec));
-    readout.value = `A · ${Math.round(shown*100)}% · 锁 ${clickTimes.filter(t=>t!=null).length}/3`;
-    if (shown >= 1 && sec - (clickTimes[2] ?? sec) > .5) start();
+    paintDark(); drawSigil(shown, sec);
+    readout.value = `A · ${Math.round(shown*100)}% · ${clickTimes.filter(t=>t!=null).length}/3`;
+    if (shown >= 1 && sec - (clickTimes[2] ?? sec) > .45) start();
   } else if (phase === 'B') {
-    const tb = (now - tB0)/1000; paintDark();
-    if (tb < TB.back[1]) {
-      // held beat: the aligned lock settles into the exact mark, a small breath; then everything plays back
-      const hold = seg(tb,...TB.hold), back = inOutCubic(seg(tb,...TB.back));
-      const breathe = 1 + .035*Math.sin(Math.PI*hold);
-      const exact = Math.min(seg(tb,0,.2), 1 - seg(tb, TB.back[0], TB.back[0]+.15));
-      ctx.save(); ctx.translate(W/2*dpr, H/2*dpr); ctx.scale(breathe, breathe); ctx.translate(-W/2*dpr, -H/2*dpr);
-      drawLock(r => Math.max(0, 1 - clamp((back*1.3 - (1 - r.k/rings.length)*.3)))*(1), 1 - back, () => 0, exact);
-      ctx.restore();
-    } else {
-      const g = drawField(tb); colourField(tb, g);
-      canvas.style.opacity = String(1 - seg(tb,...TB.fade));
-      if (tb >= TB.fill[1] - .3) hero.classList.add('is-open');
-    }
+    const tb = (now - tB0)/1000;
+    drawB(tb, sec);
+    canvas.style.opacity = String(1 - seg(tb,...TB.fade));
+    if (tb >= TB.fill[1] - .35) hero.classList.add('is-open');
     readout.value = `B · ${tb.toFixed(2)}s / ${TB.end}s`;
     if (tb >= TB.end) land();
   } else readout.value = '落地';
@@ -338,7 +328,7 @@ function frame(now){
 /* Snapshot hook for automated checks (lab only). */
 window.__lab = {
   a(p){ reset(); phase='A'; target=shown=p; frozen=performance.now(); clickTimes = CLICKS.map(c => p>=c ? frozen/1000-5 : null); },
-  b(t){ reset(); phase='B'; fireClicks(-99); frozen=performance.now(); tB0=frozen-t*1000; },
+  b(t){ reset(); phase='B'; frozen=performance.now(); fireClicks(frozen/1000-5); tB0=frozen-t*1000; },
   run(){ frozen=null; }, TB,
 };
 /* ================= go ================= */

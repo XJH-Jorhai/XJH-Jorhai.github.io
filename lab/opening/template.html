@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>TEISU · 开幕原型（本地）</title>
+<title>TEISU · 开幕原型 v2（本地）</title>
 <style>
   :root {--navy:#083366;--red:#EF3025;--paper:#F3EDE2;--ink:#1D2733;}
   * {box-sizing:border-box;}
@@ -11,8 +11,7 @@
   html.locked,html.locked body {overflow:hidden;}
   /* The stage: one 2D canvas. Fixed during the opening, then it lies over the hero for the lens. */
   #stage {position:fixed;inset:0;width:100vw;height:100vh;z-index:10;display:block;cursor:pointer;}
-  #stage.is-landed {position:absolute;cursor:default;pointer-events:none;}
-  /* ---------- Hero (same composition the mosaic resolves into) ---------- */
+    /* ---------- Hero (same composition the mosaic resolves into) ---------- */
   .hero {position:relative;height:100vh;min-height:520px;overflow:hidden;background:#F13D18;}
   .field {position:absolute;top:0;bottom:0;width:51%;}
   .field.l {left:0;background:linear-gradient(180deg,#1645AC 0%,#2747A6 55%,#5E5797 100%);}
@@ -71,15 +70,16 @@
 <script>
 const BRAND = __BRAND__;
 /* ===================================================================================
-   TEISU opening — prototype.
-   A  Scroll progress p (0→1): only the centre core at first (red blades + white key);
-      the white arms grow, copies spread from the centre and tile the screen.
-      At 30 / 60 / 90 % every tile turns a quarter, rippling outward (a combination lock).
-   B  At 100 %: the film runs backwards to the centre core; the arms grow again, but now
-      the copies are a fractal — each logo splits into four smaller ones, again and again.
-      The smallest tiles take the painting's colours, the gaps fill in, and the mosaic
-      becomes the home hero. Afterwards a lens near the pointer turns the painting back
-      into TEISU tiles.
+   TEISU opening — prototype v2.
+   A  Scroll progress p (0→1). Red only at the centre: the core starts as a row
+      [red ▪ white ▪ red] and twists into the mark's diagonal as p grows. Around it,
+      concentric rings of the white arms — a lock / sigil. Every arm exists from the start
+      and grows in length with p. At 30 / 60 / 90 % the rings turn like tumblers; at 90 %
+      they all line up.
+   B  A held beat on the aligned lock → everything plays back to the core → the arms grow
+      again while the view pulls back without end: the mark becomes one cell of an
+      ever finer field of copies → the finest lines take the hero's colours, the cells fill,
+      and the mosaic is the hero.
    =================================================================================== */
 const canvas = document.getElementById('stage');
 const ctx = canvas.getContext('2d');
@@ -89,177 +89,204 @@ const readout = document.getElementById('readout');
 const root = document.documentElement;
 
 const INK = '#ECE6D8', RED = '#EF3025';
-const ARMS = ['tl','br','tr','bl'], CORE = ['ru','rl','c'];
 const P = Object.fromEntries(Object.entries(BRAND.pieces).map(([k,d]) => [k, new Path2D(d)]));
 
 const clamp = v => Math.min(1, Math.max(0, v));
 const seg = (t,a,b) => clamp((t-a)/(b-a));
 const lerp = (a,b,t) => a + (b-a)*t;
 const inOutCubic = t => t<.5 ? 4*t*t*t : 1-Math.pow(-2*t+2,3)/2;
+const inOutSine = t => -(Math.cos(Math.PI*t)-1)/2;
 const outCubic = t => 1-Math.pow(1-t,3);
-const outExpo = t => t>=1 ? 1 : 1-Math.pow(2,-10*t);
-const outBack = t => {const c=1.7; return 1+(c+1)*Math.pow(t-1,3)+c*Math.pow(t-1,2);};
+const outBack = t => {const c=1.5; return 1+(c+1)*Math.pow(t-1,3)+c*Math.pow(t-1,2);};
 
-let W=0, H=0, dpr=1;
-const layer = document.createElement('canvas'), lctx = layer.getContext('2d');   // tiles, before colouring
-const comp = document.createElement('canvas'), cctx = comp.getContext('2d');     // the hero composition
-const sprite = document.createElement('canvas'), sctx = sprite.getContext('2d'); // one logo, for small tiles
+/* ---------- geometry, in logo units (720 = one mark, centre at 0,0, y down) ---------- */
+// Centre-lines of the four white arms; stroked at width 104 they approximate the mark.
+const ARM = {
+  tl:[[-308,-62],[-308,-308],[-96,-308],[-96,-100]],
+  tr:[[64,-308],[308,-308],[308,-47]],
+  br:[[308,62],[308,308],[96,308],[96,100]],
+  bl:[[-64,308],[-308,308],[-308,47]],
+};
+const ARM_W = 104;
+/** Outer rings: same arms on a bigger square, inward tips shortened so rings never cross. */
+function ringArms(scale){
+  const tip = 1 - .25; // tip reaches 25 % of the way in
+  return Object.values(ARM).map(pts => pts.map(([x,y],i) => {
+    const last = i === pts.length-1 && pts.length === 4;
+    return last ? [x*scale, Math.sign(y)*308*tip*scale] : [x*scale, y*scale];
+  }));
+}
+// Core: red blades start as squares either side of the centre square, end as the diagonal blades.
+const RU_END = [[349,108],[633,392],[511,392],[349,230]].map(([x,y])=>[x-360,y-360]);
+const RU_START = [[75,-55],[185,-55],[185,55],[75,55]];
+const RL_END = RU_END.map(([x,y])=>[-x,-y]), RL_START = RU_START.map(([x,y])=>[-x,-y]);
+const KEY = [[-51,-51],[50,-51],[50,50],[-51,50]];
 
+function polyPath(path, pts, m){ path.moveTo(pts[0][0]*m.s+m.x, pts[0][1]*m.s+m.y); for (let i=1;i<pts.length;i++) path.lineTo(pts[i][0]*m.s+m.x, pts[i][1]*m.s+m.y); }
+/** Add the first `f` (0–1) of a polyline's length to a path, rotated by `rot` rad. */
+function partial(path, pts, f, m, rot=0){
+  if (f <= 0) return;
+  const c = Math.cos(rot), sn = Math.sin(rot);
+  const q = pts.map(([x,y]) => [(x*c - y*sn)*m.s + m.x, (x*sn + y*c)*m.s + m.y]);
+  let total = 0; for (let i=1;i<q.length;i++) total += Math.hypot(q[i][0]-q[i-1][0], q[i][1]-q[i-1][1]);
+  let left = total*f; path.moveTo(q[0][0], q[0][1]);
+  for (let i=1;i<q.length && left>0;i++) {
+    const l = Math.hypot(q[i][0]-q[i-1][0], q[i][1]-q[i-1][1]), k = Math.min(1, left/l);
+    path.lineTo(q[i-1][0] + (q[i][0]-q[i-1][0])*k, q[i-1][1] + (q[i][1]-q[i-1][1])*k); left -= l;
+  }
+}
+function drawCore(c, x, y, s, morph, rot=0){
+  const m = {x:0, y:0, s:1};
+  c.save(); c.translate(x,y); c.rotate(rot); c.scale(s/720, s/720);
+  const ru = RU_START.map((v,i)=>[lerp(v[0],RU_END[i][0],morph), lerp(v[1],RU_END[i][1],morph)]);
+  const rl = RL_START.map((v,i)=>[lerp(v[0],RL_END[i][0],morph), lerp(v[1],RL_END[i][1],morph)]);
+  const red = new Path2D(); polyPath(red, ru, m); red.closePath(); polyPath(red, rl, m); red.closePath();
+  c.fillStyle = RED; c.fill(red);
+  const key = new Path2D(); polyPath(key, KEY, m); key.closePath(); c.fillStyle = INK; c.fill(key);
+  c.restore();
+}
+/** The exact mark (used for the held beat). */
+function drawExact(c, x, y, s, alpha){
+  if (alpha <= 0) return;
+  c.save(); c.globalAlpha = alpha; c.translate(x-s/2, y-s/2); c.scale(s/720, s/720);
+  c.fillStyle = INK; for (const k of ['tl','tr','br','bl','c']) c.fill(P[k]);
+  c.fillStyle = RED; c.fill(P.ru); c.fill(P.rl); c.restore();
+}
+
+/* ---------- canvases ---------- */
+let W=0, H=0, dpr=1, L=140, rings=[];
+const layer = document.createElement('canvas'), lctx = layer.getContext('2d');
+const comp = document.createElement('canvas'), cctx = comp.getContext('2d');
 function resize(){
   dpr = Math.min(devicePixelRatio || 1, 2); W = innerWidth; H = innerHeight;
   for (const c of [canvas, layer, comp]) { c.width = Math.round(W*dpr); c.height = Math.round(H*dpr); }
-  buildComp(); buildGrid(); buildFractal();
+  L = Math.max(110, Math.min(170, Math.min(W,H)*.17));
+  buildRings(); buildComp();
+}
+function buildRings(){
+  const u = L/720, reach = Math.hypot(W,H)/2 + 40;
+  rings = [{k:0, scale:1, w:ARM_W*u, alpha:1, dir:1, n:1}];
+  for (let k=1, sc=1.62; 308*u*sc < reach + 200*u; k++, sc*=1.36)
+    rings.push({k, scale:sc, w:Math.min(2.4 + k*.5, 6), alpha:Math.max(.32, .9 - k*.07), dir:k%2 ? -1 : 1, n:1 + k%3});
 }
 /** Paint the hero exactly as the DOM lays it out, so the mosaic resolves into it. */
 function buildComp(){
   const c = cctx; c.setTransform(dpr,0,0,dpr,0,0);
-  const portrait = W/H < 1;
-  if (!portrait) {
+  if (W/H >= 1) {
     let g = c.createLinearGradient(0,0,0,H); g.addColorStop(0,'#1645AC'); g.addColorStop(.55,'#2747A6'); g.addColorStop(1,'#5E5797');
     c.fillStyle = g; c.fillRect(0,0,W/2+1,H);
     g = c.createLinearGradient(0,0,0,H); g.addColorStop(0,'#F13D18'); g.addColorStop(.6,'#F4441C'); g.addColorStop(1,'#F54719');
     c.fillStyle = g; c.fillRect(W/2,0,W/2,H);
     const s = H, x = (W-s)/2;
-    if (painting.complete && painting.naturalWidth) {
-      // edges fade into the fields like the CSS mask
+    if (painting.naturalWidth) {
       const tmp = document.createElement('canvas'); tmp.width = Math.round(s*dpr); tmp.height = Math.round(s*dpr);
       const t = tmp.getContext('2d'); t.drawImage(painting,0,0,tmp.width,tmp.height);
       t.globalCompositeOperation = 'destination-in';
       const m = t.createLinearGradient(0,0,tmp.width,0); m.addColorStop(0,'rgba(0,0,0,0)'); m.addColorStop(.09,'#000'); m.addColorStop(.91,'#000'); m.addColorStop(1,'rgba(0,0,0,0)');
-      t.fillStyle = m; t.fillRect(0,0,tmp.width,tmp.height);
-      c.drawImage(tmp,x,0,s,s);
+      t.fillStyle = m; t.fillRect(0,0,tmp.width,tmp.height); c.drawImage(tmp,x,0,s,s);
     }
   } else {
     let g = c.createLinearGradient(0,0,0,H); g.addColorStop(0,'#1645AC'); g.addColorStop(.5,'#2D4BA8'); g.addColorStop(1,'#5B5596');
     c.fillStyle = g; c.fillRect(0,0,W,H);
-    if (painting.complete && painting.naturalWidth) c.drawImage(painting,0,0,W,W);
+    if (painting.naturalWidth) c.drawImage(painting,0,0,W,W);
   }
 }
-function buildSprite(size){
-  sprite.width = sprite.height = size; sctx.clearRect(0,0,size,size);
-  sctx.setTransform(size/720,0,0,size/720,0,0);
-  for (const k of ARMS) { sctx.fillStyle = INK; sctx.fill(P[k]); }
-  sctx.fillStyle = RED; sctx.fill(P.ru); sctx.fill(P.rl); sctx.fillStyle = INK; sctx.fill(P.c);
+function paintDark(){
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  const g = ctx.createRadialGradient(W/2,H/2,0,W/2,H/2,Math.hypot(W,H)*.6);
+  g.addColorStop(0,'#121c31'); g.addColorStop(.48,'#080d18'); g.addColorStop(1,'#030408');
+  ctx.fillStyle = g; ctx.fillRect(0,0,W,H);
 }
 
-/* ---------- drawing one logo with Path2D (large tiles) ---------- */
-function drawLogo(c, cx, cy, size, rot, arms, core, alpha=1){
-  if (alpha <= 0 || size <= 0) return;
-  c.save(); c.globalAlpha = alpha; c.translate(cx,cy); c.rotate(rot*Math.PI/180); c.scale(size/720,size/720);
-  if (core > 0) {
-    c.save(); c.scale(core,core); c.translate(-360,-360);
-    c.fillStyle = RED; c.fill(P.ru); c.fill(P.rl); c.fillStyle = INK; c.fill(P.c); c.restore();
-  }
-  if (arms > 0) {
-    c.save(); c.rotate((1-arms)*-0.9); c.scale(arms,arms); c.translate(-360,-360);
-    c.fillStyle = INK; for (const k of ARMS) c.fill(P[k]); c.restore();
-  }
-  c.restore();
-}
-
-/* ================= A: the tiling, driven by scroll ================= */
-let grid = [], T = 120;
-function buildGrid(){
-  T = Math.max(84, Math.min(190, Math.min(W,H)*.2)); const pitch = T*1.22;
-  const nx = Math.ceil(W/2/pitch)+1, ny = Math.ceil(H/2/pitch)+1, maxD = Math.hypot(nx,ny);
-  grid = [];
-  for (let j=-ny;j<=ny;j++) for (let i=-nx;i<=nx;i++) grid.push({x:W/2+i*pitch, y:H/2+j*pitch, d:Math.hypot(i,j)/maxD, ring:Math.max(Math.abs(i),Math.abs(j))});
-  grid.sort((a,b)=>a.d-b.d);
-}
+/* ================= A: the lock ================= */
 const CLICKS = [.3,.6,.9];
-let clickEvents = [];            // {time, dir}
-let passed = 0;
-function tileTurn(now, d){
-  let r = 0;
-  for (const e of clickEvents) r += e.dir*90*outBack(seg(now - e.time - d*.32, 0, .55));
-  return r;
+let clickTimes = [];             // time each click fired (null when undone)
+/** Ring k turns at the last n_k clicks; by the last click every ring is aligned (0°). */
+function ringTurn(r, now){
+  let a = -r.dir*90*r.n;
+  CLICKS.forEach((_,c) => { if (c < 3 - r.n) return; const t = clickTimes[c]; if (t == null) return;
+    a += r.dir*90*outBack(seg(now - t - r.k*.06, 0, .6)); });
+  return a*Math.PI/180;
 }
-function drawTiling(p, now, reverse=null){
-  for (const g of grid) {
-    const isCentre = g.d === 0;
-    // centre: core from the start, arms over the first 15 %; copies sweep out between 8 % and 85 %
-    const a = isCentre ? 1 : clamp((p - .08 - g.d*.62)/.16);
-    const arms = isCentre ? outCubic(seg(p,0,.15)) : outExpo(seg(a,.35,1));
-    const core = isCentre ? 1 : outExpo(seg(a,0,.6));
-    const turn = reverse ? reverse.turn : tileTurn(now, g.d);
-    if (core > 0) drawLogo(ctx, g.x, g.y, T, turn, arms, core, isCentre ? 1 : Math.min(1, a*2));
+/** Draw rings + core. len: arm length 0–1 per ring; morph: core twist 0–1. */
+function drawLock(len, morph, turnOf, exact=0){
+  const u = L/720, cx = W/2, cy = H/2;
+  ctx.save(); ctx.setTransform(dpr,0,0,dpr,0,0); ctx.lineCap = 'butt'; ctx.lineJoin = 'miter';
+  for (const r of rings) {
+    const f = len(r); if (f <= 0) continue;
+    const path = new Path2D(), m = {x:cx, y:cy, s:u}, rot = turnOf(r);
+    for (const pts of (r.k === 0 ? Object.values(ARM) : ringArms(r.scale))) partial(path, pts, f, m, rot);
+    ctx.globalAlpha = r.alpha*(r.k === 0 ? 1 - exact : 1); ctx.strokeStyle = INK; ctx.lineWidth = r.w; ctx.stroke(path);
   }
+  ctx.restore();
+  if (exact < 1) { ctx.save(); ctx.setTransform(dpr,0,0,dpr,0,0); ctx.globalAlpha = 1 - exact; drawCore(ctx, cx, cy, L, morph); ctx.restore(); }
+  ctx.save(); ctx.setTransform(dpr,0,0,dpr,0,0); drawExact(ctx, cx, cy, L, exact); ctx.restore();
 }
+const armLen = p => .05 + .95*inOutSine(p);
 
-/* ================= B: reverse, fractal, colour, land ================= */
-let cells = [], S0 = 0, DEPTH = 6;
-const SPLIT = [.5,.42,.36,.31,.27,.24];
-function buildFractal(){
-  S0 = Math.max(W,H); DEPTH = Math.max(4, Math.min(6, Math.ceil(Math.log2(S0/22))));
-  // every cell at every depth, with its parent; only cells that touch the screen
-  cells = [];
-  const rec = (x,y,s,depth,parent,q) => {
-    const cell = {x,y,s,depth,parent,q}; cells.push(cell);
-    if (depth >= DEPTH) return;
-    const h = s/2;
-    [[-1,-1,0],[1,-1,1],[-1,1,2],[1,1,3]].forEach(([dx,dy,qq]) => {
-      const cx = x+dx*h/2, cy = y+dy*h/2;
-      if (cx+h/2 < 0 || cx-h/2 > W || cy+h/2 < 0 || cy-h/2 > H) return;
-      rec(cx,cy,h,depth+1,cell,qq);
-    });
-  };
-  rec(W/2,H/2,S0,0,null,0);
-  buildSprite(Math.max(32, Math.round(S0/2**DEPTH*dpr*1.1)));
-}
-const LOGO_IN_CELL = .84;
-function timeline(){ // absolute times of phase B
-  const t = {reverse:[0,1.0], grow:[1.0,1.75], arms:[1.45,2.05]};
-  let s = 1.95; t.split = SPLIT.slice(0,DEPTH).map(d => {const r=[s,s+d]; s+=d; return r;});
-  t.colour = [s-.35, s+.95]; t.fill = [s+.35, s+1.45]; t.fade = [s+1.35, s+1.95]; t.end = s+1.95;
-  return t;
-}
-function drawFractal(tb, tl){
-  // which depth is on screen: the deepest level whose split has started
-  let level = 0, e = 1;
-  tl.split.forEach((r,i) => { if (tb >= r[0]) { level = i+1; e = inOutCubic(seg(tb,r[0],r[1])); } });
-  const list = cells.filter(c => c.depth === level);
-  const useSprite = list.length > 160;
-  const armsIn = level === 0 ? inOutCubic(seg(tb,...tl.arms)) : 1;
-  const growE = inOutCubic(seg(tb,...tl.grow));
-  for (const c of list) {
-    let x = c.x, y = c.y, s = c.s*LOGO_IN_CELL, rot = 0;
-    if (level === 0) { s = lerp(T, S0*LOGO_IN_CELL, growE); }
-    else if (e < 1) {
-      const p = c.parent;
-      x = lerp(p.x, c.x, e); y = lerp(p.y, c.y, e); s = lerp(p.s, c.s, e)*LOGO_IN_CELL;
-      rot = (c.q===0||c.q===3 ? -90 : 90)*(1-e);
-    }
-    if (x+s/2 < 0 || x-s/2 > W || y+s/2 < 0 || y-s/2 > H) continue;
-    if (useSprite) {
-      lctx.setTransform(dpr,0,0,dpr,0,0); lctx.translate(x,y); if (rot) lctx.rotate(rot*Math.PI/180);
-      lctx.drawImage(sprite,-s/2,-s/2,s,s);
-    } else {
-      lctx.setTransform(dpr,0,0,dpr,0,0); drawLogo(lctx, x, y, s, rot, armsIn, 1);
-    }
+/* ================= B: release, play back, pull back, colour ================= */
+const TB = {hold:[0,.55], back:[.55,1.45], regrow:[1.45,2.25], zoom:[1.85,3.9], colour:[3.25,4.45], fill:[3.75,4.95], fade:[4.85,5.35], end:5.35};
+function drawField(tb){
+  const z = inOutCubic(seg(tb,...TB.zoom));
+  const cell0 = L/.86, cellMin = W < 700 ? 28 : 40;
+  const c = cell0*Math.pow(cellMin/cell0, z);                   // exponential: an even pull-back
+  const s = c*.86, u = s/720, cx = W/2, cy = H/2;
+  const grow = inOutCubic(seg(tb,...TB.regrow));
+  const reachCells = (Math.hypot(W,H)/2)/c;
+  const nx = Math.ceil(W/2/c)+1, ny = Math.ceil(H/2/c)+1;
+  lctx.setTransform(1,0,0,1,0,0); lctx.globalCompositeOperation = 'source-over'; lctx.clearRect(0,0,layer.width,layer.height);
+  lctx.setTransform(dpr,0,0,dpr,0,0); lctx.lineCap = 'butt'; lctx.lineJoin = 'miter';
+  const lines = new Path2D(), keys = new Path2D();
+  for (let j=-ny;j<=ny;j++) for (let i=-nx;i<=nx;i++) {
+    const x = cx + i*c, y = cy + j*c, dw = Math.hypot(i,j);
+    // copies replicate outward with the pull-back; the centre one regrows first
+    const f = dw === 0 ? grow : clamp((reachCells*z*1.15 - dw + 1)/1.6);
+    if (f <= 0) continue;
+    for (const pts of Object.values(ARM)) partial(lines, pts, f, {x, y, s:u});
+    if (dw > 0) { const k = 51*u*Math.min(1, f*1.4); keys.rect(x-k, y-k, 2*k, 2*k); }
   }
+  lctx.strokeStyle = INK; lctx.lineWidth = Math.max(1.2, lerp(ARM_W, 58, z)*u); lctx.stroke(lines);
+  lctx.fillStyle = INK; lctx.fill(keys);
+  drawCore(lctx, cx, cy, s, grow);                               // red stays only at the centre
+  return {c, cx, cy, nx, ny};
+}
+function colourField(tb, g){
+  const R = Math.hypot(W,H)*.56;
+  const cr = inOutCubic(seg(tb,...TB.colour))*R;                 // lines take the hero's colours
+  if (cr > 0) {
+    lctx.save(); lctx.setTransform(1,0,0,1,0,0); lctx.globalCompositeOperation = 'source-atop';
+    lctx.beginPath(); lctx.arc(g.cx*dpr, g.cy*dpr, cr*dpr, 0, Math.PI*2); lctx.clip(); lctx.drawImage(comp,0,0); lctx.restore();
+  }
+  const fp = inOutCubic(seg(tb,...TB.fill));                      // then every cell fills, centre first
+  if (fp > 0) {
+    const cells = new Path2D();
+    for (let j=-g.ny;j<=g.ny;j++) for (let i=-g.nx;i<=g.nx;i++) {
+      const x = g.cx + i*g.c, y = g.cy + j*g.c, d = Math.hypot(x-g.cx, y-g.cy)/R;
+      const k = outCubic(clamp((fp*1.35 - d)/.35))*g.c/2*1.02; if (k <= 0) continue;
+      cells.rect(x-k, y-k, 2*k, 2*k);
+    }
+    ctx.save(); ctx.setTransform(dpr,0,0,dpr,0,0); ctx.clip(cells); ctx.setTransform(1,0,0,1,0,0); ctx.drawImage(comp,0,0); ctx.restore();
+  }
+  ctx.save(); ctx.setTransform(1,0,0,1,0,0); ctx.globalAlpha = 1 - seg(fp, .55, 1); ctx.drawImage(layer,0,0); ctx.restore();
 }
 
 /* ================= state & input ================= */
-let phase = 'A', target = 0, shown = 0, auto = false, lastInput = 0, tB0 = 0, landedAt = 0, TL = null;
-const lens = {x:-999, y:-999, sx:-999, sy:-999, a:0, on:true, speed:0};
-
+let phase = 'A', target = 0, shown = 0, auto = false, lastInput = 0, tB0 = 0;
 function setLocked(v){ root.classList.toggle('locked', v); }
 function feed(d){ if (phase !== 'A') return; target = clamp(target+d); lastInput = performance.now(); }
-function start(){ phase = 'B'; tB0 = performance.now(); TL = timeline(); }
-function land(){ phase = 'L'; landedAt = performance.now(); hero.classList.add('is-open'); canvas.classList.add('is-landed'); setLocked(false); }
+function start(){ phase = 'B'; tB0 = performance.now(); }
+function land(){ phase = 'L'; hero.classList.add('is-open'); canvas.style.display = 'none'; setLocked(false); }
 function reset(){
-  scrollTo(0,0); phase = 'A'; target = shown = 0; auto = false; clickEvents = []; passed = 0;
-  hero.classList.remove('is-open'); canvas.classList.remove('is-landed'); setLocked(true);
+  scrollTo(0,0); phase = 'A'; target = shown = 0; auto = false; clickTimes = [];
+  hero.classList.remove('is-open'); canvas.style.display = ''; canvas.style.opacity = '1'; setLocked(true);
 }
-
 addEventListener('wheel', e => { if (phase==='L') return; e.preventDefault(); feed(e.deltaY*(e.deltaMode===1?18:e.deltaMode===2?innerHeight:1)/900); }, {passive:false});
 let touchY = 0;
 addEventListener('touchstart', e => { touchY = e.touches[0].clientY; }, {passive:true});
 addEventListener('touchmove', e => { if (phase==='L') return; e.preventDefault(); const y=e.touches[0].clientY; feed((touchY-y)/360); touchY=y; }, {passive:false});
 addEventListener('keydown', e => {
-  if (e.target.closest && e.target.closest('.lab')) return;
   const k = e.key.toLowerCase();
-  if (k==='r') { reset(); return; } if (k==='s') { target = shown = 1; start(); return; } if (k==='l') { land(); return; }
+  if (k==='r') { reset(); return; } if (k==='s') { target = shown = 1; fireClicks(performance.now()/1000 - 2); start(); return; } if (k==='l') { land(); return; }
   if (k==='h') { document.getElementById('lab').classList.toggle('hidden'); return; }
   if (phase !== 'A') return;
   if (['arrowdown','pagedown',' '].includes(k)) { e.preventDefault(); feed(.2); }
@@ -267,111 +294,56 @@ addEventListener('keydown', e => {
   else if (k==='enter') { e.preventDefault(); auto = true; }
 });
 canvas.addEventListener('click', () => { if (phase==='A') { auto = true; lastInput = performance.now(); } });
-addEventListener('pointermove', e => { if (e.pointerType !== 'mouse') return; lens.x = e.clientX; lens.y = e.clientY + scrollY; });
 document.getElementById('replay').onclick = reset;
-document.getElementById('skip').onclick = () => { target = shown = 1; start(); };
+document.getElementById('skip').onclick = () => { target = shown = 1; fireClicks(performance.now()/1000 - 2); start(); };
 document.getElementById('land').onclick = land;
 document.getElementById('hide').onclick = () => document.getElementById('lab').classList.add('hidden');
 addEventListener('resize', resize);
+function fireClicks(t){ clickTimes = CLICKS.map(() => t); }
 
 /* ================= frame ================= */
 let last = performance.now(), frozen = null;
 function frame(now){
   if (frozen !== null) { now = frozen; last = now - 16; }
-  const dt = Math.min(.05,(now-last)/1000); last = now;
-  ctx.setTransform(dpr,0,0,dpr,0,0);
-
+  const dt = Math.min(.05,(now-last)/1000); last = now; const sec = now/1000;
   if (phase === 'A') {
-    if (auto) target = Math.min(1, target + dt*.55);
+    if (auto) target = Math.min(1, target + dt*.5);
     else if (target < 1 && now - lastInput > 900) target = Math.max(0, target - dt*.18);
     shown += (target - shown)*(1 - Math.exp(-dt/.1)); if (target >= 1 && shown > .997) shown = 1;
-    // lock clicks at 30 / 60 / 90 %
-    const count = CLICKS.filter(c => shown >= c).length;
-    while (passed < count) { clickEvents.push({time:now/1000, dir:1}); passed++; }
-    while (passed > count) { clickEvents.push({time:now/1000, dir:-1}); passed--; }
-    paintDark(); drawTiling(shown, now/1000);
-    readout.value = `A · 进度 ${Math.round(shown*100)}% · 转动 ${passed}/3`;
-    if (shown >= 1) start();
-  }
-  else if (phase === 'B') {
-    const tb = (now - tB0)/1000, tl = TL;
-    paintDark();
-    if (tb < tl.reverse[1]) {
-      // the film runs backwards: copies fold back to the centre, the turns unwind
-      const r = inOutCubic(seg(tb,...tl.reverse));
-      drawTiling(1 - r, 0, {turn: 270*(1 - r)});
+    CLICKS.forEach((c,i) => { if (shown >= c && clickTimes[i] == null) clickTimes[i] = sec; if (shown < c - .02) clickTimes[i] = null; });
+    paintDark(); drawLock(() => armLen(shown), inOutCubic(seg(shown,.05,.95)), r => ringTurn(r, sec));
+    readout.value = `A · ${Math.round(shown*100)}% · 锁 ${clickTimes.filter(t=>t!=null).length}/3`;
+    if (shown >= 1 && sec - (clickTimes[2] ?? sec) > .5) start();
+  } else if (phase === 'B') {
+    const tb = (now - tB0)/1000; paintDark();
+    if (tb < TB.back[1]) {
+      // held beat: the aligned lock settles into the exact mark, a small breath; then everything plays back
+      const hold = seg(tb,...TB.hold), back = inOutCubic(seg(tb,...TB.back));
+      const breathe = 1 + .035*Math.sin(Math.PI*hold);
+      const exact = Math.min(seg(tb,0,.2), 1 - seg(tb, TB.back[0], TB.back[0]+.15));
+      ctx.save(); ctx.translate(W/2*dpr, H/2*dpr); ctx.scale(breathe, breathe); ctx.translate(-W/2*dpr, -H/2*dpr);
+      drawLock(r => Math.max(0, 1 - clamp((back*1.3 - (1 - r.k/rings.length)*.3)))*(1), 1 - back, () => 0, exact);
+      ctx.restore();
     } else {
-      lctx.setTransform(1,0,0,1,0,0); lctx.clearRect(0,0,layer.width,layer.height); lctx.globalCompositeOperation = 'source-over';
-      drawFractal(tb, tl);
-      // colour: the painting lands on the tiles, from the centre outward
-      const cr = inOutCubic(seg(tb,...tl.colour))*Math.hypot(W,H)*.56;
-      if (cr > 0) {
-        lctx.save(); lctx.setTransform(1,0,0,1,0,0); lctx.globalCompositeOperation = 'source-atop';
-        lctx.beginPath(); lctx.arc(W/2*dpr,H/2*dpr,cr*dpr,0,Math.PI*2); lctx.clip(); lctx.drawImage(comp,0,0); lctx.restore();
-      }
-      // the gaps fill in behind the tiles
-      const fr = inOutCubic(seg(tb,...tl.fill))*Math.hypot(W,H)*.56;
-      if (fr > 0) { ctx.save(); ctx.setTransform(1,0,0,1,0,0); ctx.beginPath(); ctx.arc(W/2*dpr,H/2*dpr,fr*dpr,0,Math.PI*2); ctx.clip(); ctx.drawImage(comp,0,0); ctx.restore(); }
-      ctx.save(); ctx.setTransform(1,0,0,1,0,0); ctx.globalAlpha = 1 - inOutCubic(seg(tb,...tl.fade)); ctx.drawImage(layer,0,0); ctx.restore();
-      // finally the canvas itself fades and the real hero is underneath
-      canvas.style.opacity = String(1 - seg(tb, tl.fade[1]-.25, tl.fade[1]));
-      if (tb >= tl.fill[1] - .4) hero.classList.add('is-open');
+      const g = drawField(tb); colourField(tb, g);
+      canvas.style.opacity = String(1 - seg(tb,...TB.fade));
+      if (tb >= TB.fill[1] - .3) hero.classList.add('is-open');
     }
-    readout.value = `B · ${tb.toFixed(2)}s / ${tl.end.toFixed(2)}s`;
-    if (tb >= tl.end) { canvas.style.opacity = '1'; land(); }
-  }
-  else { drawLens(dt); readout.value = '落地 · 移动鼠标试试'; }
+    readout.value = `B · ${tb.toFixed(2)}s / ${TB.end}s`;
+    if (tb >= TB.end) land();
+  } else readout.value = '落地';
   requestAnimationFrame(frame);
-}
-function paintDark(){
-  const g = ctx.createRadialGradient(W/2,H/2,0,W/2,H/2,Math.hypot(W,H)*.6);
-  g.addColorStop(0,'#121c31'); g.addColorStop(.48,'#080d18'); g.addColorStop(1,'#030408');
-  ctx.fillStyle = g; ctx.fillRect(0,0,W,H);
-}
-
-/* ================= the lens: the painting turns back into TEISU tiles near the pointer ================= */
-function drawLens(dt){
-  ctx.setTransform(1,0,0,1,0,0); ctx.clearRect(0,0,canvas.width,canvas.height);
-  if (!lens.on || scrollY > H) return;
-  const k = 1 - Math.exp(-dt/.12);
-  const px = lens.sx; lens.sx += (lens.x - lens.sx)*k; lens.sy += (lens.y - lens.sy)*k;
-  lens.speed += (Math.hypot(lens.sx - px, 0) / Math.max(dt,.001) - lens.speed)*.08;
-  const inside = lens.x > -100 && lens.y < H;
-  lens.a += ((inside ? 1 : 0) - lens.a)*(1 - Math.exp(-dt/.25));
-  if (lens.a < .01) return;
-  const R = (120 + Math.min(80, lens.speed*.06))*lens.a;
-  const s = cells.length ? cells.find(c => c.depth === DEPTH)?.s ?? 24 : 24;
-  const tile = s*LOGO_IN_CELL, cx = lens.sx, cy = lens.sy;
-  // dark gaps inside the lens
-  ctx.save(); ctx.setTransform(dpr,0,0,dpr,0,0);
-  const g = ctx.createRadialGradient(cx,cy,R*.2,cx,cy,R);
-  g.addColorStop(0,'rgba(6,9,16,.92)'); g.addColorStop(1,'rgba(6,9,16,0)');
-  ctx.fillStyle = g; ctx.beginPath(); ctx.arc(cx,cy,R,0,Math.PI*2); ctx.fill(); ctx.restore();
-  // tiles on the finest grid, turning with distance from the centre of the lens
-  lctx.setTransform(1,0,0,1,0,0); lctx.clearRect(0,0,layer.width,layer.height); lctx.globalCompositeOperation = 'source-over';
-  const x0 = Math.floor((cx-R - (W/2 - S0/2))/s), x1 = Math.ceil((cx+R - (W/2 - S0/2))/s);
-  const y0 = Math.floor((cy-R - (H/2 - S0/2))/s), y1 = Math.ceil((cy+R - (H/2 - S0/2))/s);
-  for (let j=y0;j<=y1;j++) for (let i=x0;i<=x1;i++) {
-    const x = W/2 - S0/2 + (i+.5)*s, y = H/2 - S0/2 + (j+.5)*s, d = Math.hypot(x-cx,y-cy)/R;
-    if (d >= 1) continue;
-    const f = 1 - d, size = tile*(.55 + .45*outCubic(f));
-    lctx.setTransform(dpr,0,0,dpr,0,0); lctx.translate(x,y); lctx.rotate((1-outCubic(f))*Math.PI/2*((i+j)%2?1:-1));
-    lctx.globalAlpha = Math.min(1, f*2.2)*lens.a; lctx.drawImage(sprite,-size/2,-size/2,size,size);
-  }
-  lctx.globalAlpha = 1; lctx.setTransform(1,0,0,1,0,0); lctx.globalCompositeOperation = 'source-atop'; lctx.drawImage(comp,0,0);
-  ctx.drawImage(layer,0,0);
 }
 
 /* Snapshot hook for automated checks (lab only). */
 window.__lab = {
-  a(p){ phase='A'; target=shown=p; clickEvents=[]; passed=CLICKS.filter(c=>p>=c).length; for(let i=0;i<passed;i++) clickEvents.push({time:-99,dir:1}); frozen=performance.now(); },
-  b(t){ if(!TL) TL=timeline(); phase='B'; frozen=performance.now(); tB0=frozen-t*1000; hero.classList.toggle('is-open', t>=TL.fill[1]-.4); },
-  lens(x,y){ land(); frozen=null; lens.x=lens.sx=x; lens.y=lens.sy=y; lens.a=1; },
-  run(){ frozen=null; }, timeline:()=>timeline(),
+  a(p){ reset(); phase='A'; target=shown=p; frozen=performance.now(); clickTimes = CLICKS.map(c => p>=c ? frozen/1000-5 : null); },
+  b(t){ reset(); phase='B'; fireClicks(-99); frozen=performance.now(); tB0=frozen-t*1000; },
+  run(){ frozen=null; }, TB,
 };
 /* ================= go ================= */
 function boot(){ resize(); reset(); requestAnimationFrame(frame); }
-if (matchMedia('(prefers-reduced-motion: reduce)').matches) { resize(); land(); requestAnimationFrame(frame); }
+if (matchMedia('(prefers-reduced-motion: reduce)').matches) { resize(); land(); }
 else if (painting.complete) boot(); else painting.addEventListener('load', boot, {once:true});
 </script>
 </body>

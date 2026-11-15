@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>TEISU · 开幕原型 v10（本地）</title>
+<style>
+  :root {--navy:#083366;--red:#EF3025;--paper:#F3EDE2;--ink:#1D2733;--muted:#615F58;}
+  * {box-sizing:border-box;}
+  html,body {margin:0;background:var(--paper);color:var(--ink);font-family:'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;}
+  html.locked,html.locked body {overflow:hidden;}
+
+  /* ================= Gate: dark stage; the pieces stay as the hero's corner blocks ================= */
+  .gate {--bg:1;--lit:0;--draw:0;position:fixed;inset:0;z-index:10;display:grid;place-items:center;overflow:hidden;}
+  .gate::before {content:'';position:absolute;inset:0;opacity:var(--bg);background:radial-gradient(ellipse 60% 55% at 50% 50%,#121c31 0%,#080d18 48%,#030408 100%);}
+  .gate.is-settled {position:absolute;inset:0 0 auto 0;height:100vh;z-index:1;pointer-events:none;}
+  .dust {position:absolute;inset:0;width:100%;height:100%;pointer-events:none;}
+  .space {position:relative;perspective:1100px;}
+  .mark {position:relative;display:block;width:clamp(116px,11vw,176px);aspect-ratio:1;padding:0;border:0;background:none;cursor:pointer;transform-style:preserve-3d;}
+  .mark:focus {outline:none;}
+  .piece {position:absolute;inset:0;width:100%;height:100%;overflow:visible;transform-origin:50% 50%;}
+  .piece.is-ink path {fill:color-mix(in oklab,#083366 calc(var(--lit) * 100%),#E9E3D6);}
+  .piece.is-red path {fill:#EF3025;}
+  .gate:not(.is-opening):not(.is-settled) .piece.is-red {filter:drop-shadow(0 0 14px rgb(239 48 37 / .5));}
+  .gate:not(.is-opening):not(.is-settled) .piece.is-ink {filter:drop-shadow(0 0 20px rgb(233 227 214 / .16));}
+
+  /* ================= Hero: paper, framed painting, wordmark ================= */
+  .hero {position:relative;height:100vh;min-height:560px;display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);align-items:center;column-gap:clamp(32px,6vw,110px);padding:0 clamp(48px,9vw,160px);max-width:1500px;margin:0 auto;}
+  .art {margin:0;justify-self:end;width:min(100%,64vh,560px);position:relative;z-index:2;}
+  .art-frame {aspect-ratio:1;overflow:hidden;border:1px solid rgb(29 39 51 / .55);background:#E4D9C4;}
+  .art img {display:block;width:100%;height:100%;object-fit:cover;}
+  .art figcaption {display:flex;justify-content:space-between;margin-top:10px;font-size:11px;letter-spacing:.24em;}
+  .copy {position:relative;z-index:2;}
+  .word {margin:0;width:clamp(260px,30vw,480px);}
+  .word svg {display:block;width:100%;height:auto;overflow:visible;}
+  .line {margin:clamp(16px,2.4vh,26px) 0 0;font-size:clamp(16px,1.35vw,21px);letter-spacing:.14em;}
+  .side {margin:clamp(22px,3.4vh,36px) 0 0;display:flex;gap:18px;font:12px ui-monospace,Consolas,monospace;letter-spacing:.2em;color:var(--muted);}
+  .side span + span::before {content:'/';margin-right:18px;color:var(--red);}
+  /* Reveal (JS + motion only) */
+  .js .hero [data-in] {opacity:0;transform:translateY(22px);transition:opacity 1s cubic-bezier(.16,1,.3,1),transform 1.2s cubic-bezier(.16,1,.3,1);transition-delay:var(--d,0s);}
+  .js .hero .art[data-in] {transform:none;clip-path:inset(12% 12% 12% 12%);transition:opacity 1.1s cubic-bezier(.16,1,.3,1),clip-path 1.5s cubic-bezier(.16,1,.3,1);transition-delay:var(--d,0s);}
+  .js .hero .art img {transform:scale(1.12);transition:transform 2.2s cubic-bezier(.16,1,.3,1);}
+  .js .hero.is-open [data-in] {opacity:1;transform:none;clip-path:inset(0);}
+  .js .hero.is-open .art img {transform:none;}
+  .js .word .l {transform-box:fill-box;transition:transform 1.1s cubic-bezier(.16,1,.3,1);}
+  .js .word :is(.l-T,.l-I,.l-S,.l-U) {transform:translateY(110%);}
+  .js .word .l-E {transform-origin:0 50%;transform:scaleX(0);transition-duration:.9s;}
+  .js .word .l-T {transition-delay:.2s;} .js .word .l-E1 {transition-delay:.28s;} .js .word .l-E3 {transition-delay:.35s;} .js .word .l-I {transition-delay:.36s;} .js .word .l-S {transition-delay:.44s;} .js .word .l-U {transition-delay:.52s;} .js .word .l-E2 {transition-delay:.66s;}
+  .js .hero.is-open .word .l {transform:none;}
+  @media (max-width:900px) {
+    .hero {grid-template-columns:1fr;align-content:center;row-gap:28px;padding:40px 28px;height:auto;min-height:100vh;}
+    .art {justify-self:start;width:min(72vw,360px);}
+    .word {width:min(80vw,380px);}
+    .line {letter-spacing:.06em;}
+  }
+  .below {min-height:60vh;display:grid;place-items:center;font:13px ui-monospace,Consolas,monospace;letter-spacing:.14em;color:var(--muted);text-align:center;padding:40px;border-top:1px solid #D6CDBC;}
+  @media (prefers-reduced-motion:reduce) {.gate {display:none;}}
+
+  /* ================= Lab controls (prototype only) ================= */
+  .lab {position:fixed;left:12px;bottom:12px;z-index:20;display:flex;align-items:center;gap:6px;padding:6px;border-radius:8px;background:rgb(20 24 34 / .82);color:#E9E3D6;font:12px/1 system-ui,sans-serif;backdrop-filter:blur(8px);}
+  .lab button {font:inherit;color:inherit;background:rgb(255 255 255 / .08);border:1px solid rgb(255 255 255 / .16);border-radius:6px;padding:7px 10px;cursor:pointer;}
+  .lab button:hover {background:rgb(255 255 255 / .16);}
+  .lab output {min-width:130px;padding:0 8px;font-family:ui-monospace,Consolas,monospace;opacity:.8;}
+  .lab.hidden {opacity:0;pointer-events:none;}
+</style>
+<script>document.documentElement.classList.add('js')</script>
+</head>
+<body>
+<div class="gate" id="gate">
+  <canvas class="dust" id="dust" aria-hidden="true"></canvas>
+  <div class="space">
+    <button class="mark" id="mark" type="button" aria-label="进入 TEISU 的博客（按住后松开，或滚动）">__PIECES__</button>
+  </div>
+</div>
+
+<section class="hero" id="hero" aria-labelledby="title">
+  <figure class="art" data-in style="--d:.05s">
+    <div class="art-frame"><img src="__PAINTING__" width="1254" height="1254" alt="油画风格的人物插画：戴白色渔夫帽的金色短发少女" /></div>
+    <figcaption><span>人物设定</span><span>TEISU</span></figcaption>
+  </figure>
+  <div class="copy">
+    <h1 class="word" id="title"><svg viewBox="190 1250 1620 384" aria-label="TEISU">__WORDMARK_NAVY__</svg></h1>
+    <p class="line" data-in style="--d:.7s">把想法做成实物，也把过程留在这里。</p>
+    <p class="side" data-in style="--d:.82s"><span>FIELDNOTES</span><span>研究 · 制作 · 观察</span></p>
+  </div>
+</section>
+<section class="below">（原型只包含开幕与首页首屏；以下作品、笔记等部分在正式站点中）</section>
+
+<div class="lab" id="lab">
+  <button type="button" id="replay" title="R">↺ 重播</button>
+  <button type="button" id="skip" title="S">⇥ 直接开幕</button>
+  <output id="readout">—</output>
+  <button type="button" id="hide" title="H">隐藏</button>
+</div>
+
+<script>
+/* ===================================================================================
+   TEISU opening — prototype v10.
+   1 Load: dark stage; the mark blooms out of its centre — every piece scales up from the
+     centre point, key first, then the brackets in symmetric pairs, then the blades.
+   2 It waits. Press and hold: it winds up — shrinks and turns back a little; let go and it
+     springs open. Scroll, swipe and keys do a short wind-up on their own.
+   3 Opening: from the wound-up angle the mark turns to 180° — fastest at release, slowing into
+     the landing — while it zooms and its pieces ease into the
+     corners as the hero's colour-block frame. Only as it lands does it turn from paper-white
+     to navy and the dark lift; the hero rises inside the frame.
+   =================================================================================== */
+const $ = id => document.getElementById(id);
+const gate = $('gate'), markEl = $('mark'), hero = $('hero'), readout = $('readout'), root = document.documentElement;
+const pieces = new Map([...gate.querySelectorAll('[data-piece]')].map(el => [el.dataset.piece, el]));
+const KEYS = ['tl','br','tr','bl','ru','rl','c'];
+const dir = {tl:[-1,-1],br:[1,1],tr:[1,-1],bl:[-1,1],ru:[1,1],rl:[-1,-1],c:[0,0]};
+
+const clamp = v => Math.min(1, Math.max(0, v));
+const seg = (t,a,b) => clamp((t-a)/(b-a));
+const lerp = (a,b,t) => a + (b-a)*t;
+const outExpo = t => t>=1 ? 1 : 1-Math.pow(2,-10*t);
+const outQuint = t => 1-Math.pow(1-t,5);
+const outCubic = t => 1-Math.pow(1-t,3);
+const inOutCubic = t => t<.5 ? 4*t*t*t : 1-Math.pow(-2*t+2,3)/2;
+const inOutSine = t => -(Math.cos(Math.PI*t)-1)/2;
+const outBack = t => {const c=1.4; return 1+(c+1)*Math.pow(t-1,3)+c*Math.pow(t-1,2);};
+const pose = () => Object.fromEntries(KEYS.map(k => [k,{x:0,y:0,s:1,o:1}]));
+
+/* ---------- 1 bloom ---------- */
+const BLOOM = {c:.2, tl:.45, br:.45, tr:.62, bl:.62, ru:.85, rl:.85};
+function intro(t){
+  const p = pose();
+  for (const k of KEYS) { const a = BLOOM[k], e = k==='c' ? outBack(seg(t,a,a+.9)) : outExpo(seg(t,a,a+1.4)); p[k].s = e; p[k].o = clamp(seg(t,a,a+.35)); }
+  const d = outCubic(seg(t,0,2.4));
+  return {p, mark:{scale:lerp(.88,1,d), z:lerp(-360,0,d)}, bg:1, lit:0, dust:clamp(t/1.2)};
+}
+const INTRO_END = 2.4;
+/** Waiting: a slow breath; hovering unlatches the blades a little. */
+function idle(time, peek){
+  const f = intro(INTRO_END);
+  for (const k of ['ru','rl']) { f.p[k].x = dir[k][0]*.05*peek; f.p[k].y = dir[k][1]*.05*peek; }
+  f.mark.scale = 1 + .025*Math.sin(time*1.1); return f;
+}
+/** Wind-up while pressed: the mark shrinks and turns back a little, blades tuck in, the key tightens. */
+const WIND = 28;
+function charge(time, peek, w){
+  const f = idle(time, peek), e = outCubic(w);
+  f.mark.scale *= 1 - .14*e; f.mark.rot = -WIND*e;
+  for (const k of ['ru','rl']) { f.p[k].x -= dir[k][0]*.03*e; f.p[k].y -= dir[k][1]*.03*e; }
+  f.p.c.s = 1 - .12*e; return f;
+}
+
+/* ---------- 3 unlock → corner blocks ---------- */
+// Final pose in mark units; q = px per unit. Because the mark is centrally symmetric this is the same
+// frame as the earlier settled version: navy blocks top-left / bottom-right, blade tips top-right / bottom-left.
+const FINAL = {outer:1.5, keep:-.025, leave:.75, blade:-.11};
+const FINAL_NARROW = {outer:1.7, keep:-.04, blade:-.1};
+const final = () => innerWidth/innerHeight < .8 ? {...FINAL, ...FINAL_NARROW} : FINAL;
+const zoomTo = () => final().outer*(innerWidth+innerHeight)/2/241*720/Math.max(markEl.offsetWidth,1);
+// Colour comes late: the mark stays paper-white while it turns and grows, and turns navy as it lands;
+// the dark lifts at the same time, so the white pieces never sit on the paper ground.
+// Spin starts at release at full speed (outCubic) from the wound-up angle and slows into the landing.
+// Springs: under-damped, they overshoot and come back. f(1) ≈ 1 (residue < 0.3 %).
+const spring = (t, k=6, w=9.5) => t >= 1 ? 1 : 1 - Math.exp(-k*t)*Math.cos(w*t);
+const SPRING = {spin:[7,7.4], settle:[6.8,8.6], pop:[7.5,12]};    // [damping, frequency] — lower damping = bouncier
+const T = {spin:[0,1.75], zoom:[.05,.82], settle:[.4,1.75], lit:[.72,1.28], bg:[.76,1.33], key:[.16,.55], home:.9, end:1.8};
+const SPIN = 180;   // must stay a multiple of 180: the mark is centrally symmetric, so the frame lands the same
+function opening(t, from){
+  const f = final(), p = pose(), s = spring(seg(t,...T.settle), ...SPRING.settle);
+  for (const k of ['tl','br','tr','bl']) { const d = lerp(0, k==='tl'||k==='br' ? f.keep : f.leave, s); p[k].x = dir[k][0]*d; p[k].y = dir[k][1]*d; }
+  const tuck = .03*outCubic(from.w);
+  for (const k of ['ru','rl']) { const d = lerp(.05*from.peek - tuck, f.blade, s); p[k].x = dir[k][0]*d; p[k].y = dir[k][1]*d; }
+  p.c.s = (1 - .12*outCubic(from.w))*(1 - inOutCubic(seg(t,...T.key)));
+  const base = lerp(from.scale, 1, spring(seg(t,0,.55), ...SPRING.pop)), z = outCubic(seg(t,...T.zoom));
+  return {p, mark:{scale:base*lerp(1, zoomTo(), z), z:0, rot:lerp(from.rot, SPIN, spring(seg(t,...T.spin), ...SPRING.spin))}, bg:1 - inOutCubic(seg(t,...T.bg)), lit:inOutCubic(seg(t,...T.lit)), dust:1 - seg(t,.25,.75)};
+}
+
+/* ---------- render ---------- */
+function apply(f){
+  markEl.style.transform = `translateZ(${f.mark.z.toFixed(1)}px) rotate(${(f.mark.rot ?? 0).toFixed(2)}deg) scale(${f.mark.scale.toFixed(4)})`;
+  gate.style.setProperty('--bg', f.bg.toFixed(3)); gate.style.setProperty('--lit', f.lit.toFixed(3));
+  for (const [k,el] of pieces) { const q = f.p[k]; el.style.transform = `translate(${(q.x*100).toFixed(3)}%,${(q.y*100).toFixed(3)}%) scale(${q.s.toFixed(4)})`; el.style.opacity = q.o.toFixed(3); }
+}
+const dustC = $('dust'), dctx = dustC.getContext('2d');
+const dots = Array.from({length:200},(_,i)=>({x:(Math.sin(i*12.9898)*43758.5453%1)*2-1,y:(Math.sin(i*78.233)*12345.678%1)*2-1,z:((i*.618)%1)*.95+.05}));
+function dust(dt, a){
+  const w = innerWidth, h = innerHeight, r = Math.min(devicePixelRatio,2);
+  if (dustC.width !== Math.round(w*r)) { dustC.width = Math.round(w*r); dustC.height = Math.round(h*r); }
+  dctx.setTransform(r,0,0,r,0,0); dctx.clearRect(0,0,w,h); if (a <= 0) return;
+  const f = Math.min(w,h)*.9;
+  for (const p of dots) { p.z -= .03*dt; if (p.z <= .02) p.z += 1;
+    const x = w/2 + p.x*f/p.z, y = h/2 + p.y*f/p.z, al = a*Math.min(1,(1-p.z)*1.4)*.5; if (al < .01) continue;
+    dctx.fillStyle = `rgba(226,220,206,${al.toFixed(3)})`; const s = Math.max(.8, 1.8*(1-p.z)); dctx.fillRect(x, y, s, s); }
+}
+
+/* ---------- state ---------- */
+let phase = 'intro', t0 = performance.now(), last = t0, peek = 0, peekTarget = 0, frozen = null;
+let w = 0, holding = false, released = false, from = {scale:1, rot:0, peek:0, w:0};
+const MIN_WIND = .6;   // a quick tap still gets a visible wind-up before it lets go
+/** Press (or scroll / key, which wind up on their own): start winding. */
+function press(auto=false){
+  if (phase === 'open' || phase === 'done') return;
+  if (phase !== 'charge') { phase = 'charge'; w = 0; }
+  holding = !auto; released = auto;
+}
+function release(){ if (phase === 'charge') { holding = false; released = true; } }
+function open(){
+  const f = charge(performance.now()/1000, peek, w);
+  from = {scale:f.mark.scale, rot:f.mark.rot, peek, w};
+  phase = 'open'; t0 = performance.now(); gate.classList.add('is-opening');
+}
+function settle(){ phase = 'done'; gate.classList.remove('is-opening'); gate.classList.add('is-settled'); apply(opening(T.end, from)); dust(0,0); hero.classList.add('is-open'); root.classList.remove('locked'); }
+function reset(){
+  scrollTo(0,0); phase = 'intro'; t0 = performance.now(); peek = peekTarget = 0; w = 0; holding = released = false; frozen = null;
+  gate.className = 'gate'; hero.classList.remove('is-open'); root.classList.add('locked');
+}
+function frame(now){
+  if (frozen !== null) { now = frozen; last = now - 16; }
+  const dt = Math.min(.05,(now-last)/1000); last = now; const t = (now - t0)/1000; let f = null;
+  peek += (peekTarget - peek)*(1 - Math.exp(-dt/.18));
+  if (phase === 'intro') { f = intro(t); if (t >= INTRO_END) { phase = 'idle'; gate.classList.add('is-ready'); } readout.value = `绽放 ${t.toFixed(2)}s`; }
+  else if (phase === 'idle') { f = idle(now/1000, peek); readout.value = '等待：按住 / 滚动'; }
+  else if (phase === 'charge') {
+    // wind up towards 1 while held; once released, let go as soon as the wind-up is visible
+    w = Math.min(1, w + dt/(holding ? .42 : .2));
+    f = charge(now/1000, peek, w); readout.value = `蓄力 ${Math.round(w*100)}%`;
+    if (released && w >= MIN_WIND) open();
+  }
+  else if (phase === 'open') {
+    f = opening(t, from); if (t >= T.home) hero.classList.add('is-open');
+    readout.value = `开幕 ${t.toFixed(2)}s`; if (t >= T.end) settle();
+  } else readout.value = '落地';
+  if (f) { apply(f); dust(dt, f.dust); }
+  requestAnimationFrame(frame);
+}
+// Press and hold winds up, release lets go. Scroll, swipe and keys do a short wind-up on their own.
+addEventListener('wheel', e => { if (phase === 'done') return; e.preventDefault(); if (e.deltaY > 2) press(true); }, {passive:false});
+let ty = 0;
+addEventListener('touchmove', e => { if (phase === 'done') return; e.preventDefault(); if (ty - e.touches[0].clientY > 16) press(true); }, {passive:false});
+gate.addEventListener('pointerdown', e => { if (e.button === 0) { ty = e.clientY; press(); } });
+addEventListener('pointerup', release); addEventListener('pointercancel', release);
+addEventListener('keydown', e => {
+  const k = e.key.toLowerCase();
+  if (k==='r') return reset(); if (k==='s') return press(true); if (k==='h') return $('lab').classList.toggle('hidden');
+  if (phase === 'done') return;
+  if (['arrowdown','pagedown',' ','enter'].includes(k)) { e.preventDefault(); if (!e.repeat) press(k === ' ' || k === 'enter' ? false : true); }
+});
+addEventListener('keyup', e => { if ([' ','enter'].includes(e.key.toLowerCase())) release(); });
+markEl.addEventListener('pointerenter', () => { peekTarget = 1; }); markEl.addEventListener('pointerleave', () => { peekTarget = 0; });
+$('replay').onclick = reset; $('skip').onclick = () => press(true); $('hide').onclick = () => $('lab').classList.add('hidden');
+addEventListener('resize', () => { if (phase === 'done') apply(opening(T.end, from)); });
+
+/* Snapshot hook for automated checks (lab only). */
+window.__lab = {
+  intro(t){ reset(); frozen = performance.now(); t0 = frozen - t*1000; },
+  idle(){ reset(); phase='idle'; gate.classList.add('is-ready'); frozen = performance.now(); },
+  charge(v){ reset(); phase='charge'; w=v; holding=true; gate.classList.add('is-ready'); frozen = performance.now(); },
+  open(t){ reset(); const c = charge(0,0,1); from = {scale:c.mark.scale, rot:c.mark.rot, peek:0, w:1}; phase='open'; gate.classList.add('is-opening'); frozen = performance.now(); t0 = frozen - t*1000; },
+  run(){ frozen = null; }, T,
+};
+if (matchMedia('(prefers-reduced-motion: reduce)').matches) { gate.remove(); hero.classList.add('is-open'); }
+else { reset(); requestAnimationFrame(frame); }
+</script>
+</body>
+</html>

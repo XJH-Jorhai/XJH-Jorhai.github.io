@@ -21,3 +21,7 @@ playwright-report/
 .DS_Store
 Thumbs.db
 .publish-check/
+
+# Local prototype builds
+lab/**/*.html
+!lab/**/template.html

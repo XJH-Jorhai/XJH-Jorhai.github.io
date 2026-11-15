@@ -1,13 +1,18 @@
 /**
- * Home opening. A dark, deep stage: the TEISU mark blooms out of its own centre, far inside the screen.
- * Scrolling draws a thick white square around it (two strokes, from opposite corners — the mark is
- * centrally symmetric, so is the drawing). When the square closes, the mark spins up — one and a half
- * turns in one continuous ease — and unfolds at full speed while the lights come up on the painting.
- * Without JS there is no gate; with reduced motion (or a repeat visit) the page simply starts open.
+ * Home opening (ported from lab/opening v10).
+ * 1 Bloom: on a dark stage the TEISU mark grows out of its own centre — key, then the brackets in
+ *   symmetric pairs, then the blades — while drifting forward from deep in the screen.
+ * 2 Wind-up: press and hold — the mark shrinks and turns back a little; let go and it springs open.
+ *   Scroll, swipe and keys do a short wind-up on their own.
+ * 3 Opening: from the wound-up angle it spins to 180° on a spring, pops back, zooms, and its pieces
+ *   spring into the corners as the hero's colour-block frame. It stays paper-white until it lands,
+ *   then turns navy while the dark lifts. The pieces stay as the hero's frame and scroll away with it.
+ * Without JS there is no gate. With reduced motion, a repeat visit in the same session, a hash or an
+ * already-scrolled page, the frame is shown settled straight away.
  */
 type Key='tl'|'br'|'tr'|'bl'|'ru'|'rl'|'c';
-interface Pose {x:number;y:number;z:number;rot:number;scale:number;opacity:number}
-interface Frame {pieces:Record<Key,Pose>;mark:{rot:number;scale:number;z:number;rx:number;ry:number};bg:number;lit:number;dust:number;warp:number;frame:{draw:number;scale:number;opacity:number}}
+interface Pose {x:number;y:number;s:number;o:number}
+interface Frame {p:Record<Key,Pose>;mark:{scale:number;z:number;rot:number};bg:number;lit:number;dust:number}
 
 const clamp=(v:number)=>Math.min(1,Math.max(0,v));
 const seg=(t:number,a:number,b:number)=>clamp((t-a)/(b-a));
@@ -15,73 +20,71 @@ const lerp=(a:number,b:number,t:number)=>a+(b-a)*t;
 const outExpo=(t:number)=>t>=1?1:1-Math.pow(2,-10*t);
 const outCubic=(t:number)=>1-Math.pow(1-t,3);
 const inOutCubic=(t:number)=>t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;
-const inOutSine=(t:number)=>-(Math.cos(Math.PI*t)-1)/2;
-const inQuart=(t:number)=>t**4;
+const outBack=(t:number)=>{const c=1.4;return 1+(c+1)*Math.pow(t-1,3)+c*Math.pow(t-1,2);};
+/** Under-damped spring: overshoots and settles; f(1) ≈ 1. [damping, frequency] — lower damping = bouncier. */
+const spring=(t:number,k:number,w:number)=>t>=1?1:1-Math.exp(-k*t)*Math.cos(w*t);
+const SPRING={spin:[7,7.4],settle:[6.8,8.6],pop:[7.5,12]} as const;
 
 const KEYS:Key[]=['tl','br','tr','bl','ru','rl','c'];
-// Outward diagonal of each piece (screen y down). Pairs are rotationally symmetric.
 const dir:Record<Key,[number,number]>={tl:[-1,-1],br:[1,1],tr:[1,-1],bl:[-1,1],ru:[1,1],rl:[-1,-1],c:[0,0]};
-const rest=():Pose=>({x:0,y:0,z:0,rot:0,scale:1,opacity:1});
-const poses=()=>Object.fromEntries(KEYS.map(k=>[k,rest()])) as Record<Key,Pose>;
+const pose=()=>Object.fromEntries(KEYS.map(k=>[k,{x:0,y:0,s:1,o:1}])) as Record<Key,Pose>;
 
-/** Bloom order: the key first, then the brackets in symmetric pairs, then the blades. [start, turn] */
-const BLOOM:Record<Key,[number,number]>={c:[.25,-90],tl:[.5,-140],br:[.5,-140],tr:[.68,-140],bl:[.68,-140],ru:[.9,-100],rl:[.9,-100]};
-/** Load-in: every piece unfolds out of the centre point, turning, from deep in the screen. */
+/* ---------- 1 bloom ---------- */
+const BLOOM:Record<Key,number>={c:.2,tl:.45,br:.45,tr:.62,bl:.62,ru:.85,rl:.85};
 function intro(t:number):Frame{
-  const p=poses();
-  for(const k of KEYS){
-    const [a,turn]=BLOOM[k];const e=outExpo(seg(t,a,a+1.6));
-    Object.assign(p[k],{scale:e,rot:turn*(1-e),z:-700*(1-e),opacity:clamp(seg(t,a,a+.5))});
-  }
-  const d=outCubic(seg(t,0,2.8));
-  return {pieces:p,mark:{rot:0,scale:lerp(.86,1,d),z:lerp(-420,0,d),rx:lerp(-10,0,d),ry:lerp(16,0,d)},bg:1,lit:0,dust:clamp(t/1.2),warp:0,frame:{draw:0,scale:1,opacity:0}};
+  const p=pose();
+  for(const k of KEYS){const a=BLOOM[k];p[k].s=k==='c'?outBack(seg(t,a,a+.9)):outExpo(seg(t,a,a+1.4));p[k].o=clamp(seg(t,a,a+.35));}
+  const d=outCubic(seg(t,0,2.4));
+  return {p,mark:{scale:lerp(.88,1,d),z:lerp(-360,0,d),rot:0},bg:1,lit:0,dust:clamp(t/1.2)};
 }
-const INTRO_END=2.7;
-/** Waiting: a slow float in depth. `p` is the scroll progress: the square draws, the blades unlatch. */
-function idle(time:number,p:number):Frame{
+const INTRO_END=2.4;
+/** Waiting: a slow breath; hovering unlatches the blades a little. */
+function idle(time:number,peek:number):Frame{
   const f=intro(INTRO_END);
-  f.mark.ry=4*Math.sin(time*.55)*(1-p);f.mark.rx=2*Math.sin(time*.4+1)*(1-p);f.mark.scale=1+.05*inOutSine(p);
-  for(const k of ['ru','rl'] as const){const [dx,dy]=dir[k];f.pieces[k].x+=dx*.06*p;f.pieces[k].y+=dy*.06*p;}
-  f.pieces.c.rot+=45*inOutSine(p);
-  f.frame={draw:p,scale:1,opacity:1};
-  return f;
+  for(const k of ['ru','rl'] as const){f.p[k].x=dir[k][0]*.05*peek;f.p[k].y=dir[k][1]*.05*peek;}
+  f.mark.scale=1+.025*Math.sin(time*1.1);return f;
+}
+/* ---------- 2 wind-up ---------- */
+const WIND=28,MIN_WIND=.6;
+function charge(time:number,peek:number,w:number):Frame{
+  const f=idle(time,peek),e=outCubic(w);
+  f.mark.scale*=1-.14*e;f.mark.rot=-WIND*e;
+  for(const k of ['ru','rl'] as const){f.p[k].x-=dir[k][0]*.03*e;f.p[k].y-=dir[k][1]*.03*e;}
+  f.p.c.s=1-.12*e;return f;
+}
+/* ---------- 3 opening → corner blocks ---------- */
+// Final pose in mark units; the mark is centrally symmetric, so a 180° turn lands the same frame:
+// navy blocks top-left / bottom-right, blade tips top-right / bottom-left.
+export const FINAL={outer:1.5,keep:-.025,leave:.75,blade:-.11};
+export const FINAL_NARROW={outer:1.7,keep:-.04,blade:-.1};
+const final=()=>innerWidth/innerHeight<.8?{...FINAL,...FINAL_NARROW}:FINAL;
+const T={spin:[0,1.75],zoom:[.05,.82],settle:[.4,1.75],lit:[.72,1.28],bg:[.76,1.33],key:[.16,.55],home:.9,end:1.8} as const;
+const SPIN=180; // keep a multiple of 180
+interface From {scale:number;rot:number;peek:number;w:number}
+function opening(t:number,zoom:number,from:From):Frame{
+  const f=final(),p=pose(),s=spring(seg(t,...T.settle),...SPRING.settle);
+  for(const k of ['tl','br','tr','bl'] as const){const d=lerp(0,k==='tl'||k==='br'?f.keep:f.leave,s);p[k].x=dir[k][0]*d;p[k].y=dir[k][1]*d;}
+  const tuck=.03*outCubic(from.w);
+  for(const k of ['ru','rl'] as const){const d=lerp(.05*from.peek-tuck,f.blade,s);p[k].x=dir[k][0]*d;p[k].y=dir[k][1]*d;}
+  p.c.s=(1-.12*outCubic(from.w))*(1-inOutCubic(seg(t,...T.key)));
+  const base=lerp(from.scale,1,spring(seg(t,0,.55),...SPRING.pop)),z=outCubic(seg(t,...T.zoom));
+  return {p,mark:{scale:base*lerp(1,zoom,z),z:0,rot:lerp(from.rot,SPIN,spring(seg(t,...T.spin),...SPRING.spin))},
+    bg:1-inOutCubic(seg(t,...T.bg)),lit:inOutCubic(seg(t,...T.lit)),dust:1-seg(t,.25,.75)};
 }
 
-/** Opening: 1.5 turns in one continuous ease; at top speed it zooms past the viewer and unfolds. */
-function opening(t:number,zoom:number,fit:number,from:{rx:number;ry:number;scale:number}):Frame{
-  const p=poses();
-  const spin=540*inOutCubic(seg(t,0,2.3));
-  const k=inOutCubic(seg(t,0,.4));
-  p.c.rot=45+45*k;p.c.scale=1-inOutCubic(seg(t,.55,.9));
-  const z=inOutCubic(seg(t,.5,1.5));
-  const spread=inOutCubic(seg(t,1.0,2.3));
-  for(const key of ['tl','br','tr','bl'] as const){const [dx,dy]=dir[key];const d=.04*k+.62*spread;p[key].x=dx*d;p[key].y=dy*d;}
-  for(const key of ['ru','rl'] as const){const [dx,dy]=dir[key];const d=.06+.06*k+.95*spread;p[key].x=dx*d;p[key].y=dy*d;}
-  const level=1-outCubic(seg(t,0,.4));
-  const settleIn=1-.06*inOutCubic(seg(t,0,.55));
-  return {pieces:p,mark:{rot:spin,scale:from.scale*settleIn*lerp(1,zoom,z),z:0,rx:from.rx*level,ry:from.ry*level},
-    bg:1-inQuart(seg(t,.8,1.7)),lit:inOutCubic(seg(t,.4,.95)),dust:1-seg(t,.7,1.2),warp:inQuart(seg(t,.05,.9)),
-    frame:{draw:1,scale:lerp(1,fit,inOutCubic(seg(t,0,.8))),opacity:1-seg(t,.45,.85)}};
-}
-const OPEN_END=2.4,HOME_AT=1.25;
-
-/** Dust drifting toward the viewer; it streaks during the warp. 2D canvas, not WebGL. */
+/** Dust drifting toward the viewer. 2D canvas, not WebGL. */
 function createDust(canvas:HTMLCanvasElement){
-  const ctx=canvas.getContext('2d');const n=220;
-  const pts=Array.from({length:n},(_,i)=>({x:(Math.sin(i*12.9898)*43758.5453%1)*2-1,y:(Math.sin(i*78.233)*12345.678%1)*2-1,z:((i*.618)%1)*.95+.05}));
-  let w=0,h=0,dpr=1;
-  const resize=()=>{dpr=Math.min(devicePixelRatio,2);w=innerWidth;h=innerHeight;canvas.width=w*dpr;canvas.height=h*dpr;};resize();
-  return {resize,draw(dt:number,alpha:number,warp:number){
-    if(!ctx)return;ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,w,h);if(alpha<=0)return;
-    const speed=.035+warp*2.2,f=Math.min(w,h)*.9,cx=w/2,cy=h/2;
-    for(const p of pts){
-      const z0=p.z;p.z-=speed*dt;if(p.z<=.02){p.z+=1;}
-      const sx=cx+p.x*f/p.z,sy=cy+p.y*f/p.z;const px=cx+p.x*f/z0,py=cy+p.y*f/z0;
-      const a=alpha*Math.min(1,(1-p.z)*1.4)*.55;if(a<=.01)continue;
-      ctx.strokeStyle=`rgba(226,220,206,${a.toFixed(3)})`;ctx.lineWidth=Math.max(.6,1.6*(1-p.z));
-      ctx.beginPath();ctx.moveTo(warp>.05?px:sx-.01,warp>.05?py:sy);ctx.lineTo(sx,sy);ctx.stroke();
-    }
-  }};
+  const ctx=canvas.getContext('2d');
+  const pts=Array.from({length:200},(_,i)=>({x:(Math.sin(i*12.9898)*43758.5453%1)*2-1,y:(Math.sin(i*78.233)*12345.678%1)*2-1,z:((i*.618)%1)*.95+.05}));
+  return (dt:number,a:number)=>{
+    if(!ctx)return;const w=innerWidth,h=innerHeight,r=Math.min(devicePixelRatio,2);
+    if(canvas.width!==Math.round(w*r)){canvas.width=Math.round(w*r);canvas.height=Math.round(h*r);}
+    ctx.setTransform(r,0,0,r,0,0);ctx.clearRect(0,0,w,h);if(a<=0)return;
+    const f=Math.min(w,h)*.9;
+    for(const p of pts){p.z-=.03*dt;if(p.z<=.02)p.z+=1;
+      const x=w/2+p.x*f/p.z,y=h/2+p.y*f/p.z,al=a*Math.min(1,(1-p.z)*1.4)*.5;if(al<.01)continue;
+      ctx.fillStyle=`rgba(226,220,206,${al.toFixed(3)})`;const s=Math.max(.8,1.8*(1-p.z));ctx.fillRect(x,y,s,s);}
+  };
 }
 
 export function initGate(){
@@ -90,90 +93,80 @@ export function initGate(){
   const showHome=()=>home?.classList.add('is-open');
   if(!found){showHome();return;}
   const gate:HTMLElement=found;
-  const nav=(performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming|undefined)?.type;
-  const seen=sessionStorage.getItem('teisu-gate')==='1'&&nav!=='reload';
-  if(matchMedia('(prefers-reduced-motion: reduce)').matches||seen||!!location.hash||scrollY>40){gate.remove();showHome();return;}
-
   const root=document.documentElement;
   const markEl=gate.querySelector<HTMLButtonElement>('[data-gate-mark]')!;
-  const frameEl=gate.querySelector<SVGSVGElement>('[data-gate-frame]')!;
   const pieces=new Map<Key,HTMLElement>(Array.from(gate.querySelectorAll<HTMLElement>('[data-piece]')).map(el=>[el.dataset.piece as Key,el]));
   const dust=createDust(gate.querySelector<HTMLCanvasElement>('[data-gate-dust]')!);
-  // Zoom so the mark ends far wider than the screen; the square grows to the screen's edge.
-  const zoom=()=>1.1*Math.hypot(innerWidth,innerHeight)/Math.max(markEl.offsetWidth,1);
-  const fit=()=>Math.max(innerWidth,innerHeight)*1.04/Math.max(frameEl.getBoundingClientRect().width||1,1);
-  let fitCache=1;
+  const zoomTo=()=>final().outer*(innerWidth+innerHeight)/2/241*720/Math.max(markEl.offsetWidth,1);
 
   function apply(f:Frame){
-    const m=f.mark;
-    markEl.style.transform=`translateZ(${m.z.toFixed(1)}px) rotateX(${m.rx.toFixed(2)}deg) rotateY(${m.ry.toFixed(2)}deg) rotate(${m.rot.toFixed(2)}deg) scale(${m.scale.toFixed(4)})`;
-    gate.style.setProperty('--hole',`${((1-f.bg)*160).toFixed(2)}vmax`);
-    gate.style.setProperty('--gate-bg',f.bg.toFixed(3));
-    gate.style.setProperty('--lit',f.lit.toFixed(3));
-    gate.style.setProperty('--draw',f.frame.draw.toFixed(4));
-    frameEl.style.transform=`translate(-50%,-50%) scale(${f.frame.scale.toFixed(4)})`;
-    frameEl.style.opacity=f.frame.opacity.toFixed(3);
-    for(const [key,el] of pieces){
-      const p=f.pieces[key];
-      el.style.transform=`translate3d(${(p.x*100).toFixed(3)}%,${(p.y*100).toFixed(3)}%,${p.z.toFixed(1)}px) rotate(${p.rot.toFixed(2)}deg) scale(${p.scale.toFixed(4)})`;
-      el.style.opacity=p.opacity.toFixed(3);
-    }
+    markEl.style.transform=`translateZ(${f.mark.z.toFixed(1)}px) rotate(${f.mark.rot.toFixed(2)}deg) scale(${f.mark.scale.toFixed(4)})`;
+    gate.style.setProperty('--bg',f.bg.toFixed(3));gate.style.setProperty('--lit',f.lit.toFixed(3));
+    for(const [k,el] of pieces){const q=f.p[k];el.style.transform=`translate(${(q.x*100).toFixed(3)}%,${(q.y*100).toFixed(3)}%) scale(${q.s.toFixed(4)})`;el.style.opacity=q.o.toFixed(3);}
   }
 
-  gate.hidden=false;history.scrollRestoration='manual';scrollTo(0,0);root.classList.add('gate-lock');
-  let phase:'intro'|'idle'|'open'|'done'='intro',raf=0;
-  let start=performance.now(),last=start,target=0,shown=0,auto=false,lastInput=0,from={rx:0,ry:0,scale:1};
+  let phase:'intro'|'idle'|'charge'|'open'|'done'='intro',raf=0,t0=performance.now(),last=t0;
+  let peek=0,peekTarget=0,w=0,holding=false,released=false,from:From={scale:1,rot:0,peek:0,w:0};
+  const listeners:[EventTarget,string,(e:any)=>void][]=[];
+  const on=(target:EventTarget,type:string,fn:(e:any)=>void)=>{target.addEventListener(type,fn as EventListener,{passive:false});listeners.push([target,type,fn]);};
+
+  /** The pieces stay: the fixed layer becomes the hero's frame, absolute at the page top. */
+  function settle(){
+    phase='done';cancelAnimationFrame(raf);
+    gate.classList.remove('is-opening','is-ready');gate.classList.add('is-settled');
+    markEl.tabIndex=-1;markEl.setAttribute('aria-hidden','true');dust(0,0);
+    apply(opening(T.end,zoomTo(),from));showHome();root.classList.remove('gate-lock');
+    for(const [t,type,fn] of listeners)t.removeEventListener(type,fn as EventListener);
+    addEventListener('resize',()=>apply(opening(T.end,zoomTo(),from)),{passive:true});
+  }
+
+  const nav=(performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming|undefined)?.type;
+  const seen=sessionStorage.getItem('teisu-gate')==='1'&&nav!=='reload';
+  gate.hidden=false;
+  if(matchMedia('(prefers-reduced-motion: reduce)').matches||seen||!!location.hash||scrollY>40){settle();return;}
+
+  history.scrollRestoration='manual';scrollTo(0,0);root.classList.add('gate-lock');
+  function press(auto=false){
+    if(phase==='open'||phase==='done')return;
+    if(phase!=='charge'){phase='charge';w=0;}
+    holding=!auto;released=auto;
+  }
+  function release(){if(phase==='charge'){holding=false;released=true;}}
+  function open(){
+    const f=charge(performance.now()/1000,peek,w);
+    from={scale:f.mark.scale,rot:f.mark.rot,peek,w};
+    phase='open';t0=performance.now();gate.classList.add('is-opening');
+  }
   function tick(now:number){
-    const dt=Math.min(.05,(now-last)/1000);last=now;const t=(now-start)/1000;let f:Frame;
+    const dt=Math.min(.05,(now-last)/1000);last=now;const t=(now-t0)/1000;let f:Frame;
+    peek+=(peekTarget-peek)*(1-Math.exp(-dt/.18));
     if(phase==='intro'){f=intro(t);if(t>=INTRO_END){phase='idle';gate.classList.add('is-ready');}}
-    else if(phase==='idle'){
-      if(auto)target=Math.min(1,target+dt*2.4);
-      else if(target<1&&now-lastInput>900)target=Math.max(0,target-dt*.22);
-      shown+=(target-shown)*(1-Math.exp(-dt/.09));if(target>=1&&shown>.995)shown=1;
-      f=idle(now/1000,shown);from={rx:f.mark.rx,ry:f.mark.ry,scale:f.mark.scale};
-      if(shown>=1)open();
-    }
-    else{f=opening(t,zoom(),fitCache,from);if(t>=HOME_AT)showHome();if(t>=OPEN_END){finish();return;}}
-    dust.draw(dt,f.dust,f.warp);apply(f);
+    else if(phase==='idle')f=idle(now/1000,peek);
+    else if(phase==='charge'){w=Math.min(1,w+dt/(holding?.42:.2));f=charge(now/1000,peek,w);if(released&&w>=MIN_WIND)open();}
+    else{f=opening(t,zoomTo(),from);if(t>=T.home)showHome();if(t>=T.end){sessionStorage.setItem('teisu-gate','1');settle();return;}}
+    apply(f);dust(dt,f.dust);
     raf=requestAnimationFrame(tick);
   }
-  function open(){
-    if(phase==='open'||phase==='done')return;
-    if(phase==='intro'){const f=intro(Math.max(0,(performance.now()-start)/1000));from={rx:f.mark.rx,ry:f.mark.ry,scale:f.mark.scale};}
-    fitCache=fit();phase='open';start=performance.now();gate.classList.add('is-opening');
-  }
-  function finish(){
-    phase='done';cancelAnimationFrame(raf);gate.remove();root.classList.remove('gate-lock');showHome();
-    sessionStorage.setItem('teisu-gate','1');
-    for(const [type,fn] of listeners)removeEventListener(type,fn as EventListener);
-    dispatchEvent(new Event('resize'));
-  }
-  /** Scroll input feeds the square's progress; it slowly unwinds if you stop halfway. */
-  const feed=(delta:number)=>{if(phase==='open'||phase==='done')return;target=clamp(target+delta);lastInput=performance.now();};
 
-  let touchY=0;
-  const listeners:[string,(e:any)=>void][]=[
-    ['wheel',(e:WheelEvent)=>{e.preventDefault();feed(e.deltaY*(e.deltaMode===1?18:e.deltaMode===2?innerHeight:1)/900);}],
-    ['touchstart',(e:TouchEvent)=>{touchY=e.touches[0]!.clientY;}],
-    ['touchmove',(e:TouchEvent)=>{e.preventDefault();const y=e.touches[0]!.clientY;feed((touchY-y)/360);touchY=y;}],
-    ['keydown',(e:KeyboardEvent)=>{
-      if(['ArrowDown','PageDown',' '].includes(e.key)){e.preventDefault();feed(.2);}
-      else if(['ArrowUp','PageUp'].includes(e.key)){e.preventDefault();feed(-.2);}
-      else if(e.key==='Enter'){e.preventDefault();auto=true;}
-      else if(e.key==='Escape'){e.preventDefault();open();}
-    }],
-    ['resize',()=>dust.resize()],
-  ];
-  for(const [type,fn] of listeners)addEventListener(type,fn as EventListener,{passive:false});
-  markEl.addEventListener('click',()=>{auto=true;lastInput=performance.now();});
+  let ty=0;
+  on(window,'wheel',(e:WheelEvent)=>{e.preventDefault();if(e.deltaY>2)press(true);});
+  on(window,'touchstart',(e:TouchEvent)=>{ty=e.touches[0]!.clientY;});
+  on(window,'touchmove',(e:TouchEvent)=>{e.preventDefault();if(ty-e.touches[0]!.clientY>16)press(true);});
+  on(gate,'pointerdown',(e:PointerEvent)=>{if(e.button===0)press();});
+  on(window,'pointerup',release);on(window,'pointercancel',release);
+  on(window,'keydown',(e:KeyboardEvent)=>{
+    if(['ArrowDown','PageDown',' ','Enter'].includes(e.key)){e.preventDefault();if(!e.repeat)press(e.key==='ArrowDown'||e.key==='PageDown');}
+    else if(e.key==='Escape'){e.preventDefault();press(true);}
+  });
+  on(window,'keyup',(e:KeyboardEvent)=>{if(e.key===' '||e.key==='Enter')release();});
+  on(markEl,'pointerenter',()=>{peekTarget=1;});on(markEl,'pointerleave',()=>{peekTarget=0;});
   markEl.focus({preventScroll:true});
   raf=requestAnimationFrame(tick);
 
-  // Diagnostics only: freeze the timeline and seek to an exact moment.
+  // Diagnostics only: freeze the timeline at an exact moment.
   if(new URLSearchParams(location.search).has('inspect'))Object.assign(window,{__gate:{
-    seek(which:'intro'|'idle'|'open',t:number){cancelAnimationFrame(raf);phase='done';
-      const f=which==='intro'?intro(t):which==='idle'?idle(0,t):opening(t,zoom(),fit(),{rx:0,ry:0,scale:1});
-      gate.classList.toggle('is-ready',which!=='intro'||t>=INTRO_END);gate.classList.toggle('is-opening',which==='open');
-      if(which==='open'&&t>=HOME_AT)showHome();dust.draw(.016,f.dust,f.warp);apply(f);},
+    seek(which:'intro'|'charge'|'open',v:number){cancelAnimationFrame(raf);phase='idle';
+      const c=charge(0,0,1);const f=which==='intro'?intro(v):which==='charge'?charge(0,0,v):opening(v,zoomTo(),{scale:c.mark.scale,rot:c.mark.rot,peek:0,w:1});
+      gate.classList.toggle('is-opening',which==='open');gate.classList.toggle('is-ready',which!=='intro');if(which==='open'&&v>=T.home)showHome();apply(f);dust(.016,f.dust);},
   }});
 }

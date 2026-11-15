@@ -1,0 +1,378 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>TEISU · 开幕原型 v2（本地）</title>
+<style>
+  :root {--navy:#083366;--red:#EF3025;--paper:#F3EDE2;--ink:#1D2733;}
+  * {box-sizing:border-box;}
+  html,body {margin:0;background:#04060b;color:var(--ink);font-family:'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;}
+  html.locked,html.locked body {overflow:hidden;}
+  /* The stage: one 2D canvas. Fixed during the opening, then it lies over the hero for the lens. */
+  #stage {position:fixed;inset:0;width:100vw;height:100vh;z-index:10;display:block;cursor:pointer;}
+    /* ---------- Hero (same composition the mosaic resolves into) ---------- */
+  .hero {position:relative;height:100vh;min-height:520px;overflow:hidden;background:#F13D18;}
+  .field {position:absolute;top:0;bottom:0;width:51%;}
+  .field.l {left:0;background:linear-gradient(180deg,#1645AC 0%,#2747A6 55%,#5E5797 100%);}
+  .field.r {right:0;background:linear-gradient(180deg,#F13D18 0%,#F4441C 60%,#F54719 100%);}
+  .art {position:absolute;inset:0;margin:0 auto;height:100%;aspect-ratio:1;-webkit-mask-image:linear-gradient(90deg,transparent 0,#000 9%,#000 91%,transparent 100%);mask-image:linear-gradient(90deg,transparent 0,#000 9%,#000 91%,transparent 100%);}
+  .art img {width:100%;height:100%;object-fit:cover;display:block;}
+  .word {position:absolute;left:clamp(20px,3.4vw,56px);bottom:clamp(24px,5vh,56px);width:clamp(260px,46vh,440px);transform-origin:0 100%;transform:rotate(-90deg) translateY(100%);margin:0;}
+  .word svg {display:block;width:100%;height:auto;overflow:visible;}
+  .side {position:absolute;right:clamp(20px,3.4vw,56px);top:50%;translate:0 -50%;writing-mode:vertical-rl;display:flex;gap:28px;font:500 12px/1 system-ui,sans-serif;letter-spacing:.42em;color:#FFF3E6;margin:0;}
+  .cap {position:absolute;right:clamp(20px,3.4vw,56px);bottom:clamp(24px,5vh,48px);display:grid;justify-items:end;gap:8px;text-align:right;font-size:14px;letter-spacing:.14em;color:#FFF3E6;margin:0;}
+  .cap span:first-child {font:11px ui-monospace,Consolas,monospace;letter-spacing:.2em;background:var(--navy);padding:4px 10px;clip-path:polygon(8px 0,100% 0,100% 100%,0 100%,0 8px);}
+  .hero [data-in] {opacity:0;transform:translateY(18px);transition:opacity 1s cubic-bezier(.16,1,.3,1),transform 1.2s cubic-bezier(.16,1,.3,1);transition-delay:var(--d,0s);}
+  .hero .side[data-in] {transform:translate(0,18px);}
+  .hero.is-open [data-in] {opacity:1;transform:none;}
+  .word .l {transform-box:fill-box;transition:transform 1.1s cubic-bezier(.16,1,.3,1);}
+  .word :is(.l-T,.l-I,.l-S,.l-U) {transform:translateY(110%);}
+  .word .l-E {transform-origin:0 50%;transform:scaleX(0);transition-duration:.9s;}
+  .word .l-T {transition-delay:.15s;} .word .l-E1 {transition-delay:.23s;} .word .l-E3 {transition-delay:.3s;} .word .l-I {transition-delay:.31s;} .word .l-S {transition-delay:.39s;} .word .l-U {transition-delay:.47s;} .word .l-E2 {transition-delay:.6s;}
+  .hero.is-open .word .l {transform:none;}
+  @media (max-aspect-ratio:1/1) {
+    .art {inset:0 0 auto 0;width:100%;height:auto;-webkit-mask-image:linear-gradient(180deg,#000 80%,transparent 100%);mask-image:linear-gradient(180deg,#000 80%,transparent 100%);}
+    .field.l,.field.r {width:100%;} .field.l {background:linear-gradient(180deg,#1645AC,#2D4BA8);} .field.r {top:auto;height:50%;background:linear-gradient(180deg,#2D4BA8,#5B5596);}
+    .word {transform:none;left:20px;right:20px;bottom:130px;width:auto;}
+    .side {writing-mode:horizontal-tb;top:auto;right:auto;left:20px;bottom:90px;translate:none;gap:18px;letter-spacing:.3em;}
+    .cap {left:20px;right:20px;justify-items:start;text-align:left;bottom:28px;}
+  }
+  .below {min-height:60vh;background:var(--paper);display:grid;place-items:center;font:13px ui-monospace,Consolas,monospace;letter-spacing:.14em;color:#615F58;text-align:center;padding:40px;}
+  /* ---------- Lab controls (prototype only) ---------- */
+  .lab {position:fixed;left:12px;bottom:12px;z-index:20;display:flex;align-items:center;gap:6px;padding:6px;border-radius:8px;background:rgb(20 24 34 / .82);color:#E9E3D6;font:12px/1 system-ui,sans-serif;backdrop-filter:blur(8px);}
+  .lab button {font:inherit;color:inherit;background:rgb(255 255 255 / .08);border:1px solid rgb(255 255 255 / .16);border-radius:6px;padding:7px 10px;cursor:pointer;}
+  .lab button:hover {background:rgb(255 255 255 / .16);}
+  .lab output {min-width:140px;padding:0 8px;font-family:ui-monospace,Consolas,monospace;opacity:.8;}
+  .lab.hidden {opacity:0;pointer-events:none;}
+</style>
+</head>
+<body>
+<canvas id="stage" aria-label="TEISU 开幕：向下滚动解锁，或点击"></canvas>
+
+<section class="hero" id="hero">
+  <div class="field l"></div><div class="field r"></div>
+  <figure class="art" style="margin:0"><img id="painting" src="__PAINTING__" width="1254" height="1254" alt="油画风格的人物插画" /></figure>
+  <h1 class="word"><svg viewBox="190 1250 1620 384" aria-label="TEISU">__WORDMARK__</svg></h1>
+  <p class="side" data-in style="--d:.5s"><span>FIELDNOTES</span><span>研究 · 制作 · 观察</span></p>
+  <p class="cap" data-in style="--d:.65s"><span>人物设定</span><span>把想法做成实物，也把过程留在这里。</span></p>
+</section>
+<section class="below">（原型只包含开幕与首页首屏；以下作品、笔记等部分在正式站点中）</section>
+
+<div class="lab" id="lab">
+  <button type="button" id="replay" title="R">↺ 重播</button>
+  <button type="button" id="skip" title="S">⇥ 跳到开幕</button>
+  <button type="button" id="land" title="L">⤓ 直接落地</button>
+  <output id="readout">—</output>
+  <button type="button" id="hide" title="H">隐藏</button>
+</div>
+
+<script>
+const BRAND = __BRAND__;
+/* ===================================================================================
+   TEISU opening — prototype v2.
+   A  Scroll progress p (0→1). Red only at the centre: the core starts as a row
+      [red ▪ white ▪ red] and twists into the mark's diagonal as p grows. Around it,
+      concentric rings of the white arms — a lock / sigil. Every arm exists from the start
+      and grows in length with p. At 30 / 60 / 90 % the rings turn like tumblers; at 90 %
+      they all line up.
+   B  A held beat on the aligned lock → everything plays back to the core → the arms grow
+      again while the view pulls back without end: the mark becomes one cell of an
+      ever finer field of copies → the finest lines take the hero's colours, the cells fill,
+      and the mosaic is the hero.
+   =================================================================================== */
+const canvas = document.getElementById('stage');
+let ctx = canvas.getContext('2d');
+const hero = document.getElementById('hero');
+const painting = document.getElementById('painting');
+const readout = document.getElementById('readout');
+const root = document.documentElement;
+
+const INK = '#ECE6D8', RED = '#EF3025';
+const P = Object.fromEntries(Object.entries(BRAND.pieces).map(([k,d]) => [k, new Path2D(d)]));
+
+const clamp = v => Math.min(1, Math.max(0, v));
+const seg = (t,a,b) => clamp((t-a)/(b-a));
+const lerp = (a,b,t) => a + (b-a)*t;
+const inOutCubic = t => t<.5 ? 4*t*t*t : 1-Math.pow(-2*t+2,3)/2;
+const inOutSine = t => -(Math.cos(Math.PI*t)-1)/2;
+const outCubic = t => 1-Math.pow(1-t,3);
+const outBack = t => {const c=1.5; return 1+(c+1)*Math.pow(t-1,3)+c*Math.pow(t-1,2);};
+
+/* ---------- geometry, in logo units (720 = one mark, centre at 0,0, y down) ---------- */
+// Centre-lines of the four white arms; stroked at width 104 they approximate the mark.
+const ARM = {
+  tl:[[-308,-62],[-308,-308],[-96,-308],[-96,-100]],
+  tr:[[64,-308],[308,-308],[308,-47]],
+  br:[[308,62],[308,308],[96,308],[96,100]],
+  bl:[[-64,308],[-308,308],[-308,47]],
+};
+const ARM_W = 104;
+/** Outer rings: same arms on a bigger square, inward tips shortened so rings never cross. */
+function ringArms(scale){
+  const tip = 1 - .25; // tip reaches 25 % of the way in
+  return Object.values(ARM).map(pts => pts.map(([x,y],i) => {
+    const last = i === pts.length-1 && pts.length === 4;
+    return last ? [x*scale, Math.sign(y)*308*tip*scale] : [x*scale, y*scale];
+  }));
+}
+// Core: red blades start as squares either side of the centre square, end as the diagonal blades.
+const RU_END = [[349,108],[633,392],[511,392],[349,230]].map(([x,y])=>[x-360,y-360]);
+const RU_START = [[75,-55],[185,-55],[185,55],[75,55]];
+const RL_END = RU_END.map(([x,y])=>[-x,-y]), RL_START = RU_START.map(([x,y])=>[-x,-y]);
+const KEY = [[-51,-51],[50,-51],[50,50],[-51,50]];
+
+function polyPath(path, pts, m){ path.moveTo(pts[0][0]*m.s+m.x, pts[0][1]*m.s+m.y); for (let i=1;i<pts.length;i++) path.lineTo(pts[i][0]*m.s+m.x, pts[i][1]*m.s+m.y); }
+/** Add the first `f` (0–1) of a polyline's length to a path, rotated by `rot` rad. */
+function partial(path, pts, f, m, rot=0){
+  if (f <= 0) return;
+  const c = Math.cos(rot), sn = Math.sin(rot);
+  const q = pts.map(([x,y]) => [(x*c - y*sn)*m.s + m.x, (x*sn + y*c)*m.s + m.y]);
+  let total = 0; for (let i=1;i<q.length;i++) total += Math.hypot(q[i][0]-q[i-1][0], q[i][1]-q[i-1][1]);
+  let left = total*f; path.moveTo(q[0][0], q[0][1]);
+  for (let i=1;i<q.length && left>0;i++) {
+    const l = Math.hypot(q[i][0]-q[i-1][0], q[i][1]-q[i-1][1]), k = Math.min(1, left/l);
+    path.lineTo(q[i-1][0] + (q[i][0]-q[i-1][0])*k, q[i-1][1] + (q[i][1]-q[i-1][1])*k); left -= l;
+  }
+}
+function drawCore(c, x, y, s, morph, rot=0){
+  const m = {x:0, y:0, s:1};
+  c.save(); c.translate(x,y); c.rotate(rot); c.scale(s/720, s/720);
+  const ru = RU_START.map((v,i)=>[lerp(v[0],RU_END[i][0],morph), lerp(v[1],RU_END[i][1],morph)]);
+  const rl = RL_START.map((v,i)=>[lerp(v[0],RL_END[i][0],morph), lerp(v[1],RL_END[i][1],morph)]);
+  const red = new Path2D(); polyPath(red, ru, m); red.closePath(); polyPath(red, rl, m); red.closePath();
+  c.fillStyle = RED; c.fill(red);
+  const key = new Path2D(); polyPath(key, KEY, m); key.closePath(); c.fillStyle = INK; c.fill(key);
+  c.restore();
+}
+/** The exact mark (used for the held beat). */
+function drawExact(c, x, y, s, alpha){
+  if (alpha <= 0) return;
+  c.save(); c.globalAlpha = alpha; c.translate(x-s/2, y-s/2); c.scale(s/720, s/720);
+  c.fillStyle = INK; for (const k of ['tl','tr','br','bl','c']) c.fill(P[k]);
+  c.fillStyle = RED; c.fill(P.ru); c.fill(P.rl); c.restore();
+}
+
+/* ---------- canvases ---------- */
+let W=0, H=0, dpr=1, L=140, rings=[];
+const layer = document.createElement('canvas'), lctx = layer.getContext('2d');
+const comp = document.createElement('canvas'), cctx = comp.getContext('2d');
+function resize(){
+  dpr = Math.min(devicePixelRatio || 1, 2); W = innerWidth; H = innerHeight;
+  for (const c of [canvas, layer, comp]) { c.width = Math.round(W*dpr); c.height = Math.round(H*dpr); }
+  L = Math.max(110, Math.min(170, Math.min(W,H)*.17));
+  buildRings(); buildComp();
+}
+/** Paint the hero exactly as the DOM lays it out, so the mosaic resolves into it. */
+function buildComp(){
+  const c = cctx; c.setTransform(dpr,0,0,dpr,0,0);
+  if (W/H >= 1) {
+    let g = c.createLinearGradient(0,0,0,H); g.addColorStop(0,'#1645AC'); g.addColorStop(.55,'#2747A6'); g.addColorStop(1,'#5E5797');
+    c.fillStyle = g; c.fillRect(0,0,W/2+1,H);
+    g = c.createLinearGradient(0,0,0,H); g.addColorStop(0,'#F13D18'); g.addColorStop(.6,'#F4441C'); g.addColorStop(1,'#F54719');
+    c.fillStyle = g; c.fillRect(W/2,0,W/2,H);
+    const s = H, x = (W-s)/2;
+    if (painting.naturalWidth) {
+      const tmp = document.createElement('canvas'); tmp.width = Math.round(s*dpr); tmp.height = Math.round(s*dpr);
+      const t = tmp.getContext('2d'); t.drawImage(painting,0,0,tmp.width,tmp.height);
+      t.globalCompositeOperation = 'destination-in';
+      const m = t.createLinearGradient(0,0,tmp.width,0); m.addColorStop(0,'rgba(0,0,0,0)'); m.addColorStop(.09,'#000'); m.addColorStop(.91,'#000'); m.addColorStop(1,'rgba(0,0,0,0)');
+      t.fillStyle = m; t.fillRect(0,0,tmp.width,tmp.height); c.drawImage(tmp,x,0,s,s);
+    }
+  } else {
+    let g = c.createLinearGradient(0,0,0,H); g.addColorStop(0,'#1645AC'); g.addColorStop(.5,'#2D4BA8'); g.addColorStop(1,'#5B5596');
+    c.fillStyle = g; c.fillRect(0,0,W,H);
+    if (painting.naturalWidth) c.drawImage(painting,0,0,W,W);
+  }
+}
+function paintDark(){
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  const g = ctx.createRadialGradient(W/2,H/2,0,W/2,H/2,Math.hypot(W,H)*.6);
+  g.addColorStop(0,'#121c31'); g.addColorStop(.48,'#080d18'); g.addColorStop(1,'#030408');
+  ctx.fillStyle = g; ctx.fillRect(0,0,W,H);
+}
+
+/* ================= A: an irregular sigil ================= */
+// Seeded randomness: the same "random" sigil every visit.
+let seed = 7;
+const rnd = () => { seed = (seed*16807) % 2147483647; return (seed-1)/2147483646; };
+const range = (a,b) => a + (b-a)*rnd();
+const CLICKS = [.3,.6,.9];
+let clickTimes = [];
+/**
+ * Rings of arms. Ring 0 is the mark's own arms. Outer rings are ordered — concentric, axis-aligned,
+ * centrally symmetric like the mark — but every line's shape is loose: uneven ends, broken into
+ * dashes, 45° chamfered corners and 45° jogs (circuit-trace style), slightly uneven weight.
+ */
+const rot180 = pts => pts.map(([x,y]) => [-x,-y]);
+function hookArm(R){            // top-left: up the left side, along the top, a tip turning inward
+  const a = range(-.3,.35), b = range(-.45,.22), t = range(.1,.3), c = rnd() < .45 ? range(.1,.24) : 0;
+  const pts = [[-1, a]];
+  if (c) pts.push([-1,-1+c],[-1+c,-1]); else pts.push([-1,-1]);
+  if (rnd() < .5) { const j = lerp(-1+c+.15, b-.15, rnd()), d = range(.05,.1)*(rnd() < .5 ? 1 : -1); if (j < b-.2) pts.push([j,-1],[j+Math.abs(d),-1+d],[b,-1+d]); else pts.push([b,-1]); }
+  else pts.push([b,-1]);
+  const last = pts[pts.length-1]; pts.push([last[0], last[1] + t]);
+  return pts.map(([x,y]) => [x*R, y*R]);
+}
+function elbowArm(R){           // top-right: along the top, down the right side
+  const s0 = range(-.12,.35), e = range(-.35,.22), c = rnd() < .45 ? range(.1,.24) : 0;
+  const pts = [[s0,-1]];
+  if (c) pts.push([1-c,-1],[1,-1+c]); else pts.push([1,-1]);
+  if (rnd() < .5) { const j = lerp(-1+c+.15, e-.15, rnd()), d = range(.05,.1)*(rnd() < .5 ? 1 : -1); if (j < e-.2) pts.push([1,j],[1+d,j+Math.abs(d)],[1+d,e]); else pts.push([1,e]); }
+  else pts.push([1,e]);
+  return pts.map(([x,y]) => [x*R, y*R]);
+}
+function dashes(){              // 0–2 breaks along the line, as a canvas dash pattern over its length
+  const n = rnd() < .35 ? 0 : rnd() < .6 ? 1 : 2, cuts = [];
+  for (let i=0;i<n;i++) cuts.push(range(.2,.8));
+  cuts.sort((x,y)=>x-y); const gap = range(.04,.09), pattern = []; let at = 0;
+  for (const c of cuts) { pattern.push(Math.max(.02, c - at - gap/2), gap); at = c + gap/2; }
+  pattern.push(1 - at + 1, 0); return pattern;          // fractions of the line's length
+}
+function buildRings(){
+  seed = 11; const u = L/720, reach = Math.hypot(W,H)/2;
+  rings = [{k:0, scale:1, w:ARM_W*u, alpha:1, quarter:[0,0,0], arms:Object.values(ARM).map(pts=>({pts, len:1, delay:0, dash:null, wm:1}))}];
+  for (let k=1, sc=range(1.55,1.72); 308*u*sc < reach*ZOOM*1.15; k++, sc*=range(1.26,1.42)) {
+    const R = 308*sc;
+    const tl = hookArm(R), tr = elbowArm(R);
+    const one = () => ({len:range(.6,1), delay:range(0,.3), dash:dashes(), wm:range(.75,1.15)});
+    const A = one(), B = one();
+    const arms = [{pts:tl,...A},{pts:tr,...B},{pts:rot180(tl),...A},{pts:rot180(tr),...B}];
+    // quarter turns at the clicks; the ring starts that many quarters back, so it ends aligned
+    const n = 1 + Math.floor(rnd()*3), dir = rnd() < .5 ? -1 : 1;
+    const quarter = [0,1,2].map(c => c >= 3 - n ? dir : 0);
+    rings.push({k, scale:sc, w:ARM_W*u*range(.5,.62)*Math.pow(sc,.42), alpha:Math.max(.45, .95 - k*.04), quarter, arms});
+  }
+}
+function ringTurn(r, sec){
+  let a = -90*r.quarter.reduce((x,y)=>x+y,0);
+  r.quarter.forEach((q,c) => { const t = clickTimes[c]; if (!q || t == null) return; a += 90*q*outBack(seg(sec - t - r.k*.035, 0, .7)); });
+  return a*Math.PI/180;
+}
+/** Arm length for progress p: every arm is there from the start, each grows on its own schedule. */
+const armLen = (arm, p) => .05 + .95*arm.len*inOutSine(seg(p, arm.delay, Math.min(1, arm.delay + .68)));
+function polyLength(pts){ let l = 0; for (let i=1;i<pts.length;i++) l += Math.hypot(pts[i][0]-pts[i-1][0], pts[i][1]-pts[i-1][1]); return l; }
+function drawSigil(p, sec, cam=1, exact=0){
+  const u = L/720*cam, cx = W/2, cy = H/2;
+  ctx.save(); ctx.setTransform(dpr,0,0,dpr,0,0); ctx.lineCap = 'butt'; ctx.lineJoin = 'miter';
+  for (const r of rings) {
+    if (308*u*r.scale*.6 > Math.hypot(W,H)/2 + r.w) continue;        // off screen
+    const rot = ringTurn(r, sec), m = {x:cx, y:cy, s:u};
+    ctx.globalAlpha = r.alpha*(r.k === 0 ? 1 - exact : 1); ctx.strokeStyle = INK;
+    for (const arm of r.arms) {
+      const f = r.k === 0 ? .05 + .95*inOutSine(p) : armLen(arm, p);
+      const path = new Path2D(); partial(path, arm.pts, f, m, rot);
+      ctx.lineWidth = Math.max(r.w*arm.wm*cam, Math.min(r.w, 3.2));
+      if (arm.dash) { const len = polyLength(arm.pts)*u; ctx.setLineDash(arm.dash.map(v => v*len)); } else ctx.setLineDash([]);
+      ctx.stroke(path);
+    }
+  }
+  ctx.setLineDash([]); ctx.restore();
+  const s = L*cam;
+  if (exact < 1) { ctx.save(); ctx.setTransform(dpr,0,0,dpr,0,0); ctx.globalAlpha = 1 - exact; drawCore(ctx, cx, cy, s, inOutCubic(seg(p,.05,.95))); ctx.restore(); }
+  ctx.save(); ctx.setTransform(dpr,0,0,dpr,0,0); drawExact(ctx, cx, cy, s, exact); ctx.restore();
+}
+
+/* ================= B: pull back, colour from the side ================= */
+const ZOOM = 6;
+const TB = {settle:[0,.3], zoom:[.15,2.4], lines:[1.45,3.0], fill:[2.05,3.6], fade:[3.5,3.9], end:3.9};
+const inOutQuart = t => t<.5 ? 8*t**4 : 1-Math.pow(-2*t+2,4)/2;
+/** A 45° edge (the blades' angle) sweeping from the left: polygon of everything already swept. */
+function sweep(f){
+  const slant = H, x = lerp(-slant - 40, W + 40, f);           // top edge leads, bottom trails
+  const path = new Path2D(); path.moveTo(-10,-10); path.lineTo(x + slant, -10); path.lineTo(x, H + 10); path.lineTo(-10, H + 10); path.closePath();
+  return path;
+}
+function drawB(tb, sec){
+  const z = inOutCubic(seg(tb,...TB.zoom));
+  const cam = Math.pow(1/ZOOM, z);                            // exponential: an even pull-back
+  const exact = seg(tb,...TB.settle)*(1 - seg(tb, .35, .7));
+  // sigil on the main canvas, then copy it into the layer so it can take colour
+  paintDark(); drawSigil(1, sec, cam, exact);
+  const lf = inOutQuart(seg(tb,...TB.lines)), ff = inOutQuart(seg(tb,...TB.fill));
+  if (lf <= 0) return;
+  // ground: the swept part fills with the hero behind its coloured lines
+  if (ff > 0) { ctx.save(); ctx.setTransform(dpr,0,0,dpr,0,0); ctx.clip(sweep(ff)); ctx.setTransform(1,0,0,1,0,0); ctx.drawImage(comp,0,0); ctx.restore(); }
+  ctx.save(); ctx.setTransform(1,0,0,1,0,0); ctx.globalAlpha = 1 - seg(ff,.8,1);
+  ctx.drawImage(lineMask(lf, cam, sec, z, exact),0,0); ctx.restore();
+}
+/** Coloured lines only (a separate pass draws the sigil without its ground, tinted by the hero). */
+const lineCanvas = document.createElement('canvas'), lnctx = lineCanvas.getContext('2d');
+function lineMask(lf, cam, sec, z, exact){
+  if (lineCanvas.width !== canvas.width || lineCanvas.height !== canvas.height) { lineCanvas.width = canvas.width; lineCanvas.height = canvas.height; }
+  lnctx.setTransform(1,0,0,1,0,0); lnctx.clearRect(0,0,lineCanvas.width,lineCanvas.height);
+  ctxSwap(lnctx, () => drawSigil(1, sec, cam, exact));
+  lnctx.save(); lnctx.setTransform(dpr,0,0,dpr,0,0); lnctx.globalCompositeOperation = 'destination-in'; lnctx.fillStyle = '#000'; lnctx.fill(sweep(lf)); lnctx.restore();
+  lnctx.globalCompositeOperation = 'source-atop'; lnctx.setTransform(1,0,0,1,0,0); lnctx.drawImage(comp,0,0); lnctx.globalCompositeOperation = 'source-over';
+  return lineCanvas;
+}
+function ctxSwap(c, fn){ const keep = ctx; ctx = c; try { fn(); } finally { ctx = keep; } }
+
+/* ================= state & input ================= */
+let phase = 'A', target = 0, shown = 0, auto = false, lastInput = 0, tB0 = 0;
+function setLocked(v){ root.classList.toggle('locked', v); }
+function feed(d){ if (phase !== 'A') return; target = clamp(target+d); lastInput = performance.now(); }
+function start(){ phase = 'B'; tB0 = performance.now(); }
+function land(){ phase = 'L'; hero.classList.add('is-open'); canvas.style.display = 'none'; setLocked(false); }
+function reset(){
+  scrollTo(0,0); phase = 'A'; target = shown = 0; auto = false; clickTimes = [];
+  hero.classList.remove('is-open'); canvas.style.display = ''; canvas.style.opacity = '1'; setLocked(true);
+}
+addEventListener('wheel', e => { if (phase==='L') return; e.preventDefault(); feed(e.deltaY*(e.deltaMode===1?18:e.deltaMode===2?innerHeight:1)/900); }, {passive:false});
+let touchY = 0;
+addEventListener('touchstart', e => { touchY = e.touches[0].clientY; }, {passive:true});
+addEventListener('touchmove', e => { if (phase==='L') return; e.preventDefault(); const y=e.touches[0].clientY; feed((touchY-y)/360); touchY=y; }, {passive:false});
+addEventListener('keydown', e => {
+  const k = e.key.toLowerCase();
+  if (k==='r') { reset(); return; } if (k==='s') { target = shown = 1; fireClicks(performance.now()/1000 - 2); start(); return; } if (k==='l') { land(); return; }
+  if (k==='h') { document.getElementById('lab').classList.toggle('hidden'); return; }
+  if (phase !== 'A') return;
+  if (['arrowdown','pagedown',' '].includes(k)) { e.preventDefault(); feed(.2); }
+  else if (['arrowup','pageup'].includes(k)) { e.preventDefault(); feed(-.2); }
+  else if (k==='enter') { e.preventDefault(); auto = true; }
+});
+canvas.addEventListener('click', () => { if (phase==='A') { auto = true; lastInput = performance.now(); } });
+document.getElementById('replay').onclick = reset;
+document.getElementById('skip').onclick = () => { target = shown = 1; fireClicks(performance.now()/1000 - 2); start(); };
+document.getElementById('land').onclick = land;
+document.getElementById('hide').onclick = () => document.getElementById('lab').classList.add('hidden');
+addEventListener('resize', resize);
+function fireClicks(t){ clickTimes = CLICKS.map(() => t); }
+
+/* ================= frame ================= */
+let last = performance.now(), frozen = null;
+function frame(now){
+  if (frozen !== null) { now = frozen; last = now - 16; }
+  const dt = Math.min(.05,(now-last)/1000); last = now; const sec = now/1000;
+  if (phase === 'A') {
+    if (auto) target = Math.min(1, target + dt*.5);
+    else if (target < 1 && now - lastInput > 900) target = Math.max(0, target - dt*.18);
+    shown += (target - shown)*(1 - Math.exp(-dt/.1)); if (target >= 1 && shown > .997) shown = 1;
+    CLICKS.forEach((c,i) => { if (shown >= c && clickTimes[i] == null) clickTimes[i] = sec; if (shown < c - .02) clickTimes[i] = null; });
+    paintDark(); drawSigil(shown, sec);
+    readout.value = `A · ${Math.round(shown*100)}% · ${clickTimes.filter(t=>t!=null).length}/3`;
+    if (shown >= 1 && sec - (clickTimes[2] ?? sec) > .45) start();
+  } else if (phase === 'B') {
+    const tb = (now - tB0)/1000;
+    drawB(tb, sec);
+    canvas.style.opacity = String(1 - seg(tb,...TB.fade));
+    if (tb >= TB.fill[1] - .35) hero.classList.add('is-open');
+    readout.value = `B · ${tb.toFixed(2)}s / ${TB.end}s`;
+    if (tb >= TB.end) land();
+  } else readout.value = '落地';
+  requestAnimationFrame(frame);
+}
+
+/* Snapshot hook for automated checks (lab only). */
+window.__lab = {
+  a(p){ reset(); phase='A'; target=shown=p; frozen=performance.now(); clickTimes = CLICKS.map(c => p>=c ? frozen/1000-5 : null); },
+  b(t){ reset(); phase='B'; frozen=performance.now(); fireClicks(frozen/1000-5); tB0=frozen-t*1000; },
+  run(){ frozen=null; }, TB,
+};
+/* ================= go ================= */
+function boot(){ resize(); reset(); requestAnimationFrame(frame); }
+if (matchMedia('(prefers-reduced-motion: reduce)').matches) { resize(); land(); }
+else if (painting.complete) boot(); else painting.addEventListener('load', boot, {once:true});
+</script>
+</body>
+</html>

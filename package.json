@@ -17,7 +17,7 @@
     "check:sources": "node scripts/validate-content.mjs --sources",
     "test:site": "node scripts/verify-site.mjs",
     "test:piston": "node scripts/verify-piston-impact.mjs",
-    "lab": "node lab/opening/build.mjs"
+    "lab": "node scripts/astro.mjs build && node lab/opening/build.mjs"
   },
   "dependencies": {
     "@fontsource/space-grotesk": "^5.3.0",

@@ -13,7 +13,7 @@ npm run lab
 
 **状态：v12，与正式站点（`src/lib/motion/gate.ts`）一致。** 以后的调整仍然先在这里试，确认后再移植。
 
-首屏的样式在构建时直接从 `src/styles/home.css` 取出，所以原型不会和正式站点走样；首屏文字写在 `template.html` 里。
+首屏不在原型里另写一份：样式在构建时从 `src/styles/home.css` 取出，标记从构建好的首页（`dist/index.html`）取出，所以 `npm run lab` 会先构建站点。原型只负责开幕（暗场、纸窗、落位）；封面标题的笔画动画和首页的整屏切换属于正式站点（`lettering.ts`、`pager.ts`、`home.css`），原型里看到的笔画入场就是站点的那一份。
 
 ## v12 相对 v11 改了什么
 

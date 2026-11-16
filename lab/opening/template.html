@@ -8,7 +8,7 @@
   @font-face {font-family:'Space Grotesk';font-weight:700;font-display:block;src:url(__FONT__) format('woff2');}
   :root {--navy:#083366;--red:#EF3025;--paper:#F3EDE2;--ink:#1D2733;--muted:#615F58;--white:#E9E3D6;
     --color-muted:var(--muted);--font-display:'Space Grotesk','Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;--font-mono:'Cascadia Code',Consolas,ui-monospace,monospace;
-    --gutter:clamp(22px,4.5vw,72px);--max-width:1440px;--ease:cubic-bezier(.16,1,.3,1);}
+    --gutter:clamp(22px,4.5vw,72px);--max-width:1440px;--ease:cubic-bezier(.16,1,.3,1);--dim:var(--muted);--mark:var(--red);}
   * {box-sizing:border-box;}
   html,body {margin:0;background:var(--paper);color:var(--ink);font-family:'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;}
   html.locked,html.locked body {overflow:hidden;}
@@ -42,6 +42,8 @@
   p,h1 {margin:0;}
   a {color:inherit;text-decoration:none;}
   .h-no {font:12px var(--font-mono);letter-spacing:.12em;text-transform:uppercase;}
+  .visually-hidden {position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;}
+  .wordmark {overflow:visible;}
 __HERO_CSS__
   .below {min-height:60vh;display:grid;place-items:center;font:13px ui-monospace,Consolas,monospace;letter-spacing:.14em;color:var(--muted);text-align:center;padding:40px;border-top:1px solid #D6CDBC;}
   @media (prefers-reduced-motion:reduce) {.gate {display:none;}}
@@ -68,24 +70,7 @@ __HERO_CSS__
 </div>
 
 <div class="home" id="hero">
-<section class="hero" aria-labelledby="title">
-  <div class="hero-grid">
-    <h1 id="title" class="hero-title" aria-label="FIELDNOTES"><span class="hero-word hero-word--a" aria-hidden="true">__WORD_A__</span><span class="hero-word hero-word--b" aria-hidden="true">__WORD_B__</span></h1>
-    <div class="hero-imprint" data-h style="--d:.5s">
-      <p class="h-no">Issued by</p>
-      <svg class="wordmark" viewBox="190 1250 1620 384" aria-label="TEISU">__WORDMARK_NAVY__</svg>
-      <p class="hero-lede">这里是 FIELDNOTES，一个关于研究、制作与观察的个人博客。从电路板上的一条走线，到屏幕里的一次交互，记录那些值得多看一眼的细节。</p>
-    </div>
-    <div class="hero-byline" data-h style="--d:.62s">
-      <p class="h-no">Kept by</p>
-      <p class="hero-handle">xjh_jorhai</p>
-    </div>
-    <div class="hero-foot" data-h style="--d:.74s">
-      <p class="hero-line">把想法做成实物，也把过程留在这里。</p>
-      <nav class="hero-index" aria-label="本页内容"><a href="#"><span>(01)</span>Work</a><a href="#"><span>(02)</span>Notes</a><a href="#"><span>(03)</span>About</a></nav>
-    </div>
-  </div>
-</section>
+__HERO__
 </div>
 <section class="below">（原型只包含开幕与首页首屏；以下作品、笔记等部分在正式站点中）</section>
 
@@ -110,7 +95,8 @@ __HERO_CSS__
    · The dark sheet casts a soft shadow on the page along the edge, so the opening has depth.
    · Dust is drawn back while winding up and thrown past the viewer on release, turning with the
      mark; a cobalt light gathers behind it; fully wound it trembles; waiting, it leans to the pointer.
-   · The hero is the typographic cover: FIELD / NOTES rise out of their lines inside the opening.
+   · The hero is the site's own cover (markup and styles are taken from the build): FIELD / NOTES
+     assemble stroke by stroke inside the opening.
    =================================================================================== */
 const $ = id => document.getElementById(id);
 const gate = $('gate'), night = $('night'), markEl = $('mark'), markDay = $('markDay'), hero = $('hero'), readout = $('readout'), root = document.documentElement;

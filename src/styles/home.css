@@ -41,7 +41,7 @@ button.gate-mark {cursor:pointer;touch-action:none;-webkit-tap-highlight-color:t
 .sw:first-of-type {justify-self:start;}
 .sw:last-of-type {justify-self:end;}
 /* One dash, exactly as long as the stroke, at rest at the far end of the path (lead-in + stroke). */
-.sw path {fill:none;stroke:currentColor;stroke-dasharray:calc(var(--len) * 1px) calc((var(--len) + var(--lead)) * 1px + 20px);stroke-dashoffset:calc(var(--lead) * -1px);}
+.sw path {fill:none;stroke:currentColor;stroke-linejoin:miter;stroke-miterlimit:6;stroke-dasharray:calc(var(--len) * 1px) calc((var(--len) + var(--lead)) * 1px + 20px);stroke-dashoffset:calc(var(--lead) * -1px);}
 .stair > * {display:block;margin-left:calc(var(--step) * var(--stair-step,1.5em));}
 .hero-imprint {grid-column:8 / -1;grid-row:1;align-self:start;position:relative;z-index:1;}
 .hero-imprint .wordmark {display:block;width:clamp(104px,11.5vw,176px);height:auto;margin:12px 0 0 -2px;}
@@ -59,7 +59,8 @@ button.gate-mark {cursor:pointer;touch-action:none;-webkit-tap-highlight-color:t
 .hero-line-flat {position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;}
 .hero-col {display:flex;flex-direction:column;align-items:center;gap:.26em;}
 .hero-col i {font-style:normal;line-height:1;}
-.hero-foot {grid-column:1 / -1;grid-row:3;display:flex;justify-content:space-between;align-items:flex-start;gap:24px;margin-top:clamp(18px,3svh,34px);padding-top:16px;border-top:2px solid var(--navy);}
+.hero-foot {grid-column:1 / -1;grid-row:3;position:relative;display:flex;justify-content:space-between;align-items:flex-start;gap:24px;margin-top:clamp(18px,3svh,34px);padding-top:18px;}
+.hero-foot::before {content:'';position:absolute;inset:0 0 auto 0;height:2px;background:var(--navy);transform-origin:0 50%;}
 /* Contents, stepping down to the left: parallel to the navy block in the corner. */
 .hero-index {font:500 15px/1.75 var(--font-display);color:var(--navy);text-align:right;}
 .hero-index a {margin-left:0;margin-right:calc(var(--step) * 3.4em);}
@@ -68,13 +69,20 @@ button.gate-mark {cursor:pointer;touch-action:none;-webkit-tap-highlight-color:t
 /* Hero entrance: hidden only with JS + motion; gate.ts (or no gate) adds .is-open to .home. These are
    animations, not transitions, so they play again each time the cover is shown (see the pager). */
 @keyframes enter-rise {from {opacity:0;translate:0 26px;}}
+@keyframes rule-grow {from {scale:0 1;}}
 @keyframes stroke-in {from {stroke-dashoffset:calc(var(--len) * 1px);}}
 @media (prefers-reduced-motion:no-preference) {
   .js .home:not(.is-open) [data-h] {opacity:0;}
   .js .home.is-open [data-h] {animation:enter-rise 1.1s var(--ease) both;animation-delay:var(--d,0s);}
-  /* Every stroke flies down its lead-in and stops on the letter; NOTES starts a beat after FIELD. */
+  /* The rule draws itself from the left; the motto drops in one character at a time. */
+  .js .home:not(.is-open) .hero-foot::before {scale:0 1;}
+  .js .home.is-open .hero-foot::before {animation:rule-grow 1.2s var(--ease) .8s both;}
+  .js .home:not(.is-open) .hero-col i {opacity:0;}
+  .js .home.is-open .hero-col i {animation:enter-rise .8s var(--ease) both;animation-delay:calc(.85s + var(--c) * 40ms);}
+  /* Every stroke travels down its lead-in (or draws itself in place) and comes to rest; longer
+     strokes take longer; NOTES starts a beat after FIELD. */
   .js .home:not(.is-open) .sw path {stroke-dashoffset:calc(var(--len) * 1px);}
-  .js .home.is-open .sw path {animation:stroke-in 1.05s cubic-bezier(.16,1,.3,1) both;animation-delay:calc(var(--w0,0s) + var(--i) * 46ms);}
+  .js .home.is-open .sw path {animation:stroke-in var(--dur,1s) cubic-bezier(.2,.75,.15,1) both;animation-delay:calc(var(--w0,0s) + var(--i) * 85ms);}
 }
 
 /* Narrow screens: one column — imprint, title, byline, motto, foot. */
@@ -87,7 +95,7 @@ button.gate-mark {cursor:pointer;touch-action:none;-webkit-tap-highlight-color:t
   .hero-byline .h-no {font-size:12px;}
   .hero-handle {font-size:17px;}
   .hero-line {grid-column:1 / -1;grid-row:5;display:block;font-size:15px;letter-spacing:.06em;line-height:1.6;padding-top:8px;}
-  .hero-line-flat {position:static;width:auto;height:auto;clip:auto;white-space:normal;}
+  .hero-line-flat {display:block;position:static;width:auto;height:auto;clip:auto;white-space:normal;}
   .hero-col {display:none;}
   .hero-foot {grid-row:6;}
 }
@@ -104,6 +112,9 @@ button.gate-mark {cursor:pointer;touch-action:none;-webkit-tap-highlight-color:t
 .home > .page:focus {outline:none;}
 .home .h-head {margin-bottom:clamp(20px,3.6svh,48px);padding-bottom:clamp(12px,2svh,22px);}
 .home .h-head h2 {font-size:clamp(40px,min(6.6vw,11.5svh),108px);}
+.home :is(.h-head,.h-about) h2 > span {display:block;}
+.ln {display:block;overflow:hidden;}
+.ln-i {display:block;}
 .home .h-meta > * {margin-left:0;margin-right:calc(var(--step) * 2.2em);}
 /* A line of small type running up the left edge of each page. */
 .page-edge {position:absolute;left:calc(var(--gutter) * .32);bottom:clamp(64px,12svh,130px);z-index:1;writing-mode:vertical-rl;rotate:180deg;font:11px var(--font-mono);letter-spacing:.22em;text-transform:uppercase;white-space:nowrap;color:var(--dim);pointer-events:none;}
@@ -130,12 +141,18 @@ html:is([data-page='notes'],[data-page='about']) .pager {color:var(--chalk);}
 html[data-page='notes'] .pager a[aria-current]::after {background:var(--red-soft);}
 html[data-page='about'] .pager a[aria-current]::after {background:var(--chalk);}
 
-/* The blade: a navy slab with red edges, cut at 45° like the mark, parked off-screen. */
-.wipe {position:fixed;inset:0;z-index:58;overflow:hidden;pointer-events:none;}
-.wipe > span {position:absolute;top:-5%;height:110%;left:50%;width:calc(100vw + 125vh);margin-left:calc((100vw + 125vh) / -2);background:var(--navy);border-inline:clamp(16px,2.4vw,40px) solid var(--red);transform:translateX(-106%) skewX(-45deg);}
+/* The blades: navy bars with red, 45°-cut ends — the mark's own blades — standing side by side and
+   parked below the screen. Going forward they rise from below, one after another, and leave through
+   the top; going back they come down from above. */
+.wipe {--n:6;--tip:calc(100vw / var(--n));--edge:clamp(12px,1.8vw,30px);position:fixed;inset:0;z-index:58;overflow:hidden;pointer-events:none;}
+.wipe > span {position:absolute;top:calc(var(--tip) * -1);left:calc(var(--i) * 100% / var(--n) - .5px);width:calc(100% / var(--n) + 1px);height:calc(100% + var(--tip) * 2);transform:translateY(108%);}
+.wipe > span::before,.wipe > span::after {content:'';position:absolute;inset:0;clip-path:polygon(0 var(--tip),100% 0,100% calc(100% - var(--tip)),0 100%);}
+.wipe > span::before {inset:calc(var(--edge) * -1) 0;background:var(--red);}
+.wipe > span::after {background:var(--navy);}
 
 /* Entrances (paged only). They are animations, so they play again each time a page is shown. */
 @keyframes enter-fade {from {opacity:0;}}
+@keyframes line-up {from {translate:0 112%;}}
 @keyframes enter-right {from {opacity:0;translate:72px 0;}}
 @keyframes enter-cut {from {clip-path:polygon(-2% -8%,-2% -8%,-42% 108%,-42% 108%);translate:-22px 0;} to {clip-path:polygon(-2% -8%,142% -8%,102% 108%,-42% 108%);translate:0 0;}}
 @keyframes enter-cut-still {from {clip-path:polygon(-2% -8%,-2% -8%,-42% 108%,-42% 108%);} to {clip-path:polygon(-2% -8%,142% -8%,102% 108%,-42% 108%);}}
@@ -145,6 +162,8 @@ html[data-page='about'] .pager a[aria-current]::after {background:var(--chalk);}
   html.paged .page [data-enter='right'] {animation-name:enter-right;}
   html.paged .page [data-enter='cut'] {animation-name:enter-cut;animation-duration:1.15s;}
   html.paged .page .page-edge {animation:enter-fade 1.2s var(--ease) .5s backwards;}
+  /* Paragraphs come in line by line, each rising out of its own line box (pager.ts splits them). */
+  html.paged .page [data-lines] .ln-i {animation:line-up .95s var(--ease) backwards;animation-delay:calc(.2s + var(--k,0) * 70ms + var(--l,0) * 90ms);}
   /* Covers and note rows are cut in where they stand: nothing WebGL has measured moves. */
   html.paged .h-work .work-item {animation:enter-cut-still 1.15s var(--ease) .3s backwards;}
   html.paged .h-work .work-item:nth-child(2) {animation-delay:.44s;}
@@ -206,6 +225,8 @@ html.paged .h-outro {padding-bottom:clamp(84px,12svh,120px);}
   .home .h-work .work-gallery.work-gallery--poster .work-item:nth-child(n) {grid-column:1 / -1;max-width:calc(var(--cover) * 1.5);margin:0 0 clamp(14px,2.4svh,28px);justify-self:start;}
   .home .h-work .work-gallery.work-gallery--poster .work-item:nth-child(even) {justify-self:end;}
   .pager a span {display:none;}
+  .wipe {--n:4;}
+  .wipe > span:nth-child(n+5) {display:none;}
   .pager {right:4px;gap:2px;}
   .pager a::after {width:8px;height:3px;}
   .pager a[aria-current]::after {width:14px;}

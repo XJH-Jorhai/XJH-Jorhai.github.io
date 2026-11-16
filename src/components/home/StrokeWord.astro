@@ -1,15 +1,13 @@
 ---
-// 封面标题的一个词：每个字母由几根粗笔画组成，笔画沿各自的引线飞入、落到字上（见 lettering.ts、home.css）。
-// 纯装饰（aria-hidden）；可读文字由所在的标题提供。`delay` 是这个词第一笔的起始延迟（秒）。
+// 封面标题的一个词：由少数几根连续的粗笔画构成（见 lettering.ts）。有引线的笔画像一条带子从词外进来，
+// 没有引线的在原地写出来（动画在 home.css）。纯装饰（aria-hidden）；可读文字由所在的标题提供。
+// `delay` 是这个词第一笔的起始延迟（秒）。
 import { word, CAP, WEIGHT } from '../../lib/lettering';
 interface Props { text: string; id: string; delay?: number }
 const { text, id, delay = 0 } = Astro.props;
 const w = word(text, id);
-let index = 0;
 ---
 <svg class="sw" viewBox={`0 0 ${w.width} ${CAP}`} style={`aspect-ratio:${w.width} / ${CAP};--w0:${delay}s`} aria-hidden="true" focusable="false">
-  {w.letters.map(letter => <g transform={`translate(${letter.x} 0)`}>
-    {letter.clipId && <clipPath id={letter.clipId}><rect x="0" y="0" width={letter.width} height={CAP} /></clipPath>}
-    {letter.strokes.map(stroke => <path d={stroke.d} stroke-width={WEIGHT} clip-path={stroke.clip ? `url(#${stroke.clip})` : undefined} style={`--len:${stroke.len};--lead:${stroke.lead};--i:${index++}`} />)}
-  </g>)}
+  {w.clips.map(clip => <clipPath id={clip.id}><rect x={clip.x} y="0" width={clip.width} height={CAP} /></clipPath>)}
+  {w.strokes.map(stroke => <path d={stroke.d} stroke-width={WEIGHT} clip-path={stroke.clip ? `url(#${stroke.clip})` : undefined} style={`--len:${stroke.len};--lead:${stroke.lead};--i:${stroke.order};--dur:${stroke.duration}s`} />)}
 </svg>

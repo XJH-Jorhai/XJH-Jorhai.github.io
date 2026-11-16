@@ -17,20 +17,20 @@ const pad = (n: number) => String(n).padStart(2, '0');
   <div class="home" data-home>
     <section class="hero page" id="cover" data-page tabindex="-1" aria-labelledby="hero-title">
       <div class="hero-grid">
-        <h1 id="hero-title" class="hero-title"><span class="visually-hidden">FIELDNOTES</span><StrokeWord text="FIELD" id="a" /><StrokeWord text="NOTeS" id="b" delay={.16} /></h1>
-        <div class="hero-imprint" data-h style="--d:.55s">
-          <p class="h-no">Issued by</p>
-          <Wordmark uid="hero" />
-          <p class="hero-lede stair">{journal.lede.map((line, i) => <span style={`--step:${i}`}>{line}</span>)}</p>
+        <h1 id="hero-title" class="hero-title"><span class="visually-hidden">FIELDNOTES</span><StrokeWord text="FIELD" id="a" /><StrokeWord text="NOTES" id="b" delay={.2} /></h1>
+        <div class="hero-imprint">
+          <p class="h-no" data-h style="--d:.5s">Issued by</p>
+          <div data-h style="--d:.58s"><Wordmark uid="hero" /></div>
+          <p class="hero-lede stair">{journal.lede.map((line, i) => <span data-h style={`--step:${i};--d:${(.68 + i * .08).toFixed(2)}s`}>{line}</span>)}</p>
         </div>
         <p class="hero-byline" data-h style="--d:.7s"><span class="h-no">Kept by</span><span class="hero-handle">{journal.author}</span></p>
-        <p class="hero-line" data-h style="--d:.8s"><span class="hero-line-flat">{journal.introduction}</span>{journal.motto.map(column => <span class="hero-col" aria-hidden="true">{[...column].map(char => <i>{char}</i>)}</span>)}</p>
-        <div class="hero-foot" data-h style="--d:.9s">
-          <p class="h-no">研究 · 制作 · 观察</p>
+        <p class="hero-line"><span class="hero-line-flat" data-h style="--d:.8s">{journal.introduction}</span>{journal.motto.map((column, c) => <span class="hero-col" aria-hidden="true">{[...column].map((char, i) => <i style={`--c:${c * 8 + i}`}>{char}</i>)}</span>)}</p>
+        <div class="hero-foot">
+          <p class="h-no" data-h style="--d:.95s">研究 · 制作 · 观察</p>
           <nav class="hero-index stair" aria-label="本页内容">
-            <a href="#work" style="--step:0"><span>(01)</span>Work</a>
-            <a href="#notes" style="--step:1"><span>(02)</span>Notes</a>
-            <a href="#about" style="--step:2"><span>(03)</span>About</a>
+            <a href="#work" data-h style="--step:0;--d:1s"><span>(01)</span>Work</a>
+            <a href="#notes" data-h style="--step:1;--d:1.08s"><span>(02)</span>Notes</a>
+            <a href="#about" data-h style="--step:2;--d:1.16s"><span>(03)</span>About</a>
           </nav>
         </div>
       </div>
@@ -53,7 +53,7 @@ const pad = (n: number) => String(n).padStart(2, '0');
       <div class="page-width">
         <header class="h-head">
           <p class="h-no" data-enter style="--k:0">(02)</p>
-          <h2 id="notes-heading" data-enter="cut" style="--k:1">Notes &amp;<br />Observations</h2>
+          <h2 id="notes-heading"><span data-enter="cut" style="--k:1">Notes &amp;</span><span data-enter="cut" style="--k:2.4">Observations</span></h2>
           <p class="h-meta stair" data-enter style="--k:3"><span style="--step:1">{pad(journalNotes.length)} drafts</span><a href="/notes/" style="--step:0">全部记录 <span aria-hidden="true">↗</span></a></p>
         </header>
         <NoteList limit={3} />
@@ -65,15 +65,15 @@ const pad = (n: number) => String(n).padStart(2, '0');
       <div class="page-width h-about-grid">
         <p class="h-no" data-enter style="--k:0">(03) About</p>
         <div>
-          <h2 id="about-heading" data-enter="cut" style="--k:1">保持好奇，<br />慢慢做。</h2>
-          <p data-enter style="--k:3">{journal.about}</p>
-          <p class="h-about-note" data-enter style="--k:4">这个空间会随着项目一起生长。介绍文字为初稿，笔记目录暂为写作提纲占位，之后逐步换成真实的过程与记录。</p>
+          <h2 id="about-heading"><span data-enter="cut" style="--k:1">保持好奇，</span><span data-enter="cut" style="--k:2.4">慢慢做。</span></h2>
+          <p data-lines style="--k:4">{journal.about}</p>
+          <p class="h-about-note" data-lines style="--k:6">这个空间会随着项目一起生长。介绍文字为初稿，笔记目录暂为写作提纲占位，之后逐步换成真实的过程与记录。</p>
           <dl class="h-colophon">
-            <div data-enter="right" style="--k:5"><dt>Issued by</dt><dd>TEISU<span>假想组织</span></dd></div>
-            <div data-enter="right" style="--k:6"><dt>Kept by</dt><dd>{journal.author}</dd></div>
-            <div class="h-colophon-art" data-enter="right" style="--k:7"><dt>Persona</dt><dd><img src="/media/persona/oil-720.webp" width="720" height="720" loading="lazy" decoding="async" alt="油画风格的人物插画：戴白色渔夫帽、系红色缎带的金色短发少女，背景左侧钴蓝、右侧朱红的厚涂笔触。" /><span>人物设定</span></dd></div>
+            <div data-enter="right" style="--k:8"><dt>Issued by</dt><dd>TEISU<span>假想组织</span></dd></div>
+            <div data-enter="right" style="--k:9"><dt>Kept by</dt><dd>{journal.author}</dd></div>
+            <div class="h-colophon-art" data-enter="right" style="--k:10"><dt>Persona</dt><dd><img src="/media/persona/oil-720.webp" width="720" height="720" loading="lazy" decoding="async" alt="油画风格的人物插画：戴白色渔夫帽、系红色缎带的金色短发少女，背景左侧钴蓝、右侧朱红的厚涂笔触。" /><span>人物设定</span></dd></div>
           </dl>
-          <a class="h-about-link text-link" href="/notes/" data-enter style="--k:8">从一则笔记开始 <span aria-hidden="true">↗</span></a>
+          <a class="h-about-link text-link" href="/notes/" data-enter style="--k:11">从一则笔记开始 <span aria-hidden="true">↗</span></a>
         </div>
       </div>
     </section>
@@ -89,12 +89,12 @@ const pad = (n: number) => String(n).padStart(2, '0');
             <li data-enter="right" style="--k:3;--step:0"><a href="https://github.com/XJH-Jorhai">GitHub <span aria-hidden="true">↗</span></a></li>
           </ul>
         </div>
-        <p class="h-outro-sign h-no" data-enter style="--k:4"><span>Fieldnotes</span><span>Issued by Teisu</span><span>Kept by {journal.author}</span></p>
+        <p class="h-outro-sign h-no"><span data-enter style="--k:4">Fieldnotes</span><span data-enter style="--k:5">Issued by Teisu</span><span data-enter style="--k:6">Kept by {journal.author}</span></p>
         <div class="h-outro-mark" data-enter="cut" style="--k:4"><Wordmark uid="outro" /></div>
       </div>
     </section>
   </div>
-  <!-- Paged home (pager.ts): a tick per page, and the blade that sweeps across when the page changes. -->
+  <!-- Paged home (pager.ts): a tick per page, and the blades that rise across the screen when the page changes. -->
   <nav class="pager" data-pager aria-label="分屏导航" hidden>
     <a href="#cover"><span>Cover</span></a>
     <a href="#work"><span>Work</span></a>
@@ -102,7 +102,7 @@ const pad = (n: number) => String(n).padStart(2, '0');
     <a href="#about"><span>About</span></a>
     <a href="#end"><span>Index</span></a>
   </nav>
-  <div class="wipe" data-wipe aria-hidden="true"><span></span></div>
+  <div class="wipe" data-wipe aria-hidden="true">{[0, 1, 2, 3, 4, 5].map(i => <span style={`--i:${i}`}></span>)}</div>
   <script>
     import { initGate } from '../../lib/motion/gate';
     import { initPager } from '../../lib/motion/pager';

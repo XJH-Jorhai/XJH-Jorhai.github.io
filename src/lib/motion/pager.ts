@@ -1,20 +1,44 @@
 /**
  * Home pager. The home page's sections are full-screen pages: one is shown at a time and a wheel
- * notch, a swipe, an arrow key or an in-page link switches to the next, behind a 45° blade that
- * sweeps across the screen. The page is swapped while the blade covers everything, so nothing on
- * a page ever moves and the WebGL scenes only have to measure again once.
+ * notch, a swipe, an arrow key or an in-page link switches to the next, behind a row of blades
+ * that rise from below (going forward) or come down from above (going back). The page is swapped
+ * while the blades cover everything, so nothing on a page ever moves and the WebGL scenes only
+ * have to measure again once.
  *
  * Without JS or with reduced motion there is no pager: the sections simply follow each other as one
  * long page. A page taller than the screen scrolls inside itself first; the pager takes over at its
  * edges. Entrances are CSS animations, so they play again whenever a page is shown (home.css).
  */
+/**
+ * Wraps each rendered line of the page's `[data-lines]` paragraphs in its own box, so the lines can
+ * enter one after another. Plain text only; the wording is untouched. Runs when the page is shown
+ * (a hidden page has no lines to measure) and again when its width changes.
+ */
+function splitLines(page:HTMLElement){
+  for(const el of page.querySelectorAll<HTMLElement>('[data-lines]')){
+    const width=String(el.clientWidth);if(el.dataset.split===width)continue;
+    const text=el.dataset.text??(el.dataset.text=el.textContent??'');
+    // One probe per character: a longer probe that wraps would report only its first line.
+    el.textContent='';
+    const probes=Array.from(text,char=>{const span=document.createElement('span');span.textContent=char;el.append(span);return span;});
+    const lines:string[]=[];let top=NaN;
+    for(const probe of probes){if(probe.offsetTop!==top){lines.push('');top=probe.offsetTop;}lines[lines.length-1]+=probe.textContent;}
+    el.textContent='';
+    for(const [i,line] of lines.entries()){
+      const box=document.createElement('span'),inner=document.createElement('span');
+      box.className='ln';inner.className='ln-i';inner.style.setProperty('--l',String(i));inner.textContent=line;box.append(inner);el.append(box);
+    }
+    el.dataset.split=width;
+  }
+}
+
 export function initPager(){
   const home=document.querySelector<HTMLElement>('[data-home]');
   if(!home||matchMedia('(prefers-reduced-motion: reduce)').matches)return;
   const pages=Array.from(home.querySelectorAll<HTMLElement>(':scope > [data-page]'));
   if(pages.length<2)return;
   const root=document.documentElement;
-  const blade=document.querySelector<HTMLElement>('[data-wipe] > span');
+  const blades=Array.from(document.querySelectorAll<HTMLElement>('[data-wipe] > span'));
   const nav=document.querySelector<HTMLElement>('[data-pager]');
   const ticks=nav?Array.from(nav.querySelectorAll<HTMLAnchorElement>('a')):[];
   /** '#work' → 1; '' and '#main' → the cover; anything else → -1. */
@@ -27,14 +51,17 @@ export function initPager(){
     current=index;const page=pages[index]!;
     for(const [i,p] of pages.entries())p.classList.toggle('is-current',i===index);
     for(const [i,a] of ticks.entries()){if(i===index)a.setAttribute('aria-current','true');else a.removeAttribute('aria-current');}
-    root.dataset.page=page.id;page.scrollTop=0;
+    root.dataset.page=page.id;page.scrollTop=0;splitLines(page);
     history.replaceState(history.state,'',index===0?location.pathname+location.search:`#${page.id}`);
     remeasure();
   }
   root.classList.add('paged');if(nav)nav.hidden=false;show(current);
+  // Line boxes depend on the width: split again when it changes (our own re-measure events do not change it).
+  addEventListener('resize',()=>splitLines(pages[current]!));
 
-  const sweep=(from:number,to:number,duration:number,easing:string)=>blade?.animate(
-    [{transform:`translateX(${from}%) skewX(-45deg)`},{transform:`translateX(${to}%) skewX(-45deg)`}],{duration,easing,fill:'forwards'}).finished;
+  /** Moves every blade from one resting place to another (percent of its own height), one after another. */
+  const sweep=(from:number,to:number,duration:number,easing:string,leftFirst:boolean)=>Promise.all(blades.map((blade,i)=>blade.animate(
+    [{transform:`translateY(${from}%)`},{transform:`translateY(${to}%)`}],{duration,easing,fill:'both',delay:(leftFirst?i:blades.length-1-i)*22}).finished));
   // A link clicked while the blade is still moving is not lost: it is taken up when the blade is done.
   let queued=-1;
   async function go(index:number,explicit=false){
@@ -43,9 +70,9 @@ export function initPager(){
     if(index===current)return;
     busy=true;const dir=index>current?1:-1;
     try{
-      await sweep(-106*dir,0,380,'cubic-bezier(.5,0,.3,1)'); // the blade covers the screen
+      await sweep(108*dir,0,310,'cubic-bezier(.4,0,.7,1)',dir>0); // the blades cover the screen: from below when going forward
       show(index);pages[index]!.focus({preventScroll:true});
-      await sweep(0,106*dir,520,'cubic-bezier(.45,0,.1,1)'); // and leaves; the new page plays its entrance
+      await sweep(0,-108*dir,440,'cubic-bezier(.3,.3,.15,1)',dir>0); // and carry on out the other side; the new page plays its entrance
     }finally{busy=false;setTimeout(remeasure,900);}
     if(queued>=0){const next=queued;queued=-1;void go(next);}
   }

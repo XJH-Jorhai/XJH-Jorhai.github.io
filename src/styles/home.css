@@ -29,75 +29,195 @@ button.gate-mark {cursor:pointer;touch-action:none;-webkit-tap-highlight-color:t
 .gate.is-settled :is(.gate-night,.gate-shade) {display:none;}
 
 /* ================= Hero: a typographic cover ================= */
-/* FIELD / NOTES set huge and staggered; TEISU is the issuing organisation (small wordmark), the
-   handle is the keeper's byline. The corner blocks left by the gate frame the composition. */
+/* FIELD / NOTES are constructed from strokes (StrokeWord) and set huge and staggered. Around them the
+   small type is set off the usual block: a stepped lede, a byline running up the left edge, the
+   motto in two vertical columns, the contents stepping down to the left. TEISU is the issuing
+   organisation (small wordmark), the handle is the keeper. The gate's corner blocks frame it all. */
 .home {position:relative;z-index:2;}
-.hero {position:relative;min-height:100svh;display:grid;align-content:center;padding:clamp(104px,15svh,168px) var(--gutter) clamp(112px,16svh,176px);max-width:calc(var(--max-width) + var(--gutter) * 2);margin:0 auto;}
-.hero-grid {--S:min(22vw,33svh,317px);display:grid;grid-template-columns:repeat(12,minmax(0,1fr));column-gap:clamp(12px,1.6vw,24px);}
-.hero-title {grid-column:1 / -1;grid-row:1 / 3;display:grid;font:700 var(--S)/.8 var(--font-display);letter-spacing:-.03em;text-transform:uppercase;color:var(--navy);}
-.hero-word {display:block;overflow:hidden;white-space:nowrap;padding:.03em .04em .05em;}
-.hero-word--a {justify-self:start;margin-left:-.09em;}
-.hero-word--b {justify-self:end;margin-right:-.03em;}
-.hl {display:inline-block;}
-.hero-imprint {grid-column:9 / -1;grid-row:1;align-self:start;padding-top:calc(var(--S) * .07);position:relative;z-index:1;}
+.hero {position:relative;min-height:100svh;display:grid;align-content:safe center;padding:clamp(88px,13.5svh,168px) var(--gutter) clamp(96px,14.5svh,176px);max-width:calc(var(--max-width) + var(--gutter) * 2);margin:0 auto;}
+.hero-grid {--cap:min(15vw,22.5svh,216px);display:grid;grid-template-columns:repeat(12,minmax(0,1fr));column-gap:clamp(12px,1.6vw,24px);}
+.hero-title {grid-column:1 / -1;grid-row:1 / 3;display:grid;row-gap:calc(var(--cap) * .2);}
+.sw {display:block;height:var(--cap);width:auto;max-width:100%;overflow:visible;color:var(--navy);}
+.sw:first-of-type {justify-self:start;}
+.sw:last-of-type {justify-self:end;}
+/* One dash, exactly as long as the stroke, at rest at the far end of the path (lead-in + stroke). */
+.sw path {fill:none;stroke:currentColor;stroke-dasharray:calc(var(--len) * 1px) calc((var(--len) + var(--lead)) * 1px + 20px);stroke-dashoffset:calc(var(--lead) * -1px);}
+.stair > * {display:block;margin-left:calc(var(--step) * var(--stair-step,1.5em));}
+.hero-imprint {grid-column:8 / -1;grid-row:1;align-self:start;position:relative;z-index:1;}
 .hero-imprint .wordmark {display:block;width:clamp(104px,11.5vw,176px);height:auto;margin:12px 0 0 -2px;}
-.hero-lede {margin-top:clamp(14px,2.2svh,24px);max-width:27em;font-size:clamp(13px,1vw,15px);line-height:1.9;color:var(--color-muted);}
-.hero-byline {grid-column:1 / 4;grid-row:2;align-self:end;padding-bottom:calc(var(--S) * .07);position:relative;z-index:1;}
-.hero-handle {margin-top:8px;font:500 clamp(17px,1.5vw,22px) var(--font-mono);letter-spacing:.02em;color:var(--navy);}
-.hero :is(.hero-imprint,.hero-byline) .h-no {color:var(--color-muted);}
-.hero-foot {grid-column:1 / -1;grid-row:3;display:flex;justify-content:space-between;align-items:baseline;gap:24px;margin-top:clamp(18px,3svh,36px);padding-top:16px;border-top:2px solid var(--navy);}
-.hero-line {font-size:clamp(15px,1.3vw,20px);letter-spacing:.12em;}
-.hero-index {display:flex;gap:clamp(16px,2.4vw,36px);font:500 15px var(--font-display);color:var(--navy);}
+.hero-lede {margin-top:clamp(10px,1.8svh,22px);font-size:clamp(12px,min(.98vw,1.7svh),15px);line-height:1.8;color:var(--color-muted);white-space:nowrap;}
+/* The byline runs up the left edge, bottom to top, as tall as NOTES. */
+.hero-byline {grid-column:1;grid-row:2;align-self:end;justify-self:start;display:flex;align-items:baseline;gap:calc(var(--cap) * .06);writing-mode:vertical-rl;rotate:180deg;position:relative;z-index:1;}
+/* Byline and motto are sized from the cap height, so they stay exactly as tall as NOTES. */
+.hero-byline .h-no {font-size:max(9px,calc(var(--cap) * .054));}
+.hero-handle {font:500 calc(var(--cap) * .098) var(--font-mono);letter-spacing:.02em;color:var(--navy);}
+.hero :is(.hero-imprint,.hero-byline,.hero-foot) .h-no {color:var(--color-muted);}
+/* The motto in two upright columns, read top to bottom, right to left. Each character is its own
+   box, so the columns do not depend on a font's vertical metrics; the flat sentence is for narrow
+   screens and for assistive technology. */
+.hero-line {grid-column:2 / 5;grid-row:2;align-self:end;justify-self:start;display:flex;flex-direction:row-reverse;gap:1em;font-size:calc(var(--cap) * .088);position:relative;z-index:1;}
+.hero-line-flat {position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;}
+.hero-col {display:flex;flex-direction:column;align-items:center;gap:.26em;}
+.hero-col i {font-style:normal;line-height:1;}
+.hero-foot {grid-column:1 / -1;grid-row:3;display:flex;justify-content:space-between;align-items:flex-start;gap:24px;margin-top:clamp(18px,3svh,34px);padding-top:16px;border-top:2px solid var(--navy);}
+/* Contents, stepping down to the left: parallel to the navy block in the corner. */
+.hero-index {font:500 15px/1.75 var(--font-display);color:var(--navy);text-align:right;}
+.hero-index a {margin-left:0;margin-right:calc(var(--step) * 3.4em);}
 .hero-index span {margin-right:8px;font:12px var(--font-mono);letter-spacing:.08em;color:var(--red);}
 
-/* Hero reveal: hidden only with JS + motion; gate.ts (or no gate) adds .is-open to .home. */
+/* Hero entrance: hidden only with JS + motion; gate.ts (or no gate) adds .is-open to .home. These are
+   animations, not transitions, so they play again each time the cover is shown (see the pager). */
+@keyframes enter-rise {from {opacity:0;translate:0 26px;}}
+@keyframes stroke-in {from {stroke-dashoffset:calc(var(--len) * 1px);}}
 @media (prefers-reduced-motion:no-preference) {
-  .js .home [data-h] {opacity:0;transform:translateY(22px);transition:opacity 1s var(--ease),transform 1.2s var(--ease);transition-delay:var(--d,0s);}
-  .js .home.is-open [data-h] {opacity:1;transform:none;}
-  /* The letters rise out of their line, one after another; NOTES follows FIELD. */
-  .js .home .hl {transform:translateY(112%);transition:transform 1.15s var(--ease);transition-delay:calc(var(--i) * .045s + var(--w,0s));}
-  .js .home .hero-word--b {--w:.14s;}
-  .js .home.is-open .hl {transform:none;}
+  .js .home:not(.is-open) [data-h] {opacity:0;}
+  .js .home.is-open [data-h] {animation:enter-rise 1.1s var(--ease) both;animation-delay:var(--d,0s);}
+  /* Every stroke flies down its lead-in and stops on the letter; NOTES starts a beat after FIELD. */
+  .js .home:not(.is-open) .sw path {stroke-dashoffset:calc(var(--len) * 1px);}
+  .js .home.is-open .sw path {animation:stroke-in 1.05s cubic-bezier(.16,1,.3,1) both;animation-delay:calc(var(--w0,0s) + var(--i) * 46ms);}
 }
 
-/* ================= Sections ================= */
-.h-work {padding-top:clamp(72px,9vw,140px);padding-bottom:clamp(80px,10vw,160px);}
+/* Narrow screens: one column — imprint, title, byline, motto, foot. */
+@media(max-width:900px) {
+  .hero-grid {--cap:min(18.4vw,14svh);}
+  .hero-title {grid-row:2 / 4;}
+  .hero-imprint {grid-column:1 / -1;grid-row:1;padding:0 0 clamp(20px,4svh,40px);}
+  .hero-lede {--stair-step:.9em;white-space:normal;}
+  .hero-byline {grid-column:1 / -1;grid-row:4;writing-mode:horizontal-tb;rotate:none;gap:12px;padding-top:clamp(16px,2.6svh,28px);}
+  .hero-byline .h-no {font-size:12px;}
+  .hero-handle {font-size:17px;}
+  .hero-line {grid-column:1 / -1;grid-row:5;display:block;font-size:15px;letter-spacing:.06em;line-height:1.6;padding-top:8px;}
+  .hero-line-flat {position:static;width:auto;height:auto;clip:auto;white-space:normal;}
+  .hero-col {display:none;}
+  .hero-foot {grid-row:6;}
+}
+@media(max-width:900px) and (max-height:700px) {
+  .hero-lede {display:none;}
+}
 
-/* ================= About: signal red over the painting's vermilion strokes ================= */
-.h-about {background:linear-gradient(rgb(239 48 37 / .78),rgb(239 48 37 / .82)),url('/media/persona/oil-1254.webp') 100% 18% / max(320%,2200px) auto no-repeat,var(--red);padding:clamp(88px,11vw,170px) 0;position:relative;overflow:hidden;}
-.h-about::after {content:'';position:absolute;left:-6%;bottom:-40%;width:34%;height:140%;background:var(--navy);transform:skewX(-45deg);pointer-events:none;}
+/* ================= Pages ================= */
+/* Every section of the home page is one screen. With the pager (pager.ts adds html.paged) one page is
+   shown at a time; without it they simply follow each other as a long page. Sizes that must fit a
+   screen are tied to its height (svh). */
+.home > .page {position:relative;min-height:100svh;display:grid;align-content:safe center;}
+.home > .page:not(.hero) {padding-block:clamp(56px,8.4svh,112px) clamp(48px,7.4svh,100px);}
+.home > .page:focus {outline:none;}
+.home .h-head {margin-bottom:clamp(20px,3.6svh,48px);padding-bottom:clamp(12px,2svh,22px);}
+.home .h-head h2 {font-size:clamp(40px,min(6.6vw,11.5svh),108px);}
+.home .h-meta > * {margin-left:0;margin-right:calc(var(--step) * 2.2em);}
+/* A line of small type running up the left edge of each page. */
+.page-edge {position:absolute;left:calc(var(--gutter) * .32);bottom:clamp(64px,12svh,130px);z-index:1;writing-mode:vertical-rl;rotate:180deg;font:11px var(--font-mono);letter-spacing:.22em;text-transform:uppercase;white-space:nowrap;color:var(--dim);pointer-events:none;}
+.page-edge i {font-style:normal;color:var(--mark);margin-block:.5em;}
+
+html.paged,html.paged body {height:100%;overflow:hidden;overscroll-behavior:none;}
+html.paged .home > .page {position:fixed;inset:0;min-height:0;overflow:hidden auto;}
+html.paged .home > .page:not(.is-current) {display:none;}
+html.paged .site-footer {position:fixed;left:0;right:0;bottom:0;z-index:3;display:none;padding-block:22px;}
+html.paged[data-page='end'] .site-footer {display:flex;}
+html.paged:not([data-page='cover']) .gate.is-settled .gate-day {visibility:hidden;} /* hidden, not removed: nothing to rebuild on the way back */
+
+/* Ticks: one small blade per page at the right edge; the label shows on hover and focus. */
+.pager {position:fixed;right:clamp(8px,1.5vw,24px);top:50%;translate:0 -50%;z-index:40;display:grid;justify-items:end;gap:6px;color:var(--navy);}
+.pager[hidden] {display:none;}
+.pager a {display:flex;align-items:center;gap:10px;padding:5px 0;font:11px var(--font-mono);letter-spacing:.16em;text-transform:uppercase;}
+.pager a:hover {color:inherit;}
+.pager a::after {content:'';width:16px;height:4px;background:currentColor;opacity:.32;transform:skewX(-45deg);transition:width .45s var(--ease),opacity .3s;}
+.pager a span {opacity:0;translate:8px 0;transition:opacity .3s,translate .45s var(--ease);}
+.pager a:is(:hover,:focus-visible) span {opacity:1;translate:0;}
+.pager a:is(:hover,:focus-visible)::after {opacity:.8;}
+.pager a[aria-current]::after {width:30px;opacity:1;background:var(--red);}
+html:is([data-page='notes'],[data-page='about']) .pager {color:var(--chalk);}
+html[data-page='notes'] .pager a[aria-current]::after {background:var(--red-soft);}
+html[data-page='about'] .pager a[aria-current]::after {background:var(--chalk);}
+
+/* The blade: a navy slab with red edges, cut at 45° like the mark, parked off-screen. */
+.wipe {position:fixed;inset:0;z-index:58;overflow:hidden;pointer-events:none;}
+.wipe > span {position:absolute;top:-5%;height:110%;left:50%;width:calc(100vw + 125vh);margin-left:calc((100vw + 125vh) / -2);background:var(--navy);border-inline:clamp(16px,2.4vw,40px) solid var(--red);transform:translateX(-106%) skewX(-45deg);}
+
+/* Entrances (paged only). They are animations, so they play again each time a page is shown. */
+@keyframes enter-fade {from {opacity:0;}}
+@keyframes enter-right {from {opacity:0;translate:72px 0;}}
+@keyframes enter-cut {from {clip-path:polygon(-2% -8%,-2% -8%,-42% 108%,-42% 108%);translate:-22px 0;} to {clip-path:polygon(-2% -8%,142% -8%,102% 108%,-42% 108%);translate:0 0;}}
+@keyframes enter-cut-still {from {clip-path:polygon(-2% -8%,-2% -8%,-42% 108%,-42% 108%);} to {clip-path:polygon(-2% -8%,142% -8%,102% 108%,-42% 108%);}}
+@media (prefers-reduced-motion:no-preference) {
+  html.paged .page [data-enter] {animation:enter-rise .95s var(--ease) backwards;animation-delay:calc(.2s + var(--k,0) * 70ms);}
+  html.paged .page [data-enter='fade'] {animation-name:enter-fade;animation-duration:1.4s;}
+  html.paged .page [data-enter='right'] {animation-name:enter-right;}
+  html.paged .page [data-enter='cut'] {animation-name:enter-cut;animation-duration:1.15s;}
+  html.paged .page .page-edge {animation:enter-fade 1.2s var(--ease) .5s backwards;}
+  /* Covers and note rows are cut in where they stand: nothing WebGL has measured moves. */
+  html.paged .h-work .work-item {animation:enter-cut-still 1.15s var(--ease) .3s backwards;}
+  html.paged .h-work .work-item:nth-child(2) {animation-delay:.44s;}
+  html.paged .h-notes .note-row {animation:enter-right .95s var(--ease) backwards;animation-delay:calc(.34s + var(--row,0) * 90ms);}
+}
+
+/* ================= (01) Work ================= */
+/* The covers are as tall as the screen allows; the second one hangs a little lower. */
+.h-work {--cover:clamp(150px,calc(100svh - 440px),500px);}
+.home .h-work .work-gallery.work-gallery--poster {align-items:start;}
+.home .h-work .work-gallery.work-gallery--poster .work-item:nth-child(odd) {grid-column:1 / 8;max-width:calc(var(--cover) * 1.5);}
+.home .h-work .work-gallery.work-gallery--poster .work-item:nth-child(even) {grid-column:8 / 13;max-width:calc(var(--cover) * 1.16);margin-top:clamp(20px,7svh,84px);justify-self:end;}
+
+/* ================= (02) Notes: night, the rows step to the right ================= */
+/* On a page the slanted slabs are cut out of the page's own box (45° exactly when the page is one
+   screen tall), so they add nothing to what the page can scroll. */
+.home .page.night-band::before {inset:0;width:auto;height:auto;transform:none;clip-path:polygon(calc(36% + 100svh) 0,calc(77% + 100svh) 0,77% 100%,36% 100%);}
+.home .h-notes .note-row {padding-block:clamp(14px,2.6svh,30px) clamp(16px,2.9svh,34px);}
+.home .h-notes .note-row:nth-child(2) {--row:1;margin-left:clamp(0px,5vw,84px);}
+.home .h-notes .note-row:nth-child(3) {--row:2;margin-left:clamp(0px,10vw,168px);}
+
+/* ================= (03) About: signal red over the painting's vermilion strokes ================= */
+.h-about {background:linear-gradient(rgb(239 48 37 / .78),rgb(239 48 37 / .82)),url('/media/persona/oil-1254.webp') 100% 18% / max(320%,2200px) auto no-repeat,var(--red);overflow:hidden;}
+.h-about::after {content:'';position:absolute;inset:0;background:var(--navy);clip-path:polygon(calc(-8% + 100svh) 0,calc(26% + 100svh) 0,26% 100%,-8% 100%);pointer-events:none;}
 .h-about-grid {display:grid;grid-template-columns:minmax(0,4fr) minmax(0,8fr);gap:40px;position:relative;z-index:1;}
-.h-about h2 {font:700 clamp(44px,6.4vw,112px)/1.05 var(--font-display);letter-spacing:-.04em;margin-bottom:clamp(28px,4vw,52px);}
-.h-about p:not(.h-no) {max-width:640px;font-size:17px;line-height:1.95;}
-.h-about p + p {margin-top:16px;}
+.h-about h2 {font:700 clamp(40px,min(6.4vw,11svh),112px)/1.05 var(--font-display);letter-spacing:-.04em;margin-bottom:clamp(18px,3.4svh,48px);}
+.h-about p:not(.h-no) {max-width:640px;font-size:17px;line-height:1.9;}
+.h-about p + p {margin-top:14px;}
 .h-about-note {font-size:14px!important;opacity:.85;}
-.h-about-link {margin-top:32px;}
-/* Colophon: who issues the notes, who keeps them, and the persona painting, small. */
-.h-colophon {display:flex;flex-wrap:wrap;gap:clamp(20px,3vw,48px);margin:clamp(28px,4vw,48px) 0 0;padding-top:20px;border-top:1px solid var(--rule);}
+.h-about-link {margin-top:clamp(18px,3svh,32px);}
+.h-about ::selection {background:#FBF6EC;color:var(--red);}
+/* Colophon: who issues the notes, who keeps them, and the persona painting, small. It steps down to the right. */
+.h-colophon {display:flex;flex-wrap:wrap;align-items:flex-start;gap:clamp(20px,3vw,48px);margin:clamp(18px,3.4svh,44px) 0 0;padding-top:18px;border-top:1px solid var(--rule);}
+.h-colophon > div:nth-child(2) {margin-top:clamp(0px,2.2svh,22px);}
+.h-colophon > div:nth-child(3) {margin-top:clamp(0px,4.4svh,44px);}
 .h-colophon dt {font:12px var(--font-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--dim);}
 .h-colophon dd {margin:8px 0 0;font:500 clamp(17px,1.5vw,22px) var(--font-mono);}
 .h-colophon dd span {display:block;margin-top:6px;font:12px var(--font-sans);letter-spacing:.14em;color:var(--dim);}
-.h-colophon-art img {width:clamp(84px,7vw,112px);aspect-ratio:1;object-fit:cover;border:1px solid var(--rule);}
-.h-about ::selection {background:#FBF6EC;color:var(--red);}
+.h-colophon-art img {width:clamp(72px,min(7vw,11svh),112px);aspect-ratio:1;object-fit:cover;border:1px solid var(--rule);}
 
-/* ================= Outro ================= */
-.h-outro {padding-top:clamp(72px,9vw,140px);overflow:hidden;}
-.h-outro-row {display:flex;align-items:flex-end;justify-content:space-between;gap:clamp(24px,4vw,64px);margin-bottom:clamp(24px,3vw,40px);}
-.h-outro-object .piston-golem {width:clamp(140px,13vw,200px);}
-.h-outro-links {list-style:none;margin:0 0 36px;padding:0;display:flex;gap:clamp(20px,3vw,48px);font:500 clamp(18px,1.8vw,26px) var(--font-display);}
-.h-outro-mark .wordmark {display:block;width:100%;height:auto;}
+/* ================= (04) Index: the golem, the ways out, the issuing mark ================= */
+.h-outro {overflow:hidden;}
+html.paged .h-outro {padding-bottom:clamp(84px,12svh,120px);}
+.h-outro-row {display:flex;align-items:flex-end;justify-content:space-between;gap:clamp(24px,4vw,64px);margin-bottom:clamp(14px,2.4svh,32px);}
+.home .h-outro-object .piston-golem {width:clamp(110px,min(13vw,21svh),200px);}
+.h-outro-links {list-style:none;margin:0 0 20px;padding:0;font:500 clamp(18px,1.8vw,26px)/1.5 var(--font-display);text-align:right;}
+.h-outro-links li {margin-left:0;margin-right:calc(var(--step) * 2.4em);}
+.h-outro-sign {display:flex;flex-wrap:wrap;gap:6px 18px;padding-bottom:12px;color:var(--color-muted);}
+.h-outro-sign span + span::before {content:'/';margin-right:18px;color:var(--red);}
+.h-outro-mark .wordmark {display:block;width:min(100%,calc((100svh - 400px) * 4.2));min-width:min(100%,280px);height:auto;}
 
 /* ================= Responsive ================= */
 @media(max-width:900px) {
   .h-about-grid {grid-template-columns:1fr;}
-  .hero-grid {--S:min(27.5vw,21svh);row-gap:0;}
-  .hero-title {grid-row:2 / 4;}
-  .hero-imprint {grid-column:1 / -1;grid-row:1;padding:0 0 clamp(20px,4svh,40px);}
-  .hero-byline {grid-column:1 / -1;grid-row:4;padding:clamp(18px,3svh,28px) 0 0;}
-  .hero-foot {grid-row:5;flex-direction:column;align-items:flex-start;gap:14px;}
-  .hero-line {letter-spacing:.06em;}
+  .page-edge {display:none;}
+  .home .h-notes .note-row:nth-child(n) {margin-left:0;}
+  .h-work {--cover:clamp(104px,calc((100svh - 470px) / 2),300px);}
+  .home .h-work .work-tags {display:none;}
+  .home .h-work .work-gallery.work-gallery--poster .work-item:nth-child(n) {grid-column:1 / -1;max-width:calc(var(--cover) * 1.5);margin:0 0 clamp(14px,2.4svh,28px);justify-self:start;}
+  .home .h-work .work-gallery.work-gallery--poster .work-item:nth-child(even) {justify-self:end;}
+  .pager a span {display:none;}
+  .pager {right:4px;gap:2px;}
+  .pager a::after {width:8px;height:3px;}
+  .pager a[aria-current]::after {width:14px;}
+  .home .h-notes .note-summary {display:none;}
 }
 @media(max-width:650px) {
-  .h-outro-row {flex-direction:column;align-items:flex-start;}
-  .h-outro-links {flex-wrap:wrap;gap:14px 26px;}
+  .h-outro-row {align-items:flex-end;}
+  .h-outro-links {font-size:17px;}
+  .h-colophon > div:nth-child(n) {margin-top:0;}
+  .h-about p:not(.h-no) {font-size:15px;line-height:1.8;}
+}
+/* Short screens: drop what is said elsewhere before letting a page scroll inside itself. */
+@media(max-height:780px) {
+  .home .h-notes .note-summary {display:none;}
 }

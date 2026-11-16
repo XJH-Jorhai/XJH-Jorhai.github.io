@@ -5,6 +5,7 @@ import NoteList from '../NoteList.astro';
 import PistonGolem from '../PistonGolem.astro';
 import Gate from './Gate.astro';
 import Wordmark from './Wordmark.astro';
+import StrokeWord from './StrokeWord.astro';
 import { journal, journalNotes } from '../../data/journal';
 import { getCollection } from 'astro:content';
 import '../../styles/home.css';
@@ -14,80 +15,98 @@ const pad = (n: number) => String(n).padStart(2, '0');
 <PageShell title="Blog" description={journal.description} sheen home>
   <Gate slot="overlay" />
   <div class="home" data-home>
-    <section class="hero" aria-labelledby="hero-title">
+    <section class="hero page" id="cover" data-page tabindex="-1" aria-labelledby="hero-title">
       <div class="hero-grid">
-        <h1 id="hero-title" class="hero-title" aria-label="FIELDNOTES"><span class="hero-word hero-word--a" aria-hidden="true">{[...'FIELD'].map((c, i) => <span class="hl" style={`--i:${i}`}>{c}</span>)}</span><span class="hero-word hero-word--b" aria-hidden="true">{[...'NOTES'].map((c, i) => <span class="hl" style={`--i:${i}`}>{c}</span>)}</span></h1>
-        <div class="hero-imprint" data-h style="--d:.5s">
+        <h1 id="hero-title" class="hero-title"><span class="visually-hidden">FIELDNOTES</span><StrokeWord text="FIELD" id="a" /><StrokeWord text="NOTeS" id="b" delay={.16} /></h1>
+        <div class="hero-imprint" data-h style="--d:.55s">
           <p class="h-no">Issued by</p>
           <Wordmark uid="hero" />
-          <p class="hero-lede">{journal.description}</p>
+          <p class="hero-lede stair">{journal.lede.map((line, i) => <span style={`--step:${i}`}>{line}</span>)}</p>
         </div>
-        <div class="hero-byline" data-h style="--d:.62s">
-          <p class="h-no">Kept by</p>
-          <p class="hero-handle">{journal.author}</p>
-        </div>
-        <div class="hero-foot" data-h style="--d:.74s">
-          <p class="hero-line">{journal.introduction}</p>
-          <nav class="hero-index" aria-label="本页内容">
-            <a href="#work"><span>(01)</span>Work</a>
-            <a href="#notes"><span>(02)</span>Notes</a>
-            <a href="#about"><span>(03)</span>About</a>
+        <p class="hero-byline" data-h style="--d:.7s"><span class="h-no">Kept by</span><span class="hero-handle">{journal.author}</span></p>
+        <p class="hero-line" data-h style="--d:.8s"><span class="hero-line-flat">{journal.introduction}</span>{journal.motto.map(column => <span class="hero-col" aria-hidden="true">{[...column].map(char => <i>{char}</i>)}</span>)}</p>
+        <div class="hero-foot" data-h style="--d:.9s">
+          <p class="h-no">研究 · 制作 · 观察</p>
+          <nav class="hero-index stair" aria-label="本页内容">
+            <a href="#work" style="--step:0"><span>(01)</span>Work</a>
+            <a href="#notes" style="--step:1"><span>(02)</span>Notes</a>
+            <a href="#about" style="--step:2"><span>(03)</span>About</a>
           </nav>
         </div>
       </div>
     </section>
 
-    <section class="h-work page-width" id="work" aria-labelledby="work-heading">
-      <header class="h-head">
-        <p class="h-no" data-reveal>(01)</p>
-        <h2 id="work-heading" data-reveal="lines"><span class="line"><span>Selected<br />Work</span></span></h2>
-        <p class="h-meta" data-reveal><span>{pad(workCount)} projects</span><a href="/work/">全部作品 <span aria-hidden="true">↗</span></a></p>
-      </header>
-      <WorkGallery variant="poster" />
-    </section>
-
-    <section class="h-notes night-band tone-night" id="notes" aria-labelledby="notes-heading">
+    <section class="h-work page" id="work" data-page tabindex="-1" aria-labelledby="work-heading">
+      <p class="page-edge" aria-hidden="true">(01) Selected work <i>/</i> Fieldnotes <i>/</i> Teisu</p>
       <div class="page-width">
         <header class="h-head">
-          <p class="h-no" data-reveal>(02)</p>
-          <h2 id="notes-heading" data-reveal="lines"><span class="line"><span>Notes &amp;<br />Observations</span></span></h2>
-          <p class="h-meta" data-reveal><span>{pad(journalNotes.length)} drafts</span><a href="/notes/">全部记录 <span aria-hidden="true">↗</span></a></p>
+          <p class="h-no" data-enter style="--k:0">(01)</p>
+          <h2 id="work-heading" data-enter="cut" style="--k:1">Selected Work</h2>
+          <p class="h-meta stair" data-enter style="--k:3"><span style="--step:1">{pad(workCount)} projects</span><a href="/work/" style="--step:0">全部作品 <span aria-hidden="true">↗</span></a></p>
+        </header>
+        <WorkGallery variant="poster" />
+      </div>
+    </section>
+
+    <section class="h-notes night-band tone-night page" id="notes" data-page tabindex="-1" aria-labelledby="notes-heading">
+      <p class="page-edge" aria-hidden="true">(02) Notes &amp; observations <i>/</i> Fieldnotes <i>/</i> Teisu</p>
+      <div class="page-width">
+        <header class="h-head">
+          <p class="h-no" data-enter style="--k:0">(02)</p>
+          <h2 id="notes-heading" data-enter="cut" style="--k:1">Notes &amp;<br />Observations</h2>
+          <p class="h-meta stair" data-enter style="--k:3"><span style="--step:1">{pad(journalNotes.length)} drafts</span><a href="/notes/" style="--step:0">全部记录 <span aria-hidden="true">↗</span></a></p>
         </header>
         <NoteList limit={3} />
       </div>
     </section>
 
-    <section class="h-about tone-red" id="about" aria-labelledby="about-heading">
+    <section class="h-about tone-red page" id="about" data-page tabindex="-1" aria-labelledby="about-heading">
+      <p class="page-edge" aria-hidden="true">(03) About <i>/</i> Fieldnotes <i>/</i> Teisu</p>
       <div class="page-width h-about-grid">
-        <p class="h-no" data-reveal>(03) About</p>
+        <p class="h-no" data-enter style="--k:0">(03) About</p>
         <div>
-          <h2 id="about-heading" data-reveal="lines"><span class="line"><span>保持好奇，</span></span><span class="line"><span>慢慢做。</span></span></h2>
-          <p data-reveal>{journal.about}</p>
-          <p class="h-about-note" data-reveal>这个空间会随着项目一起生长。介绍文字为初稿，笔记目录暂为写作提纲占位，之后逐步换成真实的过程与记录。</p>
-          <dl class="h-colophon" data-reveal>
-            <div><dt>Issued by</dt><dd>TEISU<span>假想组织</span></dd></div>
-            <div><dt>Kept by</dt><dd>{journal.author}</dd></div>
-            <div class="h-colophon-art"><dt>Persona</dt><dd><img src="/media/persona/oil-720.webp" width="720" height="720" loading="lazy" decoding="async" alt="油画风格的人物插画：戴白色渔夫帽、系红色缎带的金色短发少女，背景左侧钴蓝、右侧朱红的厚涂笔触。" /><span>人物设定</span></dd></div>
+          <h2 id="about-heading" data-enter="cut" style="--k:1">保持好奇，<br />慢慢做。</h2>
+          <p data-enter style="--k:3">{journal.about}</p>
+          <p class="h-about-note" data-enter style="--k:4">这个空间会随着项目一起生长。介绍文字为初稿，笔记目录暂为写作提纲占位，之后逐步换成真实的过程与记录。</p>
+          <dl class="h-colophon">
+            <div data-enter="right" style="--k:5"><dt>Issued by</dt><dd>TEISU<span>假想组织</span></dd></div>
+            <div data-enter="right" style="--k:6"><dt>Kept by</dt><dd>{journal.author}</dd></div>
+            <div class="h-colophon-art" data-enter="right" style="--k:7"><dt>Persona</dt><dd><img src="/media/persona/oil-720.webp" width="720" height="720" loading="lazy" decoding="async" alt="油画风格的人物插画：戴白色渔夫帽、系红色缎带的金色短发少女，背景左侧钴蓝、右侧朱红的厚涂笔触。" /><span>人物设定</span></dd></div>
           </dl>
-          <a class="h-about-link text-link" href="/notes/" data-reveal>从一则笔记开始 <span aria-hidden="true">↗</span></a>
+          <a class="h-about-link text-link" href="/notes/" data-enter style="--k:8">从一则笔记开始 <span aria-hidden="true">↗</span></a>
         </div>
       </div>
     </section>
 
-    <section class="h-outro page-width" aria-label="站点导航">
-      <div class="h-outro-row">
-        <div class="h-outro-object" data-reveal="fade"><PistonGolem /></div>
-        <ul class="h-outro-links" data-reveal>
-          <li><a href="/work/">Work <span aria-hidden="true">↗</span></a></li>
-          <li><a href="/notes/">Notes <span aria-hidden="true">↗</span></a></li>
-          <li><a href="https://github.com/XJH-Jorhai">GitHub <span aria-hidden="true">↗</span></a></li>
-        </ul>
+    <section class="h-outro page" id="end" data-page tabindex="-1" aria-label="站点导航">
+      <p class="page-edge" aria-hidden="true">(04) Index <i>/</i> Fieldnotes <i>/</i> Teisu</p>
+      <div class="page-width">
+        <div class="h-outro-row">
+          <div class="h-outro-object" data-enter="fade" style="--k:1"><PistonGolem /></div>
+          <ul class="h-outro-links stair">
+            <li data-enter="right" style="--k:1;--step:2"><a href="/work/">Work <span aria-hidden="true">↗</span></a></li>
+            <li data-enter="right" style="--k:2;--step:1"><a href="/notes/">Notes <span aria-hidden="true">↗</span></a></li>
+            <li data-enter="right" style="--k:3;--step:0"><a href="https://github.com/XJH-Jorhai">GitHub <span aria-hidden="true">↗</span></a></li>
+          </ul>
+        </div>
+        <p class="h-outro-sign h-no" data-enter style="--k:4"><span>Fieldnotes</span><span>Issued by Teisu</span><span>Kept by {journal.author}</span></p>
+        <div class="h-outro-mark" data-enter="cut" style="--k:4"><Wordmark uid="outro" /></div>
       </div>
-      <div class="h-outro-mark" data-reveal="fade"><Wordmark uid="outro" /></div>
     </section>
   </div>
+  <!-- Paged home (pager.ts): a tick per page, and the blade that sweeps across when the page changes. -->
+  <nav class="pager" data-pager aria-label="分屏导航" hidden>
+    <a href="#cover"><span>Cover</span></a>
+    <a href="#work"><span>Work</span></a>
+    <a href="#notes"><span>Notes</span></a>
+    <a href="#about"><span>About</span></a>
+    <a href="#end"><span>Index</span></a>
+  </nav>
+  <div class="wipe" data-wipe aria-hidden="true"><span></span></div>
   <script>
     import { initGate } from '../../lib/motion/gate';
+    import { initPager } from '../../lib/motion/pager';
+    initPager();
     initGate();
   </script>
 </PageShell>

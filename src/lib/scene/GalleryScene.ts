@@ -48,7 +48,12 @@ export async function createGallery(elements:HTMLElement[],pointer:SharedPointer
  let dead=false,lost=false,frames=0;
  function resize(){
   renderer.setPixelRatio(Math.min(devicePixelRatio,config.dpr));renderer.setSize(innerWidth,innerHeight);
-  for(const c of covers){c.bounds=c.element.getBoundingClientRect();const w=Math.max(1,Math.round(c.bounds.width*renderer.getPixelRatio())),h=Math.max(1,Math.round(c.bounds.height*renderer.getPixelRatio()));if(w!==c.width||h!==c.height){c.pipeline.resize(w,h);c.width=w;c.height=h;}}
+  for(const c of covers){
+   c.bounds=c.element.getBoundingClientRect();
+   // A cover on a page that is not shown has no box; keep its render targets for when it comes back.
+   if(c.bounds.width<1||c.bounds.height<1)continue;
+   const w=Math.max(1,Math.round(c.bounds.width*renderer.getPixelRatio())),h=Math.max(1,Math.round(c.bounds.height*renderer.getPixelRatio()));if(w!==c.width||h!==c.height){c.pipeline.resize(w,h);c.width=w;c.height=h;}
+  }
   if(flow&&(viewportWidth!==innerWidth||viewportHeight!==innerHeight)){flow.resize(innerWidth,innerHeight);flow.clear();initialized=false;viewportWidth=innerWidth;viewportHeight=innerHeight;}
   for(const c of covers)c.renderedX=NaN;
   piston?.resize();

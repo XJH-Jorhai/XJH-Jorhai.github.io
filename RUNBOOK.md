@@ -16,7 +16,7 @@ npm run build       # 静态输出到 dist/
 npm run preview     # 预览 dist/，http://127.0.0.1:4321
 npm run test:site   # 浏览器路径测试（需 npx playwright install chromium）
 npm run test:piston # 首页铁傀儡动画测试（需先运行 preview）
-npm run lab         # 生成开幕原型 lab/opening/teisu-opening.html（双击打开）
+npm run lab         # 构建站点并生成开幕原型 lab/opening/teisu-opening.html（双击打开）
 ```
 
 浏览器测试默认使用 Playwright 自带的 Chromium；要指定其他浏览器，设置环境变量 `BROWSER_EXECUTABLE`。

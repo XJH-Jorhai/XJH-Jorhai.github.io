@@ -15,16 +15,25 @@ const pad = (n: number) => String(n).padStart(2, '0');
   <Gate slot="overlay" />
   <div class="home" data-home>
     <section class="hero" aria-labelledby="hero-title">
-      <figure class="hero-art" data-h style="--d:.05s">
-        <div class="hero-art-frame">
-          <img src="/media/persona/oil-1254.webp" srcset="/media/persona/oil-720.webp 720w, /media/persona/oil-1254.webp 1254w" sizes="(max-width:900px) 72vw, min(64vh, 560px)" width="1254" height="1254" alt="油画风格的人物插画：戴白色渔夫帽、系红色缎带的金色短发少女，背景左侧钴蓝、右侧朱红的厚涂笔触。" fetchpriority="high" decoding="async" />
+      <div class="hero-grid">
+        <h1 id="hero-title" class="hero-title" aria-label="FIELDNOTES"><span class="hero-word hero-word--a" aria-hidden="true">{[...'FIELD'].map((c, i) => <span class="hl" style={`--i:${i}`}>{c}</span>)}</span><span class="hero-word hero-word--b" aria-hidden="true">{[...'NOTES'].map((c, i) => <span class="hl" style={`--i:${i}`}>{c}</span>)}</span></h1>
+        <div class="hero-imprint" data-h style="--d:.5s">
+          <p class="h-no">Issued by</p>
+          <Wordmark uid="hero" />
+          <p class="hero-lede">{journal.description}</p>
         </div>
-        <figcaption><span>人物设定</span><span>TEISU</span></figcaption>
-      </figure>
-      <div class="hero-copy">
-        <h1 id="hero-title" class="hero-title"><span class="visually-hidden">TEISU · FIELDNOTES 个人博客</span><Wordmark animated /></h1>
-        <p class="hero-line" data-h style="--d:.7s">{journal.introduction}</p>
-        <p class="hero-side" data-h style="--d:.82s"><span>FIELDNOTES</span><span>研究 · 制作 · 观察</span></p>
+        <div class="hero-byline" data-h style="--d:.62s">
+          <p class="h-no">Kept by</p>
+          <p class="hero-handle">{journal.author}</p>
+        </div>
+        <div class="hero-foot" data-h style="--d:.74s">
+          <p class="hero-line">{journal.introduction}</p>
+          <nav class="hero-index" aria-label="本页内容">
+            <a href="#work"><span>(01)</span>Work</a>
+            <a href="#notes"><span>(02)</span>Notes</a>
+            <a href="#about"><span>(03)</span>About</a>
+          </nav>
+        </div>
       </div>
     </section>
 
@@ -55,6 +64,11 @@ const pad = (n: number) => String(n).padStart(2, '0');
           <h2 id="about-heading" data-reveal="lines"><span class="line"><span>保持好奇，</span></span><span class="line"><span>慢慢做。</span></span></h2>
           <p data-reveal>{journal.about}</p>
           <p class="h-about-note" data-reveal>这个空间会随着项目一起生长。介绍文字为初稿，笔记目录暂为写作提纲占位，之后逐步换成真实的过程与记录。</p>
+          <dl class="h-colophon" data-reveal>
+            <div><dt>Issued by</dt><dd>TEISU<span>假想组织</span></dd></div>
+            <div><dt>Kept by</dt><dd>{journal.author}</dd></div>
+            <div class="h-colophon-art"><dt>Persona</dt><dd><img src="/media/persona/oil-720.webp" width="720" height="720" loading="lazy" decoding="async" alt="油画风格的人物插画：戴白色渔夫帽、系红色缎带的金色短发少女，背景左侧钴蓝、右侧朱红的厚涂笔触。" /><span>人物设定</span></dd></div>
+          </dl>
           <a class="h-about-link text-link" href="/notes/" data-reveal>从一则笔记开始 <span aria-hidden="true">↗</span></a>
         </div>
       </div>
@@ -69,7 +83,7 @@ const pad = (n: number) => String(n).padStart(2, '0');
           <li><a href="https://github.com/XJH-Jorhai">GitHub <span aria-hidden="true">↗</span></a></li>
         </ul>
       </div>
-      <div class="h-outro-mark" data-reveal="fade"><Wordmark /></div>
+      <div class="h-outro-mark" data-reveal="fade"><Wordmark uid="outro" /></div>
     </section>
   </div>
   <script>

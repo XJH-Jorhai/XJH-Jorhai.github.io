@@ -1,4 +1,6 @@
 export const journal = {
+  // The blog is issued under TEISU (a fictional organisation) and kept by this handle.
+  author: 'xjh_jorhai',
   introduction: '把想法做成实物，也把过程留在这里。',
   description: '这里是 FIELDNOTES，一个关于研究、制作与观察的个人博客。从电路板上的一条走线，到屏幕里的一次交互，记录那些值得多看一眼的细节。',
   about: '我喜欢在硬件、代码与视觉之间来回探索：把抽象的问题拆开，做一个小小的原型，再慢慢理解它。这里既收纳作品，也留给尚未成形的想法。',

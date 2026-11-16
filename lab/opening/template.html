@@ -1,0 +1,339 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>TEISU · 开幕原型 v11（本地）</title>
+<style>
+  :root {--navy:#083366;--red:#EF3025;--paper:#F3EDE2;--ink:#1D2733;--muted:#615F58;--white:#E9E3D6;}
+  * {box-sizing:border-box;}
+  html,body {margin:0;background:var(--paper);color:var(--ink);font-family:'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;}
+  html.locked,html.locked body {overflow:hidden;}
+
+  /* ================= Gate ================= */
+  /* Two layers carry the same mark. `night` is the dark stage with paper-white pieces; `day` lies
+     under it with navy pieces on nothing (the page shows through). Opening cuts a square window in
+     `night`, so whatever the window's edge has passed is already the page: paper, navy, the hero. */
+  .gate {position:fixed;inset:0;z-index:10;overflow:hidden;}
+  .gate.is-settled {position:absolute;inset:0 0 auto 0;height:100vh;z-index:1;pointer-events:none;}
+  .layer {position:absolute;inset:0;display:grid;place-items:center;overflow:hidden;}
+  .night {--glow:.2;background:radial-gradient(ellipse 60% 55% at 50% 50%,#121c31 0%,#080d18 48%,#030408 100%);}
+  .night::before {content:'';position:absolute;inset:0;background:radial-gradient(circle at 50% 50%,rgb(52 104 214 / calc(var(--glow) * .42)) 0,transparent calc(12% + var(--glow) * 10%));}
+  .day {visibility:hidden;}
+  .gate.is-opening .day,.gate.is-settled .day {visibility:visible;}
+  .gate.is-settled .night {display:none;}
+  .dust {position:absolute;inset:0;width:100%;height:100%;pointer-events:none;}
+  .space {position:relative;perspective:1100px;}
+  .mark {position:relative;display:block;width:clamp(116px,11vw,176px);aspect-ratio:1;padding:0;border:0;background:none;cursor:pointer;transform-style:preserve-3d;touch-action:none;}
+  .mark:focus {outline:none;}
+  .piece {position:absolute;inset:0;width:100%;height:100%;overflow:visible;transform-origin:50% 50%;}
+  .piece.is-red path {fill:#EF3025;}
+  .night .piece.is-ink path,.day .veil path {fill:var(--white);}
+  .day .piece.is-ink path {fill:var(--navy);}
+  .gate:not(.is-opening) .night .piece.is-red {filter:drop-shadow(0 0 14px rgb(239 48 37 / .5));}
+  .gate:not(.is-opening) .night .piece.is-ink {filter:drop-shadow(0 0 20px rgb(233 227 214 / .16));}
+
+  /* ================= Hero: paper, framed painting, wordmark ================= */
+  .hero {position:relative;height:100vh;min-height:560px;display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);align-items:center;column-gap:clamp(32px,6vw,110px);padding:0 clamp(48px,9vw,160px);max-width:1500px;margin:0 auto;}
+  .art {margin:0;justify-self:end;width:min(100%,64vh,560px);position:relative;z-index:2;}
+  .art-frame {aspect-ratio:1;overflow:hidden;border:1px solid rgb(29 39 51 / .55);background:#E4D9C4;}
+  .art img {display:block;width:100%;height:100%;object-fit:cover;}
+  .art figcaption {display:flex;justify-content:space-between;margin-top:10px;font-size:11px;letter-spacing:.24em;}
+  .copy {position:relative;z-index:2;}
+  .word {margin:0;width:clamp(260px,30vw,480px);}
+  .word svg {display:block;width:100%;height:auto;overflow:visible;}
+  .line {margin:clamp(16px,2.4vh,26px) 0 0;font-size:clamp(16px,1.35vw,21px);letter-spacing:.14em;}
+  .side {margin:clamp(22px,3.4vh,36px) 0 0;display:flex;gap:18px;font:12px ui-monospace,Consolas,monospace;letter-spacing:.2em;color:var(--muted);}
+  .side span + span::before {content:'/';margin-right:18px;color:var(--red);}
+  /* Reveal (JS + motion only) */
+  .js .hero [data-in] {opacity:0;transform:translateY(22px);transition:opacity 1s cubic-bezier(.16,1,.3,1),transform 1.2s cubic-bezier(.16,1,.3,1);transition-delay:var(--d,0s);}
+  .js .hero .art[data-in] {transform:none;clip-path:inset(12% 12% 12% 12%);transition:opacity 1.1s cubic-bezier(.16,1,.3,1),clip-path 1.5s cubic-bezier(.16,1,.3,1);transition-delay:var(--d,0s);}
+  .js .hero .art img {transform:scale(1.12);transition:transform 2.2s cubic-bezier(.16,1,.3,1);}
+  .js .hero.is-open [data-in] {opacity:1;transform:none;clip-path:inset(0);}
+  .js .hero.is-open .art img {transform:none;}
+  .js .word .l {transform-box:fill-box;transition:transform 1.1s cubic-bezier(.16,1,.3,1);}
+  .js .word :is(.l-T,.l-I,.l-S,.l-U) {transform:translateY(110%);}
+  .js .word .l-E {transform-origin:0 50%;transform:scaleX(0);transition-duration:.9s;}
+  .js .word .l-T {transition-delay:.2s;} .js .word .l-E1 {transition-delay:.28s;} .js .word .l-E3 {transition-delay:.35s;} .js .word .l-I {transition-delay:.36s;} .js .word .l-S {transition-delay:.44s;} .js .word .l-U {transition-delay:.52s;} .js .word .l-E2 {transition-delay:.66s;}
+  .js .hero.is-open .word .l {transform:none;}
+  @media (max-width:900px) {
+    .hero {grid-template-columns:1fr;align-content:center;row-gap:28px;padding:40px 28px;height:auto;min-height:100vh;}
+    .art {justify-self:start;width:min(72vw,360px);}
+    .word {width:min(80vw,380px);}
+    .line {letter-spacing:.06em;}
+  }
+  .below {min-height:60vh;display:grid;place-items:center;font:13px ui-monospace,Consolas,monospace;letter-spacing:.14em;color:var(--muted);text-align:center;padding:40px;border-top:1px solid #D6CDBC;}
+  @media (prefers-reduced-motion:reduce) {.gate {display:none;}}
+
+  /* ================= Lab controls (prototype only) ================= */
+  .lab {position:fixed;left:12px;bottom:12px;z-index:20;display:flex;align-items:center;gap:6px;padding:6px;border-radius:8px;background:rgb(20 24 34 / .82);color:#E9E3D6;font:12px/1 system-ui,sans-serif;backdrop-filter:blur(8px);}
+  .lab button {font:inherit;color:inherit;background:rgb(255 255 255 / .08);border:1px solid rgb(255 255 255 / .16);border-radius:6px;padding:7px 10px;cursor:pointer;}
+  .lab button:hover {background:rgb(255 255 255 / .16);}
+  .lab output {min-width:130px;padding:0 8px;font-family:ui-monospace,Consolas,monospace;opacity:.8;}
+  .lab.hidden {opacity:0;pointer-events:none;}
+</style>
+<script>document.documentElement.classList.add('js')</script>
+</head>
+<body>
+<div class="gate" id="gate">
+  <div class="layer day" aria-hidden="true">
+    <div class="space"><div class="mark" id="markDay">__PIECES_DAY__</div></div>
+  </div>
+  <div class="layer night" id="night">
+    <canvas class="dust" id="dust" aria-hidden="true"></canvas>
+    <div class="space"><button class="mark" id="mark" type="button" aria-label="进入 TEISU 的博客（按住后松开，或滚动）">__PIECES__</button></div>
+  </div>
+</div>
+
+<section class="hero" id="hero" aria-labelledby="title">
+  <figure class="art" data-in style="--d:.05s">
+    <div class="art-frame"><img src="__PAINTING__" width="1254" height="1254" alt="油画风格的人物插画：戴白色渔夫帽的金色短发少女" /></div>
+    <figcaption><span>人物设定</span><span>TEISU</span></figcaption>
+  </figure>
+  <div class="copy">
+    <h1 class="word" id="title"><svg viewBox="190 1250 1620 384" aria-label="TEISU">__WORDMARK_NAVY__</svg></h1>
+    <p class="line" data-in style="--d:.7s">把想法做成实物，也把过程留在这里。</p>
+    <p class="side" data-in style="--d:.82s"><span>FIELDNOTES</span><span>研究 · 制作 · 观察</span></p>
+  </div>
+</section>
+<section class="below">（原型只包含开幕与首页首屏；以下作品、笔记等部分在正式站点中）</section>
+
+<div class="lab" id="lab">
+  <button type="button" id="replay" title="R">↺ 重播</button>
+  <button type="button" id="skip" title="S">⇥ 直接开幕</button>
+  <button type="button" id="slow" title="D">½ 慢放</button>
+  <output id="readout">—</output>
+  <button type="button" id="hide" title="H">隐藏</button>
+</div>
+
+<script>
+/* ===================================================================================
+   TEISU opening — prototype v11. Same three beats as v10, same landing; what changed:
+   · The dark is cut open, not faded. The mark's centre square is the page's paper: on release it
+     becomes a window that turns and grows with the mark until it has swallowed the screen. Pieces
+     are paper-white on the dark side of its edge and navy on the paper side, so the colour change
+     is the edge passing over them — late, as they land.
+   · The dust obeys the mark: it is drawn back into the depth while you wind up, and thrown past
+     the viewer, turning with the mark, when you let go.
+   · A cobalt light gathers behind the mark as it winds up; fully wound, the mark trembles.
+   · While it waits, the mark leans towards the pointer as one rigid plane (its shape is unchanged).
+   · The hero starts a touch closer and settles back as the window opens over it.
+   =================================================================================== */
+const $ = id => document.getElementById(id);
+const gate = $('gate'), night = $('night'), markEl = $('mark'), markDay = $('markDay'), hero = $('hero'), readout = $('readout'), root = document.documentElement;
+const KEYS = ['tl','br','tr','bl','ru','rl','c'];
+const layer = el => new Map([...el.querySelectorAll('[data-piece]')].map(p => [p.dataset.piece, p]));
+const piecesNight = layer(markEl), piecesDay = layer(markDay);
+const dir = {tl:[-1,-1],br:[1,1],tr:[1,-1],bl:[-1,1],ru:[1,1],rl:[-1,-1],c:[0,0]};
+
+const clamp = v => Math.min(1, Math.max(0, v));
+const seg = (t,a,b) => clamp((t-a)/(b-a));
+const lerp = (a,b,t) => a + (b-a)*t;
+const outExpo = t => t>=1 ? 1 : 1-Math.pow(2,-10*t);
+const outCubic = t => 1-Math.pow(1-t,3);
+const inOutCubic = t => t<.5 ? 4*t*t*t : 1-Math.pow(-2*t+2,3)/2;
+const outBack = t => {const c=1.4; return 1+(c+1)*Math.pow(t-1,3)+c*Math.pow(t-1,2);};
+const pose = () => Object.fromEntries(KEYS.map(k => [k,{x:0,y:0,s:1,o:1}]));
+const frameOf = (p, mark) => ({p, mark:{scale:1, z:0, rot:0, tx:0, ty:0, ...mark}, win:0, veil:0, glow:.2, dust:1, vz:.03, dolly:1});
+
+/* ---------- 1 bloom ---------- */
+const BLOOM = {c:.2, tl:.45, br:.45, tr:.62, bl:.62, ru:.85, rl:.85};
+function intro(t){
+  const p = pose();
+  for (const k of KEYS) { const a = BLOOM[k], e = k==='c' ? outBack(seg(t,a,a+.9)) : outExpo(seg(t,a,a+1.4)); p[k].s = e; p[k].o = clamp(seg(t,a,a+.35)); }
+  const d = outCubic(seg(t,0,2.4)), f = frameOf(p, {scale:lerp(.88,1,d), z:lerp(-360,0,d), tx:tilt.x*d, ty:tilt.y*d});
+  // The stage wakes up: the dust rushes out of the depth, then calms; the light comes up with the key.
+  f.dust = clamp(t/.9); f.vz = .03 + .5*Math.exp(-t/.55); f.glow = .2*outCubic(seg(t,.2,1.6));
+  return f;
+}
+const INTRO_END = 2.4;
+/** Waiting: a slow breath; the mark leans towards the pointer; hovering unlatches the blades a little. */
+function idle(time, peek){
+  const f = intro(INTRO_END);
+  for (const k of ['ru','rl']) { f.p[k].x = dir[k][0]*.05*peek; f.p[k].y = dir[k][1]*.05*peek; }
+  f.mark.scale = 1 + .025*Math.sin(time*1.1); f.glow = .2 + .05*Math.sin(time*1.1); f.vz = .03; return f;
+}
+/* ---------- 2 wind-up ---------- */
+const WIND = 28, MIN_WIND = .6;   // a quick tap still gets a visible wind-up before it lets go
+function charge(time, peek, w){
+  const f = idle(time, peek), e = outCubic(w), flat = 1 - inOutCubic(clamp(w/MIN_WIND));
+  f.mark.scale *= 1 - .14*e; f.mark.rot = -WIND*e;
+  // Fully wound, it trembles a little; it is flat (no lean) before it can let go.
+  f.mark.rot += seg(w,.9,1)*(.45*Math.sin(time*61) + .25*Math.sin(time*97));
+  f.mark.tx *= flat; f.mark.ty *= flat;
+  for (const k of ['ru','rl']) { f.p[k].x -= dir[k][0]*.03*e; f.p[k].y -= dir[k][1]*.03*e; }
+  f.p.c.s = 1 - .12*e;
+  f.glow = lerp(f.glow, 1, e); f.vz = lerp(.03, -.26, e);   // light gathers, dust is drawn back in
+  return f;
+}
+
+/* ---------- 3 opening → corner blocks ---------- */
+// Final pose in mark units. The mark is centrally symmetric, so a 180° turn lands the same frame:
+// navy blocks top-left / bottom-right, blade tips top-right / bottom-left.
+const FINAL = {outer:1.5, keep:-.025, leave:.75, blade:-.11};
+const FINAL_NARROW = {outer:1.7, keep:-.04, blade:-.1};
+const final = () => innerWidth/innerHeight < .8 ? {...FINAL, ...FINAL_NARROW} : FINAL;
+const zoomTo = () => final().outer*(innerWidth+innerHeight)/2/241*720/Math.max(markEl.offsetWidth,1);
+// Springs: under-damped, they overshoot and come back. f(1) ≈ 1 (residue < 0.3 %).
+const spring = (t, k=6, w=9.5) => t >= 1 ? 1 : 1 - Math.exp(-k*t)*Math.cos(w*t);
+const SPRING = {spin:[7,7.4], settle:[6.8,8.6], pop:[7.5,12]};    // [damping, frequency] — lower damping = bouncier
+// win: the window grows from the key square to past the screen's corners; veil: the key's white
+// thins to the page's paper; home: the hero starts to rise; dolly: the hero settles back.
+const T = {spin:[0,1.75], zoom:[.05,.82], settle:[.4,1.75], win:[.3,1.4], veil:[.04,.3], dolly:[.1,1.6], home:.34, end:1.8};
+const SPIN = 180;   // must stay a multiple of 180
+const KEY_HALF = 50.5/720;   // the centre square's half side, in mark widths
+const DOLLY = 1.05;
+function opening(t, from){
+  const f = final(), p = pose(), s = spring(seg(t,...T.settle), ...SPRING.settle);
+  for (const k of ['tl','br','tr','bl']) { const d = lerp(0, k==='tl'||k==='br' ? f.keep : f.leave, s); p[k].x = dir[k][0]*d; p[k].y = dir[k][1]*d; }
+  const tuck = .03*outCubic(from.w);
+  for (const k of ['ru','rl']) { const d = lerp(.05*from.peek - tuck, f.blade, s); p[k].x = dir[k][0]*d; p[k].y = dir[k][1]*d; }
+  p.c.s = 1 - .12*outCubic(from.w);
+  const base = lerp(from.scale, 1, spring(seg(t,0,.55), ...SPRING.pop)), z = outCubic(seg(t,...T.zoom));
+  const scale = base*lerp(1, zoomTo(), z);
+  const out = frameOf(p, {scale, rot:lerp(from.rot, SPIN, spring(seg(t,...T.spin), ...SPRING.spin))});
+  // The window starts exactly as the key square and ends larger than the screen at any angle.
+  const key = markEl.offsetWidth*scale*KEY_HALF*p.c.s, cover = .56*Math.hypot(innerWidth, innerHeight);
+  out.win = lerp(key, Math.max(key, cover), inOutCubic(seg(t,...T.win)));
+  out.veil = 1 - seg(t,...T.veil);
+  out.glow = from.glow*(1 - outCubic(seg(t,0,.5)));
+  out.dust = 1 - seg(t,.45,1.05); out.vz = .03 + 2.4*Math.exp(-t/.3);   // thrown past the viewer
+  out.dolly = lerp(DOLLY, 1, outCubic(seg(t,...T.dolly)));
+  return out;
+}
+
+/* ---------- render ---------- */
+function apply(f){
+  const m = f.mark, flat = `rotate(${m.rot.toFixed(2)}deg) scale(${m.scale.toFixed(4)})`;
+  markEl.style.transform = `translateZ(${m.z.toFixed(1)}px) rotateX(${m.tx.toFixed(2)}deg) rotateY(${m.ty.toFixed(2)}deg) ${flat}`;
+  markDay.style.transform = flat;
+  for (const k of KEYS) {
+    const q = f.p[k], tf = `translate(${(q.x*100).toFixed(3)}%,${(q.y*100).toFixed(3)}%) scale(${q.s.toFixed(4)})`;
+    const n = piecesNight.get(k), d = piecesDay.get(k);
+    n.style.transform = tf; d.style.transform = tf;
+    n.style.opacity = k === 'c' && f.win > 0 ? 0 : q.o.toFixed(3);   // the key square is the window now
+    d.style.opacity = k === 'c' ? f.veil.toFixed(3) : 1;
+  }
+  night.style.setProperty('--glow', f.glow.toFixed(3));
+  // The window: a square hole in the night layer, turning with the mark.
+  if (f.win > 0) {
+    const w = innerWidth, h = innerHeight, a = m.rot*Math.PI/180, c = Math.cos(a)*f.win, s = Math.sin(a)*f.win;
+    const pts = [[-1,-1],[1,-1],[1,1],[-1,1]].map(([u,v]) => [w/2 + u*c - v*s, h/2 + u*s + v*c]);
+    // covered once every screen corner lies inside the square
+    const covered = [[-w/2,-h/2],[w/2,-h/2]].every(([x,y]) => Math.abs(x*Math.cos(a) + y*Math.sin(a)) <= f.win && Math.abs(-x*Math.sin(a) + y*Math.cos(a)) <= f.win);
+    night.style.visibility = covered ? 'hidden' : 'visible';
+    const q = pts.map(([x,y]) => `${x.toFixed(1)}px ${y.toFixed(1)}px`);
+    night.style.clipPath = `polygon(evenodd,0 0,100% 0,100% 100%,0 100%,0 0,${q.join(',')},${q[0]})`;
+  } else { night.style.clipPath = ''; night.style.visibility = 'visible'; }
+  hero.style.scale = f.dolly === 1 ? '' : f.dolly.toFixed(4);
+}
+
+/* Dust: specks in a tunnel around the view axis. vz moves them towards (+) or away from (−) the
+   viewer; the whole field turns with the mark. Fast specks are drawn as the short path they
+   travelled this frame, always along the one radial flow. 2D canvas. */
+const dustC = $('dust'), dctx = dustC.getContext('2d');
+const rnd = (i,n) => { const v = Math.sin(i*n)*43758.5453; return v - Math.floor(v); };
+const dots = Array.from({length:360},(_,i)=>({x:rnd(i+1,12.9898)*2-1, y:rnd(i+1,78.233)*2-1, z:rnd(i+1,3.7127)*.95+.05, s:.65+rnd(i+1,9.173)*.9, px:NaN, py:NaN}));
+function dust(dt, a, vz, rot){
+  const w = innerWidth, h = innerHeight, r = Math.min(devicePixelRatio,2);
+  if (dustC.width !== Math.round(w*r) || dustC.height !== Math.round(h*r)) { dustC.width = Math.round(w*r); dustC.height = Math.round(h*r); }
+  dctx.setTransform(r,0,0,r,0,0); dctx.clearRect(0,0,w,h); if (a <= 0) return;
+  const f = Math.min(w,h)*.9, th = rot*Math.PI/180*.35, cs = Math.cos(th), sn = Math.sin(th);
+  dctx.lineCap = 'round';
+  for (const p of dots) {
+    p.z -= vz*dt; if (p.z <= .02) { p.z += 1; p.px = NaN; } else if (p.z > 1.02) { p.z -= 1; p.px = NaN; }
+    const x = w/2 + (p.x*cs - p.y*sn)*f/p.z, y = h/2 + (p.x*sn + p.y*cs)*f/p.z;
+    const al = a*Math.min(1,(1-p.z)*1.4)*Math.min(1,p.z*9)*.55, size = Math.max(.8, 1.9*(1-p.z))*p.s;
+    let dx = x - p.px, dy = y - p.py; const len = Math.hypot(dx,dy); p.px = x; p.py = y;
+    if (al < .01 || x < -60 || x > w+60 || y < -60 || y > h+60) continue;
+    if (len > 2.2 && len < 400) {
+      const k = Math.min(1, 44/len); dx *= k; dy *= k;
+      dctx.strokeStyle = `rgba(226,220,206,${al.toFixed(3)})`; dctx.lineWidth = size;
+      dctx.beginPath(); dctx.moveTo(x - dx, y - dy); dctx.lineTo(x, y); dctx.stroke();
+    } else { dctx.fillStyle = `rgba(226,220,206,${al.toFixed(3)})`; dctx.fillRect(x - size/2, y - size/2, size, size); }
+  }
+}
+
+/* ---------- state ---------- */
+let phase = 'intro', t0 = performance.now(), last = t0, peek = 0, peekTarget = 0, frozen = null, rate = 1, clock = 0;
+let w = 0, holding = false, released = false, from = {scale:1, rot:0, peek:0, w:0, glow:.2};
+const tilt = {x:0, y:0, tx:0, ty:0};   // degrees; follows the pointer on fine pointers only
+const fine = matchMedia('(hover:hover) and (pointer:fine)');
+function press(auto=false){
+  if (phase === 'open' || phase === 'done') return;
+  if (phase !== 'charge') { phase = 'charge'; w = 0; }
+  holding = !auto; released = auto;
+}
+function release(){ if (phase === 'charge') { holding = false; released = true; } }
+function open(){
+  const f = charge(clock, peek, w);
+  from = {scale:f.mark.scale, rot:f.mark.rot, peek, w, glow:f.glow};
+  phase = 'open'; t0 = clock; gate.classList.add('is-opening');
+}
+function settle(){ phase = 'done'; gate.classList.remove('is-opening'); gate.classList.add('is-settled'); apply(opening(T.end, from)); dust(0,0,0,0); hero.classList.add('is-open'); root.classList.remove('locked'); }
+function reset(){
+  scrollTo(0,0); phase = 'intro'; t0 = clock; peek = peekTarget = 0; w = 0; holding = released = false; frozen = null;
+  gate.className = 'gate'; hero.classList.remove('is-open'); root.classList.add('locked');
+  for (const p of dots) p.px = NaN;
+}
+/** One step of the timeline. The clock is the prototype's own, so it can run slow or be stepped by hand. */
+function advance(dt){
+  if (frozen === null) clock += dt;
+  const t = (frozen !== null ? frozen : clock) - t0; let f = null;
+  peek += (peekTarget - peek)*(1 - Math.exp(-dt/.18));
+  tilt.x += (tilt.tx - tilt.x)*(1 - Math.exp(-dt/.28)); tilt.y += (tilt.ty - tilt.y)*(1 - Math.exp(-dt/.28));
+  if (phase === 'intro') { f = intro(t); if (t >= INTRO_END) { phase = 'idle'; gate.classList.add('is-ready'); } readout.value = `绽放 ${t.toFixed(2)}s`; }
+  else if (phase === 'idle') { f = idle(clock, peek); readout.value = '等待：按住 / 滚动'; }
+  else if (phase === 'charge') {
+    w = frozen !== null ? w : Math.min(1, w + dt/(holding ? .42 : .2));
+    f = charge(clock, peek, w); readout.value = `蓄力 ${Math.round(w*100)}%`;
+    if (frozen === null && released && w >= MIN_WIND) open();
+  }
+  else if (phase === 'open') {
+    f = opening(t, from); if (t >= T.home) hero.classList.add('is-open');
+    readout.value = `开幕 ${t.toFixed(2)}s`; if (frozen === null && t >= T.end) settle();
+  } else readout.value = '落地';
+  if (f) { apply(f); dust(dt, f.dust, f.vz, f.mark.rot); }
+}
+let manual = false;
+function frame(now){
+  const real = Math.min(.05,(now-last)/1000); last = now;
+  if (!manual) advance(frozen !== null ? .016 : real*rate);
+  requestAnimationFrame(frame);
+}
+// Press and hold winds up, release lets go. Scroll, swipe and keys do a short wind-up on their own.
+addEventListener('wheel', e => { if (phase === 'done') return; e.preventDefault(); if (e.deltaY > 2) press(true); }, {passive:false});
+let ty = 0;
+addEventListener('touchmove', e => { if (phase === 'done') return; e.preventDefault(); if (ty - e.touches[0].clientY > 16) press(true); }, {passive:false});
+gate.addEventListener('pointerdown', e => { if (e.button === 0) { ty = e.clientY; press(); } });
+addEventListener('pointerup', release); addEventListener('pointercancel', release);
+addEventListener('pointermove', e => { if (!fine.matches || e.pointerType !== 'mouse') return; tilt.tx = -(e.clientY/innerHeight*2 - 1)*7; tilt.ty = (e.clientX/innerWidth*2 - 1)*9; });
+document.addEventListener('pointerleave', () => { tilt.tx = tilt.ty = 0; });
+const slow = () => { rate = rate === 1 ? .35 : 1; $('slow').textContent = rate === 1 ? '½ 慢放' : '1× 原速'; };
+addEventListener('keydown', e => {
+  const k = e.key.toLowerCase();
+  if (k==='r') return reset(); if (k==='s') return press(true); if (k==='d') return slow(); if (k==='h') return $('lab').classList.toggle('hidden');
+  if (phase === 'done') return;
+  if (['arrowdown','pagedown',' ','enter'].includes(k)) { e.preventDefault(); if (!e.repeat) press(k === ' ' || k === 'enter' ? false : true); }
+});
+addEventListener('keyup', e => { if ([' ','enter'].includes(e.key.toLowerCase())) release(); });
+markEl.addEventListener('pointerenter', () => { peekTarget = 1; }); markEl.addEventListener('pointerleave', () => { peekTarget = 0; });
+$('replay').onclick = reset; $('skip').onclick = () => press(true); $('slow').onclick = slow; $('hide').onclick = () => $('lab').classList.add('hidden');
+addEventListener('resize', () => { if (phase === 'done') apply(opening(T.end, from)); });
+
+/* Snapshot hook for automated checks (lab only). */
+window.__lab = {
+  intro(t){ reset(); frozen = clock + t; t0 = clock; },
+  idle(){ reset(); phase='idle'; gate.classList.add('is-ready'); frozen = clock; },
+  charge(v){ reset(); phase='charge'; w=v; holding=true; gate.classList.add('is-ready'); frozen = clock; },
+  open(t){ reset(); const c = charge(0,0,1); from = {scale:c.mark.scale, rot:c.mark.rot, peek:0, w:1, glow:c.glow}; phase='open'; gate.classList.add('is-opening'); t0 = clock; frozen = clock + t; },
+  run(){ if (frozen !== null) { clock = frozen; frozen = null; } }, T,
+  // Frame-exact capture: stop the loop, then step the clock by hand.
+  manual(v=true){ manual = v; }, step(dt){ advance(dt); return {phase, t:clock - t0}; }, reset, press, release,
+  lean(x,y){ tilt.tx = x; tilt.ty = y; },
+};
+if (matchMedia('(prefers-reduced-motion: reduce)').matches) { gate.remove(); hero.classList.add('is-open'); }
+else { reset(); requestAnimationFrame(frame); }
+</script>
+</body>
+</html>

@@ -19,9 +19,10 @@ export const fluidOptics=`
   float presence=smoothstep(0.,.32,1.-exp(-d*10.));
   float energy=1.-exp(-speed*14.);
   vec2 g=vec2(fluidSample(uv+vec2(fluidTexel.x*3.,0)).z-fluidSample(uv-vec2(fluidTexel.x*3.,0)).z,fluidSample(uv+vec2(0,fluidTexel.y*3.)).z-fluidSample(uv-vec2(0,fluidTexel.y*3.)).z);
-  // Thin-film style hue: travel direction plus thickness, drifting slowly through a pastel ramp.
+  // Thin-film style hue: travel direction plus thickness, drifting slowly through a pastel ramp
+  // taken from the painting: cobalt → violet → vermilion.
   float hue=fract(atan(v.y,v.x)/6.2831853+d*.9+.15);
-  vec3 cyan=vec3(.40,.76,.92),violet=vec3(.62,.53,.92),peach=vec3(1.,.70,.56);
+  vec3 cyan=vec3(.36,.58,.95),violet=vec3(.66,.50,.88),peach=vec3(1.,.57,.46);
   vec3 color=hue<.33?mix(cyan,violet,hue*3.):hue<.66?mix(violet,peach,hue*3.-1.):mix(peach,cyan,hue*3.-2.);
   float sheen=smoothstep(.0,.06,length(g))*presence;
   color=mix(color,vec3(1.),sheen*.35);

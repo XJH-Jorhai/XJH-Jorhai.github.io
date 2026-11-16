@@ -1,10 +1,12 @@
 ---
+// Project covers: cut corner, large red number, mono tags, display title — the same on the home
+// page and on Work. `poster` staggers the covers; `grid` keeps them in even columns.
 import { getCollection } from 'astro:content';
 import ProjectVisual from './ProjectVisual.astro';
 import { assetsFor } from '../data/projects';
 import { workIndexCopy } from '../data/work-index';
-interface Props { numbered?: boolean; variant?: 'grid' | 'poster' }
-const { numbered = false, variant = 'grid' } = Astro.props;
+interface Props { variant?: 'grid' | 'poster' }
+const { variant = 'grid' } = Astro.props;
 const projects = (await getCollection('projects')).sort((a,b) => a.id.localeCompare(b.id));
 ---
     <section class:list={['work-gallery',`work-gallery--${variant}`,{'work-gallery--single':projects.length===1}]} aria-label="Selected work">
@@ -12,34 +14,39 @@ const projects = (await getCollection('projects')).sort((a,b) => a.id.localeComp
         <a class="work-cover" href={`/projects/${id}/`} aria-labelledby={`${id}-title`}>
           <ProjectVisual assets={assetsFor(`${id}-cover`)} mode="home" alt={workIndexCopy[id]!.alt} caption="" sizes="(max-width:488px) calc(100vw - 44px), (max-width:760px) 91vw, (min-width:1584px) 696px, 44vw" showCaption={false} previewOnHover />
         </a>
-        <div class="work-caption">{numbered && <span class="work-number" aria-hidden="true">{String(index+1).padStart(2,'0')}</span>}<p class="work-tags">{workIndexCopy[id]!.tags}</p><h2 id={`${id}-title`}><a class="work-title-link" href={`/projects/${id}/`}><span class="title-arrow" aria-hidden="true">→</span><span class="title-label">{workIndexCopy[id]!.title}</span></a></h2></div>
+        <div class="work-caption"><span class="work-number" aria-hidden="true">{String(index+1).padStart(2,'0')}</span><p class="work-tags">{workIndexCopy[id]!.tags}</p><h2 id={`${id}-title`}><a class="work-title-link" href={`/projects/${id}/`}><span class="title-arrow" aria-hidden="true">→</span><span class="title-label">{workIndexCopy[id]!.title}</span></a></h2></div>
       </article>)}
     </section>
 
 <style>
-  .work-gallery { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:80px clamp(24px,3vw,56px); align-items:start; }
+  .work-gallery { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:clamp(56px,6vw,96px) clamp(24px,3vw,56px); align-items:start; }
   .work-gallery--single {grid-template-columns:1fr;}
+  .work-gallery--poster {grid-template-columns:repeat(12,minmax(0,1fr));gap:0 clamp(12px,1.6vw,24px);}
+  .work-gallery--poster .work-item:nth-child(odd) {grid-column:1 / 8;}
+  .work-gallery--poster .work-item:nth-child(even) {grid-column:8 / 13;margin-top:clamp(120px,18vw,280px);}
   .work-item {min-width:0;}
   .work-cover {display:block;}
   .work-cover :global(.project-visual) {width:100%;}
   .work-cover :global(.visual-frame) {width:100%;}
-  .work-caption {padding-top:23px;position:relative;}
-  .work-number {position:absolute;right:0;top:23px;font:12px var(--font-mono);letter-spacing:.08em;color:var(--color-muted);}
-  .work-tags {font-size:13px;line-height:1.6;color:var(--color-muted);margin-bottom:12px;letter-spacing:0;text-transform:none;}
-  h2 {font-size:clamp(23px,2.25vw,36px);font-weight:400;line-height:1.45;letter-spacing:-.035em;}
+  .work-caption {display:grid;grid-template-columns:auto 1fr;grid-template-areas:'no tags' 'no title';column-gap:18px;padding-top:18px;}
+  .work-number {grid-area:no;font:700 clamp(44px,5vw,84px)/.82 var(--font-display);letter-spacing:-.05em;color:var(--red);}
+  .work-tags {grid-area:tags;margin:0 0 6px;font:11px/1.6 var(--font-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--color-muted);}
+  h2 {grid-area:title;font:500 clamp(22px,2.2vw,36px)/1.15 var(--font-display);letter-spacing:-.03em;color:var(--navy);}
   .work-title-link {display:block;position:relative;white-space:nowrap;--arrow-space:1.2em;}
+  .work-title-link:hover {color:inherit;}
   .title-label {display:inline-block;transition:transform .3s cubic-bezier(.22,.61,.36,1);}
-  .title-arrow {position:absolute;left:0;opacity:0;transform:translateX(-.5em);transition:transform .3s cubic-bezier(.22,.61,.36,1),opacity .2s ease;}
+  .title-arrow {position:absolute;left:0;opacity:0;color:var(--red);transform:translateX(-.5em);transition:transform .3s cubic-bezier(.22,.61,.36,1),opacity .2s ease;}
   .work-title-link:focus-visible .title-label {transform:translateX(var(--arrow-space));}
   .work-title-link:focus-visible .title-arrow {opacity:1;transform:translateX(0);}
   @media(hover:hover) { .work-title-link:hover .title-label {transform:translateX(var(--arrow-space));} .work-title-link:hover .title-arrow {opacity:1;transform:translateX(0);} }
   @media(prefers-reduced-motion:reduce) {.title-label,.title-arrow {transition:none;}}
+  @media(max-width:900px) {
+    .work-gallery--poster .work-item:nth-child(n) {grid-column:1 / -1;margin-top:0;margin-bottom:56px;}
+  }
   @media(max-width:760px) {
     .work-gallery {grid-template-columns:1fr;gap:55px;}
-    .work-caption {padding-top:18px;}
-    .work-tags {margin-bottom:8px;font-size:12px;}
+    .work-gallery--poster {grid-template-columns:repeat(12,minmax(0,1fr));gap:0;}
     .work-title-link {white-space:normal;}
     .title-label {max-width:calc(100% - var(--arrow-space));}
-    h2 {font-size:clamp(20px,5.6vw,25px);}
   }
 </style>

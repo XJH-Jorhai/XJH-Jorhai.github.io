@@ -72,7 +72,9 @@ export class FlowField {
       uniform sampler2D field;uniform vec3 base;uniform int diagnostic;uniform float aspect;varying vec2 vUv;
       void main(){vec3 f=texture2D(field,vUv).xyz;if(diagnostic==1){gl_FragColor=vec4(.5+f.xy, f.z,1.);return;}
         vec2 uv=vUv+f.xy*.15;float grain=sin(uv.x*aspect*14.+sin(uv.y*17.))*sin(uv.y*13.+uv.x*9.);
-        vec3 color=base*(1.+.025*grain)+vec3(f.z*.075);gl_FragColor=vec4(color,1.);
+        // On paper the trace is a faint cool wash (darker, towards the navy); on a dark ground it lightens.
+        float paper=step(.5,dot(base,vec3(.2126,.7152,.0722)));
+        vec3 color=base*(1.+mix(.025,.01,paper)*grain)+mix(vec3(f.z*.075),-vec3(.13,.095,.04)*f.z,paper);gl_FragColor=vec4(color,1.);
         #include <colorspace_fragment>
       }`});
     this.quad=new FullScreenQuad(this.simulation);this.clear();

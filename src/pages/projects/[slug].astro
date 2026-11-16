@@ -3,36 +3,49 @@ import { getCollection, render, type CollectionEntry } from 'astro:content';
 import PageShell from '../../components/PageShell.astro';
 import ResponsiveTitle from '../../components/ResponsiveTitle.astro';
 import ProjectVisual from '../../components/ProjectVisual.astro';
+import ClosingBand from '../../components/ClosingBand.astro';
 import firstAssets from '../../data/project-01.assets.json';
 import { assetsFor } from '../../data/projects';
+import { workIndexCopy } from '../../data/work-index';
 export async function getStaticPaths() {
-  const entries = await getCollection('projects');
-  return entries.map(project => ({ params: { slug: project.id }, props: { project } }));
+  const entries = (await getCollection('projects')).sort((a,b) => a.id.localeCompare(b.id));
+  return entries.map((project, index) => ({
+    params: { slug: project.id },
+    props: { project, number: String(index + 1).padStart(2, '0'), next: entries[(index + 1) % entries.length]! },
+  }));
 }
-interface Props { project: CollectionEntry<'projects'>; }
-const { project } = Astro.props;
+interface Props { project: CollectionEntry<'projects'>; number: string; next: CollectionEntry<'projects'>; }
+const { project, number, next } = Astro.props;
 const { Content } = await render(project);
 const { data } = project;
 const assets = assetsFor(project.id);
 ---
 <PageShell title={data.title} description={data.summary}>
-  <article class="page-width">
-    <header class="project-header">
-      <a class="back-link" href="/#project"><span aria-hidden="true">←</span>所有项目</a>
-      <p class="eyebrow"><span class="index">{project.id === 'project-01' ? '01' : '02'} —</span><span>{data.category} / {data.status}</span></p>
-      <ResponsiveTitle text={data.title} />
-      <p class="project-summary">{data.summary}</p>
-      <ul class="project-meta" aria-label="项目主题">{data.topics.map(topic => <li>{topic}</li>)}</ul>
+  <article>
+    <header class="article-head page-width">
+      <a class="back-link" href="/work/"><span aria-hidden="true">←</span>Work / 所有项目</a>
+      <div class="article-top">
+        <div>
+          <p class="article-kicker"><span class="index">({number})</span><span>{data.category} / {data.status}</span></p>
+          <ResponsiveTitle text={data.title} />
+        </div>
+        <span class="article-no" aria-hidden="true">{number}</span>
+      </div>
+      <div class="article-lede">
+        <p class="project-summary">{data.summary}</p>
+        <ul class="project-meta" aria-label="项目主题">{data.topics.map(topic => <li>{topic}</li>)}</ul>
+      </div>
     </header>
-    <ProjectVisual assets={assets} mode="detail" alt={data.imageAlt} caption={data.caption} />
-    <div class="reading-layout">
+    <div class="page-width"><ProjectVisual assets={assets} mode="detail" alt={data.imageAlt} caption={data.caption} /></div>
+    <div class="reading-layout page-width">
       <aside class="reading-aside"><p class="aside-label">ABOUT THIS RECORD</p><p>{data.contentNote}</p><p>{project.id === 'project-01' ? '图像 / 实物照片、板级视图' : '图像 / 电路原型'}<br />阅读 / 从整体到局部</p></aside>
       <div>
         <div class="prose"><Content /></div>
         {project.id === 'project-01' && <figure class="detail-insert prose"><img src={firstAssets.detail.src} width={firstAssets.detail.width} height={firstAssets.detail.height} alt={firstAssets.detailAlt} loading="lazy" decoding="async" /><figcaption>图 02 / 同一张实物照片的板内局部。裁切仅用于近距离观察，未改变元件和连接位置。</figcaption></figure>}
         {project.id === 'project-01' && <figure class="detail-insert prose"><img src={firstAssets.board.src} width={firstAssets.board.width} height={firstAssets.board.height} alt={firstAssets.boardAlt} loading="lazy" decoding="async" /><figcaption>图 03 / 用户提供的板级三维视图，与实拍照片为两份独立输入素材。</figcaption></figure>}
-        <div class="reading-return prose"><a href="/#project">← 返回所有项目</a><a href="#main">返回顶部 ↑</a></div>
+        <div class="reading-return prose"><a href="/work/"><span aria-hidden="true">←</span> 返回所有项目</a><a href="#main">返回顶部 <span aria-hidden="true">↑</span></a></div>
       </div>
     </div>
   </article>
+  {next.id !== project.id && <ClosingBand kicker="NEXT PROJECT / 下一个项目" title={workIndexCopy[next.id]!.title} href={`/projects/${next.id}/`} note={next.data.summary} />}
 </PageShell>

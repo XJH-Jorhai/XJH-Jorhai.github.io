@@ -6,14 +6,12 @@ import PistonGolem from '../PistonGolem.astro';
 import Gate from './Gate.astro';
 import Wordmark from './Wordmark.astro';
 import { journal, journalNotes } from '../../data/journal';
-import { workThemes } from '../../data/work-themes';
 import { getCollection } from 'astro:content';
-import '../../styles/journal.css';
 import '../../styles/home.css';
 const workCount = (await getCollection('projects')).length;
 const pad = (n: number) => String(n).padStart(2, '0');
 ---
-<PageShell title="Blog" description={journal.description} english language="zh-CN" palette={workThemes.paper} colorScheme="light" iridescent homeMark={false}>
+<PageShell title="Blog" description={journal.description} sheen home>
   <Gate slot="overlay" />
   <div class="home" data-home>
     <section class="hero" aria-labelledby="hero-title">
@@ -36,10 +34,10 @@ const pad = (n: number) => String(n).padStart(2, '0');
         <h2 id="work-heading" data-reveal="lines"><span class="line"><span>Selected<br />Work</span></span></h2>
         <p class="h-meta" data-reveal><span>{pad(workCount)} projects</span><a href="/work/">全部作品 <span aria-hidden="true">↗</span></a></p>
       </header>
-      <WorkGallery numbered variant="poster" />
+      <WorkGallery variant="poster" />
     </section>
 
-    <section class="h-notes" id="notes" aria-labelledby="notes-heading">
+    <section class="h-notes night-band tone-night" id="notes" aria-labelledby="notes-heading">
       <div class="page-width">
         <header class="h-head">
           <p class="h-no" data-reveal>(02)</p>
@@ -50,14 +48,14 @@ const pad = (n: number) => String(n).padStart(2, '0');
       </div>
     </section>
 
-    <section class="h-about" id="about" aria-labelledby="about-heading">
+    <section class="h-about tone-red" id="about" aria-labelledby="about-heading">
       <div class="page-width h-about-grid">
         <p class="h-no" data-reveal>(03) About</p>
         <div>
           <h2 id="about-heading" data-reveal="lines"><span class="line"><span>保持好奇，</span></span><span class="line"><span>慢慢做。</span></span></h2>
           <p data-reveal>{journal.about}</p>
           <p class="h-about-note" data-reveal>这个空间会随着项目一起生长。介绍文字为初稿，笔记目录暂为写作提纲占位，之后逐步换成真实的过程与记录。</p>
-          <a class="h-about-link" href="/notes/" data-reveal>从一则笔记开始 <span aria-hidden="true">↗</span></a>
+          <a class="h-about-link text-link" href="/notes/" data-reveal>从一则笔记开始 <span aria-hidden="true">↗</span></a>
         </div>
       </div>
     </section>

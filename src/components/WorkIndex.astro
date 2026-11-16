@@ -2,21 +2,17 @@
 import PageShell from './PageShell.astro';
 import IndexHeading from './IndexHeading.astro';
 import WorkGallery from './WorkGallery.astro';
-import {workThemes,type WorkTheme} from '../data/work-themes';
-interface Props {theme:WorkTheme}
-const {theme}=Astro.props;
-const palette=workThemes[theme];
+import ClosingBand from './ClosingBand.astro';
+import { getCollection } from 'astro:content';
+const count = (await getCollection('projects')).length;
 ---
-<PageShell title={`Work Index — ${palette.name}`} description="Selected work in remote sensing and analog computing." english palette={palette} colorScheme={palette.scheme} iridescent={theme==='b'}>
+<PageShell title="Work" description="Selected work in remote sensing and analog computing." sheen>
   <div class="work-index page-width">
-    <IndexHeading title="WORK" label="SELECTED WORK / INDEX" />
+    <IndexHeading title="WORK" no="(01)" label="SELECTED WORK / INDEX" count={`${String(count).padStart(2,'0')} PROJECTS`} />
     <WorkGallery />
-    <aside class="work-notes"><span>OFF THE WORKBENCH</span><a href="/notes/">Notes ↗</a></aside>
   </div>
+  <ClosingBand kicker="OFF THE WORKBENCH" title="Notes" href="/notes/" note="工作台之外：研究中的思考、制作时的细节，以及还没有标准答案的问题。" />
 </PageShell>
 <style>
-.work-notes {margin-top:clamp(100px,12vw,190px);padding:27px 0 65px;border-top:1px solid var(--color-line);display:flex;justify-content:space-between;align-items:baseline;gap:24px;}
-.work-notes>span {font:11px var(--font-mono);letter-spacing:.1em;color:var(--color-muted);}
-.work-notes a {font-size:17px;}
-@media(max-width:760px) {.work-notes {margin-top:84px;padding-bottom:40px;} .work-notes>span {max-width:100px;line-height:1.8;}}
+.work-index {padding-bottom:var(--space-section);}
 </style>

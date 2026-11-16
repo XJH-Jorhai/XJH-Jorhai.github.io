@@ -7,7 +7,7 @@ export function initMotion(){
   current?.();const controller=new AbortController(),{signal}=controller;
   const reduced=matchMedia('(prefers-reduced-motion: reduce)'),fine=matchMedia('(hover: hover) and (pointer: fine)');
   const titles=Array.from(document.querySelectorAll<HTMLElement>('[data-responsive-title]')).map(element=>({element,bounds:element.getBoundingClientRect(),active:0}));
-  const textMotion=Array.from(document.querySelectorAll<HTMLElement>('.hero-heading,.project-intro,.hero-bottom,.notes>.eyebrow,.notes-copy,.project-header>.eyebrow,.project-header>.responsive-title,.project-summary,.project-meta,.reading-aside,.prose>h2,.prose>p,.prose>ul,.prose>ol,.reading-return'));
+  const textMotion=Array.from(document.querySelectorAll<HTMLElement>('.article-kicker,.article-top .responsive-title,.project-summary,.project-meta,.reading-aside,.prose>h2,.prose>p,.prose>ul,.prose>ol,.reading-return'));
   let lastScroll=scrollY,textLag=0;
   const resetText=()=>{textLag=0;lastScroll=scrollY;for(const element of textMotion)element.style.removeProperty('translate');};
   document.querySelectorAll('[data-trail-canvas]').forEach(canvas=>canvas.remove());

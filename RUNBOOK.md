@@ -26,10 +26,10 @@ npm run lab         # 生成开幕原型 lab/opening/teisu-opening.html（双击
 | 改什么 | 文件 |
 | --- | --- |
 | 首页介绍、About、笔记占位 | `src/data/journal.ts` |
-| 站名、页脚 | `src/config/site.ts` |
+| 站名、默认描述 | `src/config/site.ts` |
 | 项目正文与元信息 | `src/content/projects/*.md` |
 | 作品列表标题、标签、alt | `src/data/work-index.ts` |
-| 配色 | `src/data/work-themes.ts`、`src/data/*.assets.json` |
+| 配色 | `src/data/palette.ts`、`src/styles/tokens.css` |
 
 ## 改动效
 

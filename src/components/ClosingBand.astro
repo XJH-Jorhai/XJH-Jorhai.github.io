@@ -1,0 +1,14 @@
+---
+// The night band that closes every inner page and points to the next place to go.
+interface Props { kicker: string; title: string; href: string; note?: string }
+const { kicker, title, href, note } = Astro.props;
+---
+<section class="closing night-band tone-night" aria-label={kicker}>
+  <div class="page-width closing-grid">
+    <p class="h-no" data-reveal>{kicker}</p>
+    <div data-reveal>
+      <a class="closing-link" href={href}><span class="closing-title">{title}</span><span class="closing-arrow" aria-hidden="true">↗</span></a>
+      {note && <p class="closing-note">{note}</p>}
+    </div>
+  </div>
+</section>

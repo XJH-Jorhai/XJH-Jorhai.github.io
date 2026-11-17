@@ -3,17 +3,21 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>TEISU · 开幕原型 v11（本地）</title>
+<title>TEISU · 开幕原型 v12（本地）</title>
 <style>
-  :root {--navy:#083366;--red:#EF3025;--paper:#F3EDE2;--ink:#1D2733;--muted:#615F58;--white:#E9E3D6;}
+  @font-face {font-family:'Space Grotesk';font-weight:700;font-display:block;src:url(__FONT__) format('woff2');}
+  :root {--navy:#083366;--red:#EF3025;--paper:#F3EDE2;--ink:#1D2733;--muted:#615F58;--white:#E9E3D6;
+    --color-muted:var(--muted);--font-display:'Space Grotesk','Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;--font-mono:'Cascadia Code',Consolas,ui-monospace,monospace;
+    --gutter:clamp(22px,4.5vw,72px);--max-width:1440px;--ease:cubic-bezier(.16,1,.3,1);--dim:var(--muted);--mark:var(--red);}
   * {box-sizing:border-box;}
   html,body {margin:0;background:var(--paper);color:var(--ink);font-family:'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;}
   html.locked,html.locked body {overflow:hidden;}
 
   /* ================= Gate ================= */
   /* Two layers carry the same mark. `night` is the dark stage with paper-white pieces; `day` lies
-     under it with navy pieces on nothing (the page shows through). Opening cuts a square window in
-     `night`, so whatever the window's edge has passed is already the page: paper, navy, the hero. */
+     under it with navy pieces on nothing (the page shows through). Opening cuts a window in `night`
+     (an iris with the mark's 45° cuts), so whatever its edge has passed is already the page: paper,
+     navy, the hero. `shade` is the soft shadow the dark sheet casts on the page along that edge. */
   .gate {position:fixed;inset:0;z-index:10;overflow:hidden;}
   .gate.is-settled {position:absolute;inset:0 0 auto 0;height:100vh;z-index:1;pointer-events:none;}
   .layer {position:absolute;inset:0;display:grid;place-items:center;overflow:hidden;}
@@ -22,7 +26,8 @@
   .day {visibility:hidden;}
   .gate.is-opening .day,.gate.is-settled .day {visibility:visible;}
   .gate.is-settled .night {display:none;}
-  .dust {position:absolute;inset:0;width:100%;height:100%;pointer-events:none;}
+  .dust,.shade {position:absolute;inset:0;width:100%;height:100%;pointer-events:none;}
+  .gate.is-settled .shade {display:none;}
   .space {position:relative;perspective:1100px;}
   .mark {position:relative;display:block;width:clamp(116px,11vw,176px);aspect-ratio:1;padding:0;border:0;background:none;cursor:pointer;transform-style:preserve-3d;touch-action:none;}
   .mark:focus {outline:none;}
@@ -33,35 +38,13 @@
   .gate:not(.is-opening) .night .piece.is-red {filter:drop-shadow(0 0 14px rgb(239 48 37 / .5));}
   .gate:not(.is-opening) .night .piece.is-ink {filter:drop-shadow(0 0 20px rgb(233 227 214 / .16));}
 
-  /* ================= Hero: paper, framed painting, wordmark ================= */
-  .hero {position:relative;height:100vh;min-height:560px;display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);align-items:center;column-gap:clamp(32px,6vw,110px);padding:0 clamp(48px,9vw,160px);max-width:1500px;margin:0 auto;}
-  .art {margin:0;justify-self:end;width:min(100%,64vh,560px);position:relative;z-index:2;}
-  .art-frame {aspect-ratio:1;overflow:hidden;border:1px solid rgb(29 39 51 / .55);background:#E4D9C4;}
-  .art img {display:block;width:100%;height:100%;object-fit:cover;}
-  .art figcaption {display:flex;justify-content:space-between;margin-top:10px;font-size:11px;letter-spacing:.24em;}
-  .copy {position:relative;z-index:2;}
-  .word {margin:0;width:clamp(260px,30vw,480px);}
-  .word svg {display:block;width:100%;height:auto;overflow:visible;}
-  .line {margin:clamp(16px,2.4vh,26px) 0 0;font-size:clamp(16px,1.35vw,21px);letter-spacing:.14em;}
-  .side {margin:clamp(22px,3.4vh,36px) 0 0;display:flex;gap:18px;font:12px ui-monospace,Consolas,monospace;letter-spacing:.2em;color:var(--muted);}
-  .side span + span::before {content:'/';margin-right:18px;color:var(--red);}
-  /* Reveal (JS + motion only) */
-  .js .hero [data-in] {opacity:0;transform:translateY(22px);transition:opacity 1s cubic-bezier(.16,1,.3,1),transform 1.2s cubic-bezier(.16,1,.3,1);transition-delay:var(--d,0s);}
-  .js .hero .art[data-in] {transform:none;clip-path:inset(12% 12% 12% 12%);transition:opacity 1.1s cubic-bezier(.16,1,.3,1),clip-path 1.5s cubic-bezier(.16,1,.3,1);transition-delay:var(--d,0s);}
-  .js .hero .art img {transform:scale(1.12);transition:transform 2.2s cubic-bezier(.16,1,.3,1);}
-  .js .hero.is-open [data-in] {opacity:1;transform:none;clip-path:inset(0);}
-  .js .hero.is-open .art img {transform:none;}
-  .js .word .l {transform-box:fill-box;transition:transform 1.1s cubic-bezier(.16,1,.3,1);}
-  .js .word :is(.l-T,.l-I,.l-S,.l-U) {transform:translateY(110%);}
-  .js .word .l-E {transform-origin:0 50%;transform:scaleX(0);transition-duration:.9s;}
-  .js .word .l-T {transition-delay:.2s;} .js .word .l-E1 {transition-delay:.28s;} .js .word .l-E3 {transition-delay:.35s;} .js .word .l-I {transition-delay:.36s;} .js .word .l-S {transition-delay:.44s;} .js .word .l-U {transition-delay:.52s;} .js .word .l-E2 {transition-delay:.66s;}
-  .js .hero.is-open .word .l {transform:none;}
-  @media (max-width:900px) {
-    .hero {grid-template-columns:1fr;align-content:center;row-gap:28px;padding:40px 28px;height:auto;min-height:100vh;}
-    .art {justify-self:start;width:min(72vw,360px);}
-    .word {width:min(80vw,380px);}
-    .line {letter-spacing:.06em;}
-  }
+  /* ================= Hero: copied from src/styles/home.css at build time ================= */
+  p,h1 {margin:0;}
+  a {color:inherit;text-decoration:none;}
+  .h-no {font:12px var(--font-mono);letter-spacing:.12em;text-transform:uppercase;}
+  .visually-hidden {position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;}
+  .wordmark {overflow:visible;}
+__HERO_CSS__
   .below {min-height:60vh;display:grid;place-items:center;font:13px ui-monospace,Consolas,monospace;letter-spacing:.14em;color:var(--muted);text-align:center;padding:40px;border-top:1px solid #D6CDBC;}
   @media (prefers-reduced-motion:reduce) {.gate {display:none;}}
 
@@ -78,24 +61,17 @@
 <div class="gate" id="gate">
   <div class="layer day" aria-hidden="true">
     <div class="space"><div class="mark" id="markDay">__PIECES_DAY__</div></div>
+    <canvas class="shade" id="shade"></canvas>
   </div>
   <div class="layer night" id="night">
     <canvas class="dust" id="dust" aria-hidden="true"></canvas>
-    <div class="space"><button class="mark" id="mark" type="button" aria-label="进入 TEISU 的博客（按住后松开，或滚动）">__PIECES__</button></div>
+    <div class="space"><button class="mark" id="mark" type="button" aria-label="进入 FIELDNOTES（按住后松开，或滚动）">__PIECES__</button></div>
   </div>
 </div>
 
-<section class="hero" id="hero" aria-labelledby="title">
-  <figure class="art" data-in style="--d:.05s">
-    <div class="art-frame"><img src="__PAINTING__" width="1254" height="1254" alt="油画风格的人物插画：戴白色渔夫帽的金色短发少女" /></div>
-    <figcaption><span>人物设定</span><span>TEISU</span></figcaption>
-  </figure>
-  <div class="copy">
-    <h1 class="word" id="title"><svg viewBox="190 1250 1620 384" aria-label="TEISU">__WORDMARK_NAVY__</svg></h1>
-    <p class="line" data-in style="--d:.7s">把想法做成实物，也把过程留在这里。</p>
-    <p class="side" data-in style="--d:.82s"><span>FIELDNOTES</span><span>研究 · 制作 · 观察</span></p>
-  </div>
-</section>
+<div class="home" id="hero">
+__HERO__
+</div>
 <section class="below">（原型只包含开幕与首页首屏；以下作品、笔记等部分在正式站点中）</section>
 
 <div class="lab" id="lab">
@@ -108,16 +84,19 @@
 
 <script>
 /* ===================================================================================
-   TEISU opening — prototype v11. Same three beats as v10, same landing; what changed:
-   · The dark is cut open, not faded. The mark's centre square is the page's paper: on release it
-     becomes a window that turns and grows with the mark until it has swallowed the screen. Pieces
-     are paper-white on the dark side of its edge and navy on the paper side, so the colour change
-     is the edge passing over them — late, as they land.
-   · The dust obeys the mark: it is drawn back into the depth while you wind up, and thrown past
-     the viewer, turning with the mark, when you let go.
-   · A cobalt light gathers behind the mark as it winds up; fully wound, the mark trembles.
-   · While it waits, the mark leans towards the pointer as one rigid plane (its shape is unchanged).
-   · The hero starts a touch closer and settles back as the window opens over it.
+   TEISU opening — prototype v12. Same three beats, springs and landing as v10/v11.
+   · The dark is cut open, not faded: the mark's centre square (already paper-white) is the page.
+     On release it opens as an iris — its corners are cut at the mark's own 45° — in one burst that
+     slows down: the flat sides are past the screen in under half a second, and what is left of the
+     dark is four 45° corners that retreat, more and more slowly, to exactly where the colour
+     blocks land. (v11 scaled a plain square with a slow-fast-slow curve; that read as stiff.)
+   · Pieces are paper-white on the dark side of the edge and navy on the page side, so the colour
+     change is the edge passing over them as they land.
+   · The dark sheet casts a soft shadow on the page along the edge, so the opening has depth.
+   · Dust is drawn back while winding up and thrown past the viewer on release, turning with the
+     mark; a cobalt light gathers behind it; fully wound it trembles; waiting, it leans to the pointer.
+   · The hero is the site's own cover (markup and styles are taken from the build): FIELD / NOTES
+     assemble stroke by stroke inside the opening.
    =================================================================================== */
 const $ = id => document.getElementById(id);
 const gate = $('gate'), night = $('night'), markEl = $('mark'), markDay = $('markDay'), hero = $('hero'), readout = $('readout'), root = document.documentElement;
@@ -134,7 +113,8 @@ const outCubic = t => 1-Math.pow(1-t,3);
 const inOutCubic = t => t<.5 ? 4*t*t*t : 1-Math.pow(-2*t+2,3)/2;
 const outBack = t => {const c=1.4; return 1+(c+1)*Math.pow(t-1,3)+c*Math.pow(t-1,2);};
 const pose = () => Object.fromEntries(KEYS.map(k => [k,{x:0,y:0,s:1,o:1}]));
-const frameOf = (p, mark) => ({p, mark:{scale:1, z:0, rot:0, tx:0, ty:0, ...mark}, win:0, veil:0, glow:.2, dust:1, vz:.03, dolly:1});
+const outSine = t => Math.sin(t*Math.PI/2);
+const frameOf = (p, mark) => ({p, mark:{scale:1, z:0, rot:0, tx:0, ty:0, ...mark}, win:0, reach:0, shade:0, veil:0, glow:.2, dust:1, vz:.03, dolly:1});
 
 /* ---------- 1 bloom ---------- */
 const BLOOM = {c:.2, tl:.45, br:.45, tr:.62, bl:.62, ru:.85, rl:.85};
@@ -173,13 +153,14 @@ function charge(time, peek, w){
 const FINAL = {outer:1.5, keep:-.025, leave:.75, blade:-.11};
 const FINAL_NARROW = {outer:1.7, keep:-.04, blade:-.1};
 const final = () => innerWidth/innerHeight < .8 ? {...FINAL, ...FINAL_NARROW} : FINAL;
-const zoomTo = () => final().outer*(innerWidth+innerHeight)/2/241*720/Math.max(markEl.offsetWidth,1);
+const zoomTo = () => final().outer*(innerWidth+innerHeight)/2/241*720/Math.max(markDay.offsetWidth,1);
 // Springs: under-damped, they overshoot and come back. f(1) ≈ 1 (residue < 0.3 %).
 const spring = (t, k=6, w=9.5) => t >= 1 ? 1 : 1 - Math.exp(-k*t)*Math.cos(w*t);
 const SPRING = {spin:[7,7.4], settle:[6.8,8.6], pop:[7.5,12]};    // [damping, frequency] — lower damping = bouncier
-// win: the window grows from the key square to past the screen's corners; veil: the key's white
-// thins to the page's paper; home: the hero starts to rise; dolly: the hero settles back.
-const T = {spin:[0,1.75], zoom:[.05,.82], settle:[.4,1.75], win:[.3,1.4], veil:[.04,.3], dolly:[.1,1.6], home:.34, end:1.8};
+// win: the iris' flat sides run out past the screen; reach: its 45° corners follow, slowing down,
+// until the screen's corners are inside; veil: the key's white thins to the page's paper;
+// home: the hero starts to rise; dolly: the hero settles back.
+const T = {spin:[0,1.75], zoom:[.05,.82], settle:[.4,1.75], win:[.1,.75], reach:[.28,1.3], veil:[.04,.3], dolly:[.1,1.6], home:.3, end:1.8};
 const SPIN = 180;   // must stay a multiple of 180
 const KEY_HALF = 50.5/720;   // the centre square's half side, in mark widths
 const DOLLY = 1.05;
@@ -192,9 +173,16 @@ function opening(t, from){
   const base = lerp(from.scale, 1, spring(seg(t,0,.55), ...SPRING.pop)), z = outCubic(seg(t,...T.zoom));
   const scale = base*lerp(1, zoomTo(), z);
   const out = frameOf(p, {scale, rot:lerp(from.rot, SPIN, spring(seg(t,...T.spin), ...SPRING.spin))});
-  // The window starts exactly as the key square and ends larger than the screen at any angle.
-  const key = markEl.offsetWidth*scale*KEY_HALF*p.c.s, cover = .56*Math.hypot(innerWidth, innerHeight);
-  out.win = lerp(key, Math.max(key, cover), inOutCubic(seg(t,...T.win)));
+  // The iris. `win` is the half side of the square, `reach` how far its 45° cuts let it extend
+  // along the diagonals (|x|+|y| ≤ reach; a plain square has reach = 2·win). Both grow as a ratio
+  // on top of the key square as drawn, so they move with the mark and never jump: the sides race
+  // out with the release, the corners follow on a slower, decelerating curve.
+  const W = innerWidth, H = innerHeight, M = markDay.offsetWidth;
+  const key = M*scale*KEY_HALF*p.c.s, keyEnd = M*zoomTo()*KEY_HALF;
+  const sideEnd = .5*Math.max(W,H) + .3*Math.min(W,H), reachEnd = 1.1*(W+H)/2;
+  out.win = key*Math.pow(Math.max(1, sideEnd/keyEnd), outCubic(seg(t,...T.win)));
+  out.reach = Math.min(2*out.win, Math.max(out.win, 2*key*Math.pow(Math.max(1, reachEnd/(2*keyEnd)), outSine(seg(t,...T.reach)))));
+  out.shade = seg(t,.06,.3)*(1 - seg(t,.9,1.2));
   out.veil = 1 - seg(t,...T.veil);
   out.glow = from.glow*(1 - outCubic(seg(t,0,.5)));
   out.dust = 1 - seg(t,.45,1.05); out.vz = .03 + 2.4*Math.exp(-t/.3);   // thrown past the viewer
@@ -215,17 +203,39 @@ function apply(f){
     d.style.opacity = k === 'c' ? f.veil.toFixed(3) : 1;
   }
   night.style.setProperty('--glow', f.glow.toFixed(3));
-  // The window: a square hole in the night layer, turning with the mark.
+  // The iris: an eight-sided hole in the night layer, turning with the mark.
   if (f.win > 0) {
-    const w = innerWidth, h = innerHeight, a = m.rot*Math.PI/180, c = Math.cos(a)*f.win, s = Math.sin(a)*f.win;
-    const pts = [[-1,-1],[1,-1],[1,1],[-1,1]].map(([u,v]) => [w/2 + u*c - v*s, h/2 + u*s + v*c]);
-    // covered once every screen corner lies inside the square
-    const covered = [[-w/2,-h/2],[w/2,-h/2]].every(([x,y]) => Math.abs(x*Math.cos(a) + y*Math.sin(a)) <= f.win && Math.abs(-x*Math.sin(a) + y*Math.cos(a)) <= f.win);
+    const w = innerWidth, h = innerHeight, a = m.rot*Math.PI/180, cs = Math.cos(a), sn = Math.sin(a);
+    const g = f.win, k = Math.max(0, Math.min(g, 2*g - f.reach));   // k: length cut off each corner
+    const pts = [[g-k,-g],[g,-g+k],[g,g-k],[g-k,g],[-g+k,g],[-g,g-k],[-g,-g+k],[-g+k,-g]].map(([u,v]) => [w/2 + u*cs - v*sn, h/2 + u*sn + v*cs]);
+    // covered once both distinct screen corners lie inside the iris
+    const covered = [[-w/2,-h/2],[w/2,-h/2]].every(([x,y]) => { const u = Math.abs(x*cs + y*sn), v = Math.abs(-x*sn + y*cs); return u <= g && v <= g && u + v <= 2*g - k; });
     night.style.visibility = covered ? 'hidden' : 'visible';
     const q = pts.map(([x,y]) => `${x.toFixed(1)}px ${y.toFixed(1)}px`);
     night.style.clipPath = `polygon(evenodd,0 0,100% 0,100% 100%,0 100%,0 0,${q.join(',')},${q[0]})`;
-  } else { night.style.clipPath = ''; night.style.visibility = 'visible'; }
+    shade(covered ? 0 : f.shade, g, k, a);
+  } else { night.style.clipPath = ''; night.style.visibility = 'visible'; shade(0); }
   hero.style.scale = f.dolly === 1 ? '' : f.dolly.toFixed(4);
+}
+
+/* Shade: the dark sheet lies a little above the page; along the iris' edge it shades the page.
+   Eight soft bands, one per side, drawn at half resolution on a canvas in the day layer. */
+const shadeC = $('shade'), sctx = shadeC.getContext('2d');
+let shaded = false;
+function shade(alpha, g = 0, k = 0, a = 0){
+  const w = innerWidth, h = innerHeight;
+  if (shadeC.width !== Math.round(w/2) || shadeC.height !== Math.round(h/2)) { shadeC.width = Math.round(w/2); shadeC.height = Math.round(h/2); shaded = true; }
+  if (alpha <= 0 && !shaded) return;
+  sctx.setTransform(.5,0,0,.5,0,0); sctx.clearRect(0,0,w,h); shaded = alpha > 0; if (!shaded) return;
+  const depth = Math.min(64, Math.max(10, g*.16));
+  const band = sctx.createLinearGradient(0,0,0,-depth);
+  band.addColorStop(0, `rgba(4,8,20,${(.3*alpha).toFixed(3)})`); band.addColorStop(1, 'rgba(4,8,20,0)');
+  sctx.translate(w/2, h/2); sctx.rotate(a); sctx.fillStyle = band;
+  for (let i = 0; i < 8; i++) {
+    // sides at distance g (length 2(g−k)), cuts at distance (2g−k)/√2 (length k√2); +y points at the edge
+    const flat = i%2 === 0, dist = flat ? g : (2*g - k)/Math.SQRT2, half = flat ? g - k : k/Math.SQRT2;
+    if (half > .5) { sctx.save(); sctx.rotate(i*Math.PI/4); sctx.translate(0, dist); sctx.fillRect(-half, -depth, 2*half, depth); sctx.restore(); }
+  }
 }
 
 /* Dust: specks in a tunnel around the view axis. vz moves them towards (+) or away from (−) the
@@ -270,7 +280,7 @@ function open(){
   from = {scale:f.mark.scale, rot:f.mark.rot, peek, w, glow:f.glow};
   phase = 'open'; t0 = clock; gate.classList.add('is-opening');
 }
-function settle(){ phase = 'done'; gate.classList.remove('is-opening'); gate.classList.add('is-settled'); apply(opening(T.end, from)); dust(0,0,0,0); hero.classList.add('is-open'); root.classList.remove('locked'); }
+function settle(){ phase = 'done'; gate.classList.remove('is-opening'); gate.classList.add('is-settled'); apply(opening(T.end, from)); dust(0,0,0,0); shade(0); hero.classList.add('is-open'); root.classList.remove('locked'); }
 function reset(){
   scrollTo(0,0); phase = 'intro'; t0 = clock; peek = peekTarget = 0; w = 0; holding = released = false; frozen = null;
   gate.className = 'gate'; hero.classList.remove('is-open'); root.classList.add('locked');
@@ -308,7 +318,7 @@ addEventListener('touchmove', e => { if (phase === 'done') return; e.preventDefa
 gate.addEventListener('pointerdown', e => { if (e.button === 0) { ty = e.clientY; press(); } });
 addEventListener('pointerup', release); addEventListener('pointercancel', release);
 addEventListener('pointermove', e => { if (!fine.matches || e.pointerType !== 'mouse') return; tilt.tx = -(e.clientY/innerHeight*2 - 1)*7; tilt.ty = (e.clientX/innerWidth*2 - 1)*9; });
-document.addEventListener('pointerleave', () => { tilt.tx = tilt.ty = 0; });
+document.documentElement.addEventListener('mouseleave', () => { tilt.tx = tilt.ty = 0; });
 const slow = () => { rate = rate === 1 ? .35 : 1; $('slow').textContent = rate === 1 ? '½ 慢放' : '1× 原速'; };
 addEventListener('keydown', e => {
   const k = e.key.toLowerCase();

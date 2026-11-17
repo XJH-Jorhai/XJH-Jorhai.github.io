@@ -8,7 +8,7 @@ const asset = (group: 'view' | 'mood' | 'detail', id: string) => assets[group].f
 
 export const persona = {
   figure: assets.figure,
-  figureAlt: '原创角色的半身像：戴白色渔夫帽、系粉色蝴蝶结的蜜金色短发少女，穿灰紫色针织开衫和格纹短裙，右手扶着帽檐。',
+  figureAlt: '原创角色的立姿像：戴白色渔夫帽、系粉色蝴蝶结的蜜金色短发女性，穿灰紫色针织开衫、白衬衫配粉色细丝带和格纹短裙；一只手插在开衫口袋里，另一只手两指扶着帽檐，神情平静。',
   concept: ['Persona', 'Visual identity', 'Concept 01'],
   claim: { en: ['Soft Character,', 'Bold Expression.'], zh: '柔和的人物，强烈的表达。' },
   keeper: 'xjh_jorhai',

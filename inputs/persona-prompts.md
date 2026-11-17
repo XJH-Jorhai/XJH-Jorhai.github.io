@@ -1,6 +1,6 @@
 # Persona 主视觉 · 绘画 prompt
 
-给图像生成用。2026-11-17 起草，用于替换现在的 `inputs/source/persona/key-visual.webp`。
+给图像生成用。2026-11-17 起草。用户当天按此生成了 v2（透明背景，1024×1536，单手插袋、两指扶帽檐），已存为 `inputs/source/persona/key-visual-v2.webp` 并上线；以后再换图也按这里的要求。
 
 ## 要什么
 
@@ -54,5 +54,6 @@ smiling broadly, open mouth, blushing, sparkles, chibi, childish proportions, bi
 ## 生成之后
 
 1. 挑一张：脸冷静但不凶，服装细节对得上设定图，帽子和双手完整。
-2. 存为 `inputs/source/persona/key-visual.png`（透明或绿底都行），告诉我。
-3. 我会更新 `inputs/persona-recipe.json`（新的哈希、背景方式），重新运行 `npm run persona`，在四种底色上检查边缘，首页第 4 屏和 Persona 页会一起换上新图。
+2. 存到 `inputs/source/persona/`（透明或绿底都行），告诉维护者。
+3. 更新 `inputs/persona-recipe.json`（路径、哈希、背景方式；透明图用 `"background": "alpha"`，并按需要调 `alpha.floor`），运行 `npm run persona -- --debug <目录>`，在四种底色上检查边缘（尤其腿边：生成器常留一层很淡的背景雾），首页第 4 屏和 Persona 页会一起换上新图。
+4. 新图的宽高比不同，两处的人物位置要复核：`home.css` 的 `.hp-figure` / `--fig`，`persona.css` 的 `--fig` / `--wl`（大字从人物身后接出去的位置）。

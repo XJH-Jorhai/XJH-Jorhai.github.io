@@ -239,11 +239,11 @@ html[data-page='persona'] .pager a[aria-current]::after {background:var(--red);}
 }
 /* Portrait: the edge crosses lower down; the word sits on the paper above, the figure stands on the right. */
 @media (max-aspect-ratio:1/1) {
-  .h-persona {--fig:min(66svh,118vw);--y:44svh;
+  .h-persona {--fig:min(66svh,150vw);--y:44svh;
     --slab:polygon(0 calc(var(--y) - 50vw),100% calc(var(--y) + 50vw),100% 110%,0 110%);
     --blade:polygon(0 calc(var(--y) - 50vw + 5vw),100% calc(var(--y) + 55vw),100% calc(var(--y) + 64vw),0 calc(var(--y) - 50vw + 14vw));}
   .hp-word-layer {align-items:flex-start;padding-top:clamp(104px,14svh,150px);padding-bottom:0;font-size:min(23vw,20svh);}
-  .hp-figure {left:auto;right:-18vw;}
+  .hp-figure {left:auto;right:-4vw;}
   .hp-side {top:auto;bottom:clamp(28px,4svh,40px);right:auto;left:var(--gutter);justify-items:start;gap:18px;}
   .hp-claim {text-align:left;font-size:clamp(22px,6.4vw,34px);}
   .hp-claim small {letter-spacing:.14em;}

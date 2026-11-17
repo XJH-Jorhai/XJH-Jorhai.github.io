@@ -30,10 +30,34 @@ function segmentDistance(r, g, b, p, q) {
 }
 
 /* ---------- 1 the character, cut out of the key visual ---------- */
-/** A source that already has a transparent background: keep its alpha, trim, export. */
-async function fromAlpha(bytes) {
-  const trimmed = sharp(bytes).ensureAlpha().trim({threshold: 1});
-  const buffer = await trimmed.png().toBuffer();
+/**
+ * A source that already has a transparent background. Its alpha is kept, with two clean-ups that the
+ * recipe controls (`alpha.floor`, `alpha.ceil`): generators often leave a faint haze of the removed
+ * background (alpha just above 0) and never quite reach full opacity. Below `floor` becomes 0, above
+ * `ceil` becomes 255, the band in between is stretched, so anti-aliased edges stay soft. Then only the
+ * figure itself is kept (the largest connected piece), which drops stray specks. Colours are not touched.
+ */
+async function fromAlpha(bytes, cfg) {
+  const {floor = 0, ceil = 255} = cfg.alpha ?? {};
+  const {data, info} = await sharp(bytes).ensureAlpha().raw().toBuffer({resolveWithObject: true});
+  const W = info.width, H = info.height, N = W * H;
+  for (let i = 0; i < N; i++) {
+    const a = data[i * 4 + 3];
+    data[i * 4 + 3] = a <= floor ? 0 : a >= ceil ? 255 : Math.round((a - floor) / (ceil - floor) * 255);
+  }
+  // Largest 4-connected piece of visible pixels.
+  const label = new Int32Array(N); let best = 0, bestSize = 0, labels = 0;
+  for (let start = 0; start < N; start++) {
+    if (!data[start * 4 + 3] || label[start]) continue;
+    const id = ++labels, members = [start]; label[start] = id;
+    for (let n = 0; n < members.length; n++) {
+      const i = members[n], x = i % W;
+      for (const j of [x > 0 ? i - 1 : -1, x < W - 1 ? i + 1 : -1, i - W, i + W]) if (j >= 0 && j < N && data[j * 4 + 3] && !label[j]) { label[j] = id; members.push(j); }
+    }
+    if (members.length > bestSize) { bestSize = members.length; best = id; }
+  }
+  for (let i = 0; i < N; i++) if (label[i] !== best) data[i * 4 + 3] = 0;
+  const buffer = await sharp(data, {raw: {width: W, height: H, channels: 4}}).trim({threshold: 1}).png().toBuffer();
   const file = await sharp(buffer).webp({quality: 92, alphaQuality: 100, effort: 6}).toFile(`${out}/figure.webp`);
   if (debug) for (const [name, colour] of [['on-green', '#00c060'], ['on-navy', '#083366'], ['on-red', '#EF3025'], ['on-paper', '#F3EDE2']])
     await sharp({create: {width: file.width, height: file.height, channels: 3, background: colour}}).composite([{input: buffer}]).png().toFile(`${debug}/figure-${name}.png`);
@@ -43,7 +67,7 @@ async function fromAlpha(bytes) {
 async function cutout() {
   const cfg = recipe.keyVisual, bytes = await source(cfg);
   // `"background": "alpha"` in the recipe: the image already comes cut out (a transparent PNG).
-  if (cfg.background === 'alpha') return fromAlpha(bytes);
+  if (cfg.background === 'alpha') return fromAlpha(bytes, cfg);
   const {data, info} = await sharp(bytes).removeAlpha().raw().toBuffer({resolveWithObject: true});
   const W = info.width, H = info.height, N = W * H;
   const grounds = cfg.background.map(g => g.rgb), limits = cfg.background.map(g => g.tolerance);

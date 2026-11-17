@@ -58,7 +58,7 @@ __spatial.snapshot()
 
 两张原图放在 `inputs/source/persona/`（`key-visual.webp` 主视觉、`reference-sheet.webp` 设定图），不进仓库。`npm run persona` 按 `inputs/persona-recipe.json` 生成 `public/media/persona/` 下的素材和 `src/data/persona.assets.json`：
 
-- `figure.webp`：从主视觉里抠出的人物。平涂背景（奶油、红、深蓝）按颜色去掉；帽子和奶油色背景几乎同色，那一段用配方里手工描的 `keep` 多边形裁定。加 `--debug <目录>` 会输出人物叠在四种底色上的预览，换图后先看这个。
+- `figure.webp`：主视觉里的人物。现用的 v2 是透明背景图（配方 `"background": "alpha"`）：直接用它的透明通道，透明度 ≤ `alpha.floor` 的背景残雾清零、只保留最大的一块。按颜色抠的流程（`background` 为颜色列表，配合手工描的 `keep` 多边形）仍保留，给不透明的原图用。加 `--debug <目录>` 会输出人物叠在四种底色上的预览，换图后先看这个。
 - `view-*`、`mood-*`、`detail-*`、`head-back`：设定图上的矩形裁切，像素不动。
 - 色值：设定图色卡的中位数取样。
 

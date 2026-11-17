@@ -53,6 +53,12 @@ try {
   assert.equal(await paged.locator('#cover').isVisible(),false);
   await paged.keyboard.press('ArrowDown');
   await paged.waitForFunction(()=>document.documentElement.dataset.page==='notes');
+  await paged.waitForTimeout(900); // keys pressed while the blades are still moving are ignored on purpose
+  await paged.keyboard.press('ArrowDown');
+  await paged.waitForFunction(()=>document.documentElement.dataset.page==='persona');
+  assert.equal(await paged.locator('#persona .hp-figure').isVisible(),true);
+  assert.equal(await paged.locator('#persona a[href="/persona/"]').count(),1);
+  await paged.waitForTimeout(900);
   await paged.locator('[data-pager] a').last().click();
   await paged.waitForFunction(()=>document.documentElement.dataset.page==='end');
   assert.equal(await paged.locator('.site-footer').isVisible(),true);

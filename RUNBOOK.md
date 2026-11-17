@@ -62,7 +62,7 @@ __spatial.snapshot()
 - `view-*`、`mood-*`、`detail-*`、`head-back`：设定图上的矩形裁切，像素不动。
 - 色值：设定图色卡的中位数取样。
 
-换了原图要更新配方里的 `sha256`，并重新核对裁切框和帽子轮廓。
+换了原图要更新配方里的 `sha256`，并重新核对裁切框和帽子轮廓。主视觉的绘画 prompt 在 `inputs/persona-prompts.md`。新图如果是透明背景，把配方里 `keyVisual.background` 改成 `"alpha"`（直接用图的透明通道，不再按颜色抠，`keep` 等字段可删）；如果是纯绿底，`background` 改成只有一项绿色，`keep` 清空。
 
 素材处理记录自动写入 `reports/`。铁傀儡海报重建：预览运行时执行 `node scripts/prepare-piston-poster.mjs`。
 

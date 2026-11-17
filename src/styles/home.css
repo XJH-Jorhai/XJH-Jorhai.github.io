@@ -202,6 +202,7 @@ html[data-page='about'] .pager a[aria-current]::after {background:var(--chalk);}
 .h-colophon dt {font:12px var(--font-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--dim);}
 .h-colophon dd {margin:8px 0 0;font:500 clamp(17px,1.5vw,22px) var(--font-mono);}
 .h-colophon dd span {display:block;margin-top:6px;font:12px var(--font-sans);letter-spacing:.14em;color:var(--dim);}
+.h-colophon-art a {display:block;width:fit-content;}
 .h-colophon-art img {width:clamp(72px,min(7vw,11svh),112px);aspect-ratio:1;object-fit:cover;border:1px solid var(--rule);}
 
 /* ================= (04) Index: the golem, the ways out, the issuing mark ================= */

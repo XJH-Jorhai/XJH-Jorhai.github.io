@@ -20,7 +20,7 @@ try {
   for (const width of [1440, 768, 360]) {
     const page=await browser.newPage({viewport:{width,height:1000},reducedMotion:'reduce',isMobile:width===360,hasTouch:width===360});
     page.on('pageerror', error => errors.push(String(error)));
-    for (const [path,title] of [['/','FIELDNOTES'],['/notes/','NOTES'],['/work/','WORK']]) {
+    for (const [path,title] of [['/','FIELDNOTES'],['/notes/','NOTES'],['/work/','WORK'],['/persona/','Persona']]) {
       assert.equal((await page.goto(base+path)).status(),200);
       assert.ok((await page.locator('h1').textContent()).includes(title),`${path}: h1`);
       assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),`${path}: overflow at ${width}`);
@@ -61,6 +61,15 @@ try {
   await paged.waitForFunction(()=>document.documentElement.dataset.page==='cover');
   assert.ok(await paged.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'paged home: overflow');
   await paged.close();
+  // Persona: choosing an expression switches the stage.
+  const persona=await browser.newPage({viewport:{width:1280,height:800}});
+  persona.on('pageerror',error=>errors.push(String(error)));
+  await persona.goto(base+'/persona/');
+  await persona.locator('[data-mood-pick="shy"]').click();
+  assert.equal(await persona.locator('[data-p-mood]').getAttribute('data-mood'),'shy');
+  assert.equal(await persona.locator('[data-mood-zh]').textContent(),'害羞');
+  assert.equal(await persona.locator('[data-mood-pick][aria-pressed="true"]').count(),1);
+  await persona.close();
   const noJS=await browser.newContext({javaScriptEnabled:false});
   const staticPage=await noJS.newPage();
   await staticPage.goto(base+'/notes/');
@@ -68,8 +77,11 @@ try {
   assert.equal(await staticPage.locator('details').first().evaluate(el=>el.open),true);
   await staticPage.goto(base);
   assert.equal(await staticPage.locator('.work-title-link').count(),2);
+  await staticPage.goto(base+'/persona/');
+  assert.equal(await staticPage.locator('.p-pick img').count(),6);
+  assert.equal(await staticPage.locator('.p-view img').count(),3);
   assert.deepEqual(errors,[]);
-  console.log(`Passed: ${browser.version()}, responsive indexes, images, navigation, keyboard, reduced motion, paged home, no JavaScript.`);
+  console.log(`Passed: ${browser.version()}, responsive indexes, images, navigation, keyboard, reduced motion, paged home, persona, no JavaScript.`);
 } finally {
   await browser?.close();
   server?.kill();

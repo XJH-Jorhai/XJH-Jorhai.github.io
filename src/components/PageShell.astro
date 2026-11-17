@@ -16,8 +16,10 @@ interface Props {
   noindex?: boolean;
   /** The home page has its own opening and corner blocks instead of the mark and blade. */
   home?: boolean;
+  /** Pages with their own full-bleed top (Persona) keep the mark but drop the corner blade. */
+  blade?: boolean;
 }
-const { title, description = site.description, language = 'zh-CN', sheen = false, noindex = false, home = false } = Astro.props;
+const { title, description = site.description, language = 'zh-CN', sheen = false, noindex = false, home = false, blade = true } = Astro.props;
 const pathname = Astro.url.pathname;
 const colors = Object.entries(palette).filter(([role]) => role !== 'name').map(([role, value]) => `--color-${role}:${value}`).join(';');
 ---
@@ -37,7 +39,7 @@ const colors = Object.entries(palette).filter(([role]) => role !== 'name').map((
     {sheen && <div data-mineral-sheen aria-hidden="true" hidden></div>}
     <a class="skip-link" href="#main">跳至正文</a>
     <slot name="overlay" />
-    {!home && <div class="page-blade" aria-hidden="true"></div>}
+    {!home && blade && <div class="page-blade" aria-hidden="true"></div>}
     {!home && <a class="home-mark" href="/" aria-label="TEISU FIELDNOTES，回到首页"><img src="/media/brand/teisu-mark.svg" width="30" height="30" alt="" /></a>}
     <main id="main"><slot /></main>
     <footer class="site-footer page-width">
@@ -46,6 +48,7 @@ const colors = Object.entries(palette).filter(([role]) => role !== 'name').map((
         <a href="/" aria-current={pathname === '/' ? 'page' : undefined}>Blog</a>
         <a href="/work/" aria-current={pathname.startsWith('/work') || pathname.startsWith('/projects') ? 'page' : undefined}>Work</a>
         <a href="/notes/" aria-current={pathname.startsWith('/notes') ? 'page' : undefined}>Notes</a>
+        <a href="/persona/" aria-current={pathname.startsWith('/persona') ? 'page' : undefined}>Persona</a>
         <a href="/#about">About</a>
       </nav>
       <a class="footer-top" href="#main">Back to top <span aria-hidden="true">↑</span></a>

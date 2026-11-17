@@ -17,9 +17,11 @@
     "check:sources": "node scripts/validate-content.mjs --sources",
     "test:site": "node scripts/verify-site.mjs",
     "test:piston": "node scripts/verify-piston-impact.mjs",
-    "lab": "node scripts/astro.mjs build && node lab/opening/build.mjs"
+    "lab": "node scripts/astro.mjs build && node lab/opening/build.mjs",
+    "persona": "node scripts/process-persona.mjs"
   },
   "dependencies": {
+    "@fontsource/barlow-condensed": "^5.3.0",
     "@fontsource/space-grotesk": "^5.3.0",
     "astro": "7.4.2",
     "motion": "14.6.0",

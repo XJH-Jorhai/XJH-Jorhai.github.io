@@ -21,6 +21,22 @@
 | 结尾 | 超大字标收尾 | `FIELDNOTES` 字标 |
 | 克制 | 一屏只有一个主角 | 每屏只保留一个动的东西 |
 
+### Persona 页的方向（用户方向稿，2026-11-17）
+
+用户为 Persona 页单独写了一份视觉方向稿，核心主张是 **Soft Character, Bold Expression**。稿中列出的三个探索方向和借鉴来源：
+
+| 方向 / 来源 | 借鉴什么 |
+| --- | --- |
+| Chromatic Collision（已选为基调） | 高饱和冷暖对比、大尺度几何、近似日本商业海报与杂志封面的冲击力 |
+| Controlled Chaos（借其排版秩序） | 瑞士国际主义的网格与层级，加上不对称、错位、尺度变化的局部破格 |
+| Soft Brutalism（未采用为主调） | 新粗野主义的直接与强硬；可取的是「温柔的人物不需要温柔的背景」 |
+| 日本实验性平面设计、Japanese Editorial Design | 字与图像的结合、角色插画与文字的关系 |
+| Persona 5 的视觉识别 | 字体、图形、角色和交互如何形成一套风格（只学方法，不用其素材） |
+
+稿中给出的可浏览站点：[Awwwards](https://www.awwwards.com/)、[SANKOU!](https://sankoudesign.com/)、[Godly](https://godly.website/)、[Behance](https://www.behance.net/)、[Niki Ito](https://nikiito.com/)。这些链接来自用户的稿件，本仓库没有逐一打开核对。
+
+落地方式见 `design.md` 3.1。
+
 ## 2. 推荐继续看的网站
 
 按「想学什么」分组。每条写了建议重点看的地方。

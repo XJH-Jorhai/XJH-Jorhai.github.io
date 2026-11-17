@@ -4,7 +4,7 @@
 
 ## 环境
 
-Node.js 24（最低见 `package.json`）、npm、唯一的 `package-lock.json`。主要依赖：Astro、Three.js、Motion、three-fluid-fx、Sharp、Playwright、@fontsource/space-grotesk（展示字体，OFL）。
+Node.js 24（最低见 `package.json`）、npm、唯一的 `package-lock.json`。主要依赖：Astro、Three.js、Motion、three-fluid-fx、Sharp、Playwright、@fontsource/space-grotesk（展示字体，OFL）、@fontsource/barlow-condensed（Persona 页的粗斜体展示字，OFL）。
 
 ## 常用命令
 
@@ -17,6 +17,7 @@ npm run preview     # 预览 dist/，http://127.0.0.1:4321
 npm run test:site   # 浏览器路径测试（需 npx playwright install chromium）
 npm run test:piston # 首页铁傀儡动画测试（需先运行 preview）
 npm run lab         # 构建站点并生成开幕原型 lab/opening/teisu-opening.html（双击打开）
+npm run persona     # 由私有原图重新生成 Persona 页素材（需要 inputs/source/persona/）
 ```
 
 浏览器测试默认使用 Playwright 自带的 Chromium；要指定其他浏览器，设置环境变量 `BROWSER_EXECUTABLE`。
@@ -52,6 +53,16 @@ __spatial.snapshot()
 3. `npm run images` 生成详情页素材；画廊封面用 `node scripts/process-work-covers.mjs`。
 4. 在 `src/data/projects.ts` 注册，在 `src/content/projects/` 添加正文。
 5. `npm run check`、`npm run build`，浏览器中检查左右/上下视角和遮挡边缘。
+
+### Persona 素材
+
+两张原图放在 `inputs/source/persona/`（`key-visual.webp` 主视觉、`reference-sheet.webp` 设定图），不进仓库。`npm run persona` 按 `inputs/persona-recipe.json` 生成 `public/media/persona/` 下的素材和 `src/data/persona.assets.json`：
+
+- `figure.webp`：从主视觉里抠出的人物。平涂背景（奶油、红、深蓝）按颜色去掉；帽子和奶油色背景几乎同色，那一段用配方里手工描的 `keep` 多边形裁定。加 `--debug <目录>` 会输出人物叠在四种底色上的预览，换图后先看这个。
+- `view-*`、`mood-*`、`detail-*`、`head-back`：设定图上的矩形裁切，像素不动。
+- 色值：设定图色卡的中位数取样。
+
+换了原图要更新配方里的 `sha256`，并重新核对裁切框和帽子轮廓。
 
 素材处理记录自动写入 `reports/`。铁傀儡海报重建：预览运行时执行 `node scripts/prepare-piston-poster.mjs`。
 

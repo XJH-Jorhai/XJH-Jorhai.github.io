@@ -4,7 +4,7 @@
 
 本机仍保存但不上传：
 
-- source/：原始照片、补充板级图和论文。
+- source/：原始照片、补充板级图和论文；source/persona/ 下是 Persona 的主视觉和人物设定图（配方见 persona-recipe.json）。
 - work-covers/*.png：封面制作源文件。
 - derived/：可选处理中间产物。
 

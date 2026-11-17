@@ -53,7 +53,7 @@ export function initPersona(){
       if(wipe&&!reduced){
         // Paint the old ground over the section, switch underneath it, then sweep it off to the right.
         wipe.style.setProperty('--wipe',getComputedStyle(mood!).backgroundColor);
-        wipe.animate([{clipPath:'polygon(-60% 0,160% 0,100% 100%,-120% 100%)'},{clipPath:'polygon(160% 0,160% 0,100% 100%,100% 100%)'}],{duration:620,easing:'cubic-bezier(.5,0,.1,1)',fill:'both'});
+        wipe.animate([{clipPath:'polygon(-60% 0,160% 0,100% 100%,-120% 100%)'},{clipPath:'polygon(160% 0,160% 0,100% 100%,100% 100%)'}],{duration:560,easing:'cubic-bezier(.3,.55,.15,1)',fill:'both'});
       }
       mood!.dataset.mood=id;
       for(const other of picks)other.setAttribute('aria-pressed',String(other===pick));

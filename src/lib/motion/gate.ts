@@ -226,10 +226,12 @@ export function initGate(){
     addEventListener('resize',landed,{passive:true});
   }
 
-  const nav=(performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming|undefined)?.type;
-  const seen=sessionStorage.getItem('teisu-gate')==='1'&&nav!=='reload';
+  // Whether to play was decided in <head> before the first paint (PageShell): reduced motion, a repeat
+  // visit in this session (not a reload) or a hash skip it. The dark stage has been showing since then.
+  const play=root.classList.contains('gate-boot');
+  root.classList.remove('gate-boot');
   gate.hidden=false;
-  if(matchMedia('(prefers-reduced-motion: reduce)').matches||seen||!!location.hash||scrollY>40){settle();return;}
+  if(!play||scrollY>40){settle();return;}
 
   history.scrollRestoration='manual';scrollTo(0,0);root.classList.add('gate-lock');
   function press(auto=false){

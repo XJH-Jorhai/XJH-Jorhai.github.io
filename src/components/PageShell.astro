@@ -28,6 +28,14 @@ const colors = Object.entries(palette).filter(([role]) => role !== 'name').map((
   <head>
     <meta charset="UTF-8" />
     <script is:inline>document.documentElement.classList.add('js')</script>
+    {home && <Fragment>
+      {/* Decide before the first paint whether the opening plays, so that page starts dark instead of
+          flashing the paper home for as long as the deferred module scripts take to arrive. gate.ts reads
+          and removes the class. If it never runs (the scripts failed to load), the timer lifts the dark and
+          drops `js` as well, so the page reads exactly as it does without JavaScript. */}
+      <script is:inline>(function(){try{var d=document.documentElement,n=performance.getEntriesByType('navigation')[0],seen=sessionStorage.getItem('teisu-gate')==='1'&&!(n&&n.type==='reload');if(matchMedia('(prefers-reduced-motion: reduce)').matches||seen||location.hash)return;d.classList.add('gate-boot');setTimeout(function(){if(d.classList.contains('gate-boot'))d.classList.remove('gate-boot','js')},8000)}catch(e){}})()</script>
+      <style is:inline>html.gate-boot{background:#080d18}</style>
+    </Fragment>}
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <meta name="description" content={description} />
     {noindex && <meta name="robots" content="noindex" />}

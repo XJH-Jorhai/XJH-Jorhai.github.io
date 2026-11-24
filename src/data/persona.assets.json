@@ -14,15 +14,17 @@
     {
       "id": "left",
       "box": [
-        240,
+        236,
         200,
-        54,
+        62,
         30
       ],
       "white": "/media/persona/eye-left-white.webp",
       "iris": "/media/persona/eye-left-iris.webp",
       "range": [
         3.5,
+        7.5,
+        1.5,
         1.5
       ],
       "gain": [
@@ -34,15 +36,17 @@
     {
       "id": "right",
       "box": [
-        332,
+        328,
         213,
-        40,
+        48,
         27
       ],
       "white": "/media/persona/eye-right-white.webp",
       "iris": "/media/persona/eye-right-iris.webp",
       "range": [
         3,
+        7,
+        1.2,
         1.2
       ],
       "gain": [

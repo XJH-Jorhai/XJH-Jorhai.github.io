@@ -65,6 +65,10 @@ try {
   await paged.waitForFunction(()=>document.querySelectorAll('#about .hp-eye.is-ready').length===2);
   await paged.mouse.move(8,400,{steps:4});
   await paged.waitForFunction(()=>parseFloat(document.querySelector('#about').style.getPropertyValue('--ex'))<-.3,null,{timeout:15000});
+  // Petting: rubbing back and forth over her head makes hearts rise.
+  const head=await paged.locator('#about [data-hp-head]').boundingBox();
+  for(let i=0;i<12;i++){await paged.mouse.move(head.x+head.width*(i%2?.75:.25),head.y+head.height*.5,{steps:4});await paged.waitForTimeout(60);}
+  await paged.waitForFunction(()=>document.querySelectorAll('#about .hp-heart').length>0,null,{timeout:5000});
   await paged.mouse.move(640,4,{steps:4});
   await paged.waitForTimeout(900);
   await paged.locator('[data-pager] a').last().click();

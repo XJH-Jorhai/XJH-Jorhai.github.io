@@ -68,4 +68,6 @@ smiling broadly, open mouth, blushing, sparkles, chibi, childish proportions, bi
 Edit only the eyes of this exact image and change nothing else. Remove both irises and pupils completely, leaving only the whites of the eyes inside the same eyelid shapes. Keep the eyelids, eyelashes, eyelid lines, eyebrows, eye shape, face, hair, hat, lighting and every other pixel exactly as they are. The empty eye whites should have the same soft shading as in the original: a slightly darker band just under the upper eyelid and a gentle grey-lavender shadow toward the corners, no highlights, no glow. Keep the transparent background. Same canvas size (1024×1536), same position of everything.
 ```
 
-交付：存为 `inputs/source/persona/key-visual-v2-noiris.png`（透明背景），告诉维护者。拿到后会：核对两张图眼睛以外是否对齐；在原图上描出两只眼眶和两块虹膜；把虹膜做成可移动的图层，限制在眼眶内移动（约 ±3px），只在精细指针、未要求减少动效时启用。
+交付：存到 `inputs/source/persona/`，告诉维护者。
+
+**已完成（2026-11-24）**：用户交来的是一张只有双眼的特写（1946×808，不是整张图），存为 `key-visual-v2-eyes-plate.webp`。因为不是同一画布，处理时每只眼睛按眼眶范围单独对齐，并且只取虹膜下面那一块眼白；眼眶、虹膜都还是原图像素（配方 `eyes`，说明见 `RUNBOOK.md`）。以后换主视觉，按上面的 prompt 再要一张；整张图或特写都可以，特写要包含两只完整的眼眶。

@@ -65,14 +65,18 @@ const pad = (n: number) => String(n).padStart(2, '0');
     <!-- (03) Persona & About, one page. The character stands across the navy slab's diagonal; About's text
          is on the paper to her left, the claim and the colophon on the navy to her right. PERSONA is set
          twice (navy on paper, paper-white clipped to the slab) so it changes colour where it crosses.
-         On a fine pointer the layers move at different depths and she turns a little (persona-stage.ts). -->
+         On a fine pointer the layers move at different depths, she turns a little and her eyes follow the
+         pointer (persona-stage.ts). -->
     <section class="h-persona page" id="about" data-alias="persona" data-page tabindex="-1" aria-labelledby="about-heading">
       <div class="hp-stage" data-hp-stage>
         <div class="hp-ground" aria-hidden="true"><i class="hp-slab"></i><i class="hp-blade"></i></div>
         <p class="hp-word" aria-hidden="true">{['hp-ink', 'hp-cut'].map(layer => <span class:list={['hp-word-layer', layer]}>{[...'PERSONA'].map((char, i) => <span class="hp-letter" style={`--i:${i}`}>{char}</span>)}</span>)}</p>
         <div class="hp-figure-box">
           <span class="hp-shadow" aria-hidden="true" style={`--mask:url(${persona.figure.src})`}></span>
-          <img class="hp-figure" src={persona.figure.src} width={persona.figure.width} height={persona.figure.height} alt={persona.figureAlt} loading="eager" decoding="async" />
+          <div class="hp-figure-body">
+            <img class="hp-figure" src={persona.figure.src} width={persona.figure.width} height={persona.figure.height} alt={persona.figureAlt} loading="eager" decoding="async" />
+            {persona.eyes.map(eye => <span class="hp-eye" aria-hidden="true" data-hp-eye data-white={eye.white} data-iris={eye.iris} style={eye.style}></span>)}
+          </div>
         </div>
         <div class="hp-side tone-night">
           <p class="hp-claim" data-enter="right" style="--k:6">{persona.claim.en.map(line => <span>{line}</span>)}<small>{persona.claim.zh}</small></p>

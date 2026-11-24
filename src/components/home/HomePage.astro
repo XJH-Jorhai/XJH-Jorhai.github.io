@@ -32,8 +32,7 @@ const pad = (n: number) => String(n).padStart(2, '0');
           <nav class="hero-index stair" aria-label="本页内容">
             <a href="#work" data-h style="--step:0;--d:1s"><span>(01)</span>Work</a>
             <a href="#notes" data-h style="--step:1;--d:1.08s"><span>(02)</span>Notes</a>
-            <a href="#persona" data-h style="--step:2;--d:1.16s"><span>(03)</span>Persona</a>
-            <a href="#about" data-h style="--step:3;--d:1.24s"><span>(04)</span>About</a>
+            <a href="#about" data-h style="--step:2;--d:1.16s"><span>(03)</span>About</a>
           </nav>
         </div>
       </div>
@@ -63,40 +62,39 @@ const pad = (n: number) => String(n).padStart(2, '0');
       </div>
     </section>
 
-    <!-- (03) Persona: only the key visual. The full profile lives on /persona/. The word is set twice:
-         navy on paper, and paper-white clipped to the navy slab, so it changes colour where it crosses. -->
-    <section class="h-persona page" id="persona" data-page tabindex="-1" aria-labelledby="persona-heading">
-      <div class="hp-ground" aria-hidden="true"><i class="hp-slab"></i><i class="hp-blade"></i></div>
-      <p class="page-edge" aria-hidden="true">(03) Persona <i>/</i> Fieldnotes <i>/</i> Teisu</p>
-      <h2 id="persona-heading" class="hp-word"><span class="visually-hidden">Persona</span>{['hp-ink', 'hp-cut'].map(layer => <span class:list={['hp-word-layer', layer]} aria-hidden="true">{[...'PERSONA'].map((char, i) => <span class="hp-letter" style={`--i:${i}`}>{char}</span>)}</span>)}</h2>
-      <img class="hp-figure" src={persona.figure.src} width={persona.figure.width} height={persona.figure.height} alt={persona.figureAlt} loading="eager" decoding="async" />
-      <p class="hp-tag h-no" data-enter style="--k:0"><span>(03)</span><span>Persona</span><span>Character visual</span></p>
-      <div class="hp-side">
-        <p class="hp-claim" data-enter="right" style="--k:6">{persona.claim.en.map(line => <span>{line}</span>)}<small>{persona.claim.zh}</small></p>
-        <a class="hp-link" href="/persona/" data-enter style="--k:8"><span class="hp-link-zh">人物设定</span><span class="hp-link-en">View persona</span><span class="hp-link-arrow" aria-hidden="true">↗</span></a>
-      </div>
-    </section>
-
-    <section class="h-about tone-red page" id="about" data-page tabindex="-1" aria-labelledby="about-heading">
-      <p class="page-edge" aria-hidden="true">(04) About <i>/</i> Fieldnotes <i>/</i> Teisu</p>
-      <div class="page-width h-about-grid">
-        <p class="h-no" data-enter style="--k:0">(04) About</p>
-        <div>
-          <h2 id="about-heading"><span data-enter="cut" style="--k:1">保持好奇，</span><span data-enter="cut" style="--k:2.4">慢慢做。</span></h2>
-          <p data-lines style="--k:4">{journal.about}</p>
-          <p class="h-about-note" data-lines style="--k:6">这个空间会随着项目一起生长。介绍文字为初稿，笔记目录暂为写作提纲占位，之后逐步换成真实的过程与记录。</p>
-          <dl class="h-colophon">
-            <div data-enter="right" style="--k:8"><dt>Issued by</dt><dd>TEISU<span>假想组织</span></dd></div>
-            <div data-enter="right" style="--k:9"><dt>Kept by</dt><dd>{journal.author}</dd></div>
-            <div class="h-colophon-art" data-enter="right" style="--k:10"><dt>Persona</dt><dd><a href="#persona" aria-label="Persona：人物主视觉"><img src="/media/persona/oil-720.webp" width="720" height="720" loading="lazy" decoding="async" alt="油画风格的人物插画：戴白色渔夫帽、系红色缎带的金色短发少女，背景左侧钴蓝、右侧朱红的厚涂笔触。" /></a><span>人物设定 ↗</span></dd></div>
+    <!-- (03) Persona & About, one page. The character stands across the navy slab's diagonal; About's text
+         is on the paper to her left, the claim and the colophon on the navy to her right. PERSONA is set
+         twice (navy on paper, paper-white clipped to the slab) so it changes colour where it crosses.
+         On a fine pointer the layers move at different depths and she turns a little (persona-stage.ts). -->
+    <section class="h-persona page" id="about" data-alias="persona" data-page tabindex="-1" aria-labelledby="about-heading">
+      <div class="hp-stage" data-hp-stage>
+        <div class="hp-ground" aria-hidden="true"><i class="hp-slab"></i><i class="hp-blade"></i></div>
+        <p class="hp-word" aria-hidden="true">{['hp-ink', 'hp-cut'].map(layer => <span class:list={['hp-word-layer', layer]}>{[...'PERSONA'].map((char, i) => <span class="hp-letter" style={`--i:${i}`}>{char}</span>)}</span>)}</p>
+        <div class="hp-figure-box">
+          <span class="hp-shadow" aria-hidden="true" style={`--mask:url(${persona.figure.src})`}></span>
+          <img class="hp-figure" src={persona.figure.src} width={persona.figure.width} height={persona.figure.height} alt={persona.figureAlt} loading="eager" decoding="async" />
+        </div>
+        <div class="hp-side tone-night">
+          <p class="hp-claim" data-enter="right" style="--k:6">{persona.claim.en.map(line => <span>{line}</span>)}<small>{persona.claim.zh}</small></p>
+          <dl class="hp-colophon">
+            <div data-enter="right" style="--k:7"><dt>Issued by</dt><dd>TEISU<span>假想组织</span></dd></div>
+            <div data-enter="right" style="--k:8"><dt>Kept by</dt><dd>{journal.author}</dd></div>
           </dl>
-          <a class="h-about-link text-link" href="/notes/" data-enter style="--k:11">从一则笔记开始 <span aria-hidden="true">↗</span></a>
+          <a class="hp-link" href="/persona/" data-enter style="--k:9"><span class="hp-link-zh">人物设定</span><span class="hp-link-en">View persona</span><span class="hp-link-arrow" aria-hidden="true">↗</span></a>
         </div>
       </div>
+      <div class="hp-about">
+        <p class="hp-tag h-no" data-enter style="--k:0"><span>(03)</span><span>About</span><span>Persona</span></p>
+        <h2 id="about-heading"><span data-enter="cut" style="--k:1">保持好奇，</span><span data-enter="cut" style="--k:2.4">慢慢做。</span></h2>
+        <p class="hp-about-text" data-lines style="--k:4">{journal.about}</p>
+        <p class="hp-about-note" data-lines style="--k:6">这个空间会随着项目一起生长。介绍文字为初稿，笔记目录暂为写作提纲占位，之后逐步换成真实的过程与记录。</p>
+        <a class="hp-about-link" href="/notes/" data-enter style="--k:8">从一则笔记开始 <span aria-hidden="true">↗</span></a>
+      </div>
+      <p class="page-edge" aria-hidden="true">(03) About <i>/</i> Persona <i>/</i> Teisu</p>
     </section>
 
     <section class="h-outro page" id="end" data-page tabindex="-1" aria-label="站点导航">
-      <p class="page-edge" aria-hidden="true">(05) Index <i>/</i> Fieldnotes <i>/</i> Teisu</p>
+      <p class="page-edge" aria-hidden="true">(04) Index <i>/</i> Fieldnotes <i>/</i> Teisu</p>
       <div class="page-width">
         <div class="h-outro-row">
           <div class="h-outro-object" data-enter="fade" style="--k:1"><PistonGolem /></div>
@@ -112,19 +110,20 @@ const pad = (n: number) => String(n).padStart(2, '0');
       </div>
     </section>
   </div>
-  <!-- Paged home (pager.ts): a tick per page, and the blades that rise across the screen when the page changes. -->
+  <!-- Paged home (pager.ts): a tick per page, and the canvas the page transition is drawn on (sweep.ts). -->
   <nav class="pager" data-pager aria-label="分屏导航" hidden>
     <a href="#cover"><span>Cover</span></a>
     <a href="#work"><span>Work</span></a>
     <a href="#notes"><span>Notes</span></a>
-    <a href="#persona"><span>Persona</span></a>
     <a href="#about"><span>About</span></a>
     <a href="#end"><span>Index</span></a>
   </nav>
-  <div class="wipe" data-wipe aria-hidden="true">{[0, 1, 2, 3, 4, 5].map(i => <span style={`--i:${i}`}></span>)}</div>
+  <canvas class="wipe" data-wipe aria-hidden="true"></canvas>
   <script>
     import { initGate } from '../../lib/motion/gate';
     import { initPager } from '../../lib/motion/pager';
+    import { initPersonaStage } from '../../lib/motion/persona-stage';
+    initPersonaStage();
     initPager();
     initGate();
   </script>

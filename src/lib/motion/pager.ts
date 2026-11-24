@@ -1,9 +1,10 @@
+import {createSweep} from './sweep';
 /**
  * Home pager. The home page's sections are full-screen pages: one is shown at a time and a wheel
- * notch, a swipe, an arrow key or an in-page link switches to the next, behind a row of blades
- * that rise from below (going forward) or come down from above (going back). The page is swapped
- * while the blades cover everything, so nothing on a page ever moves and the WebGL scenes only
- * have to measure again once.
+ * notch, a swipe, an arrow key or an in-page link switches to the next, behind the corner blocks and
+ * a sweep of colour bands (sweep.ts) that rise from below (going forward) or come down from above
+ * (going back). The page is swapped while the screen is covered, so nothing on a page ever moves and
+ * the WebGL scenes only have to measure again once.
  *
  * Without JS or with reduced motion there is no pager: the sections simply follow each other as one
  * long page. A page taller than the screen scrolls inside itself first; the pager takes over at its
@@ -38,11 +39,12 @@ export function initPager(){
   const pages=Array.from(home.querySelectorAll<HTMLElement>(':scope > [data-page]'));
   if(pages.length<2)return;
   const root=document.documentElement;
-  const blades=Array.from(document.querySelectorAll<HTMLElement>('[data-wipe] > span'));
+  const wipe=document.querySelector<HTMLCanvasElement>('[data-wipe]');
+  const sweep=wipe?createSweep(wipe):null;
   const nav=document.querySelector<HTMLElement>('[data-pager]');
   const ticks=nav?Array.from(nav.querySelectorAll<HTMLAnchorElement>('a')):[];
   /** '#work' → 1; '' and '#main' → the cover; anything else → -1. */
-  const indexOf=(hash:string)=>{const id=hash.replace(/^#/,'');return id===''||id==='main'?0:pages.findIndex(page=>page.id===id);};
+  const indexOf=(hash:string)=>{const id=hash.replace(/^#/,'');return id===''||id==='main'?0:pages.findIndex(page=>page.id===id||page.dataset.alias===id);};
   const locked=()=>root.classList.contains('gate-lock');
   const remeasure=()=>dispatchEvent(new Event('resize')); // the scenes read element positions on resize
 
@@ -59,9 +61,6 @@ export function initPager(){
   // Line boxes depend on the width: split again when it changes (our own re-measure events do not change it).
   addEventListener('resize',()=>splitLines(pages[current]!));
 
-  /** Moves every blade from one resting place to another (percent of its own height), one after another. */
-  const sweep=(from:number,to:number,duration:number,easing:string,leftFirst:boolean)=>Promise.all(blades.map((blade,i)=>blade.animate(
-    [{transform:`translateY(${from}%)`},{transform:`translateY(${to}%)`}],{duration,easing,fill:'both',delay:(leftFirst?i:blades.length-1-i)*22}).finished));
   // A link clicked while the blade is still moving is not lost: it is taken up when the blade is done.
   let queued=-1;
   async function go(index:number,explicit=false){
@@ -70,9 +69,9 @@ export function initPager(){
     if(index===current)return;
     busy=true;const dir=index>current?1:-1;
     try{
-      await sweep(108*dir,0,310,'cubic-bezier(.4,0,.7,1)',dir>0); // the blades cover the screen: from below when going forward
+      await sweep?.cover(dir); // corners fly in, the colours sweep over: from below when going forward
       show(index);pages[index]!.focus({preventScroll:true});
-      await sweep(0,-108*dir,440,'cubic-bezier(.3,.3,.15,1)',dir>0); // and carry on out the other side; the new page plays its entrance
+      await sweep?.reveal(dir); // and carry on out the same way; the new page plays its entrance
     }finally{busy=false;setTimeout(remeasure,900);}
     if(queued>=0){const next=queued;queued=-1;void go(next);}
   }

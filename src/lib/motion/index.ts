@@ -30,7 +30,7 @@ export function initMotion(){
     }
     pending=(spatial?.tick(dt)??false)||pending;if(!pending)stop();
   }
-  function preference(){resetText();pointer.inside=false;stop();for(const t of titles){t.active=0;t.element.style.setProperty('--title-active','0');}spatial?.pause();if(!reduced.matches&&fine.matches){void enhance();invalidate();}}
+  function preference(){resetText();pointer.inside=false;stop();for(const t of titles){t.active=0;t.element.style.setProperty('--title-active','0');}spatial?.pause();if(!reduced.matches&&fine.matches&&!document.documentElement.classList.contains('gate-lock')){void enhance();invalidate();}}
   const resize=new ResizeObserver(invalidate);for(const t of titles)resize.observe(t.element);for(const visual of document.querySelectorAll('[data-project-visual]'))resize.observe(visual);
   window.addEventListener('resize',invalidate,{passive:true,signal});window.addEventListener('scroll',invalidate,{passive:true,signal});
   document.addEventListener('visibilitychange',preference,{signal});reduced.addEventListener('change',preference,{signal});fine.addEventListener('change',preference,{signal});
@@ -38,6 +38,10 @@ export function initMotion(){
   function dispose(){if(dead)return;resetText();dead=true;stop();cancelFrame(measure);controller.abort();resize.disconnect();spatial?.dispose();spatial=undefined;}
   window.addEventListener('pagehide',event=>{dispose();if(event.persisted)window.addEventListener('pageshow',()=>initMotion(),{once:true});},{once:true,signal});
   if(new URLSearchParams(location.search).has('inspect'))Object.defineProperty(window,'__blogMotion',{configurable:true,get:()=>({enabled:enabled(),running,frames,pointerSources:dead?0:1,titles:titles.map(t=>({active:t.active}))})});
-  current=dispose;void enhance();invalidate();return dispose;
+  // The home opening needs the machine to itself: WebGL (texture uploads, shader compiles) waits until
+  // gate.ts says it has landed. Elsewhere, or when the opening is skipped, it starts at once.
+  const gateBusy=document.documentElement.classList.contains('gate-lock');
+  if(gateBusy)document.addEventListener('teisu:gate-done',()=>{if(!dead)void enhance();},{once:true,signal});else void enhance();
+  current=dispose;invalidate();return dispose;
 }
 

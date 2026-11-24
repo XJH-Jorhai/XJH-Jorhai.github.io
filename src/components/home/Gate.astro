@@ -1,23 +1,9 @@
 ---
-// 开幕层。同一枚标志有两层：night（暗场、微尘、纸白碎片）叠在 day（深蓝碎片、透明底）之上。
-// 标志从中心绽放；按住蓄力、松开（或滚动）后边转边弹开，暗场从中心方块被切开成一扇带 45° 切角的纸窗，
-// 碎片落到首屏四角成为色块边框（落位后只剩 day 层留在首屏，位于内容之下）。
+// 开幕层。画面全部画在一张画布上（gate.ts）：暗场、微尘、纸白的标志、从中心切开的纸窗、窗里深蓝的标志。
+// 按钮只是透明的点击区域、焦点和读屏标签，大小就是标志的大小。落位后只剩深蓝碎片，作为首屏四角的色块边框。
 // 只有 gate.ts 会显示它（默认 hidden）。无 JS 时不存在，首页直接可读。
-import brand from '../../data/brand.json';
-const order = ['tl','br','tr','bl','ru','rl','c'] as const;
-const tone = (key: string, day: boolean) => key.startsWith('r') ? 'is-red' : key === 'c' && day ? 'is-veil' : 'is-ink';
 ---
 <div class="gate" data-gate hidden>
-  <div class="gate-layer gate-day" aria-hidden="true">
-    <div class="gate-space"><div class="gate-mark" data-gate-mark-day>
-      {order.map(key => <svg class:list={['piece', tone(key, true)]} data-piece={key} viewBox="0 0 720 720"><path d={brand.pieces[key]} /></svg>)}
-    </div></div>
-    <canvas class="gate-shade" data-gate-shade></canvas>
-  </div>
-  <div class="gate-layer gate-night" data-gate-night>
-    <canvas class="gate-dust" data-gate-dust aria-hidden="true"></canvas>
-    <div class="gate-space"><button class="gate-mark" type="button" data-gate-mark aria-label="进入 FIELDNOTES（按住后松开，或向下滚动）">
-      {order.map(key => <svg class:list={['piece', tone(key, false)]} data-piece={key} viewBox="0 0 720 720" aria-hidden="true"><path d={brand.pieces[key]} /></svg>)}
-    </button></div>
-  </div>
+  <canvas class="gate-canvas" data-gate-canvas aria-hidden="true"></canvas>
+  <div class="gate-space"><button class="gate-mark" type="button" data-gate-mark aria-label="进入 FIELDNOTES（按住后松开，或向下滚动）"></button></div>
 </div>

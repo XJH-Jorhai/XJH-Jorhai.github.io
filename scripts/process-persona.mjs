@@ -219,7 +219,9 @@ async function eyes(figure) {
   const inside = (pts, x, y) => { let c = false; for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) { const [xi, yi] = pts[i], [xj, yj] = pts[j]; if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) c = !c; } return c; };
   const out_ = [];
   for (const eye of cfg.list) {
-    const {opening, iris, plateBox: [px0, py0, px1, py1], sourceBox: [sx0, sy0, sx1, sy1], range: [rx, ry]} = eye;
+    const {opening, iris, plateBox: [px0, py0, px1, py1], sourceBox: [sx0, sy0, sx1, sy1]} = eye;
+    // range: how far the iris may move [left, right, up, down] (or [x, y] for both ways); the box pads the larger
+    const range = eye.range.length === 2 ? [eye.range[0], eye.range[0], eye.range[1], eye.range[1]] : eye.range, rx = Math.max(range[0], range[1]), ry = Math.max(range[2], range[3]);
     // box: the opening and the iris ellipse, plus the travel
     const xs = opening.map(p => p[0]).concat([iris.cx - iris.rx, iris.cx + iris.rx]), ys = opening.map(p => p[1]).concat([iris.cy - iris.ry, iris.cy + iris.ry]);
     const bx = Math.floor(Math.min(...xs) - rx - 1), by = Math.floor(Math.min(...ys) - ry - 1), bw = Math.ceil(Math.max(...xs) + rx + 1) - bx, bh = Math.ceil(Math.max(...ys) + ry + 1) - by;
@@ -260,7 +262,7 @@ async function eyes(figure) {
       if (debug) await sharp(buf, {raw: {width: W, height: H, channels: 4}}).png().toFile(`${debug}/eye-${eye.id}-${name}.png`);
     }
     const [ox, oy] = figure.offset;
-    out_.push({id: eye.id, box: [bx - ox, by - oy, bw, bh], ...files, range: [rx, ry], gain: gain.map(g => Number(g.toFixed(3)))});
+    out_.push({id: eye.id, box: [bx - ox, by - oy, bw, bh], ...files, range, gain: gain.map(g => Number(g.toFixed(3)))});
   }
   return out_;
 }

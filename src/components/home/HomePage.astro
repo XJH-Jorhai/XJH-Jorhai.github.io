@@ -66,7 +66,7 @@ const pad = (n: number) => String(n).padStart(2, '0');
          is on the paper to her left, the claim and the colophon on the navy to her right. PERSONA is set
          twice (navy on paper, paper-white clipped to the slab) so it changes colour where it crosses.
          On a fine pointer the layers move at different depths, she turns a little and her eyes follow the
-         pointer (persona-stage.ts). -->
+         pointer; rubbing her head makes hearts pop up (persona-stage.ts). -->
     <section class="h-persona page" id="about" data-alias="persona" data-page tabindex="-1" aria-labelledby="about-heading">
       <div class="hp-stage" data-hp-stage>
         <div class="hp-ground" aria-hidden="true"><i class="hp-slab"></i><i class="hp-blade"></i></div>
@@ -76,7 +76,9 @@ const pad = (n: number) => String(n).padStart(2, '0');
           <div class="hp-figure-body">
             <img class="hp-figure" src={persona.figure.src} width={persona.figure.width} height={persona.figure.height} alt={persona.figureAlt} loading="eager" decoding="async" />
             {persona.eyes.map(eye => <span class="hp-eye" aria-hidden="true" data-hp-eye data-white={eye.white} data-iris={eye.iris} style={eye.style}></span>)}
+            <span class="hp-head" aria-hidden="true" data-hp-head></span>
           </div>
+          <span class="hp-hearts" aria-hidden="true" data-hp-hearts></span>
         </div>
         <div class="hp-side tone-night">
           <p class="hp-claim" data-enter="right" style="--k:6">{persona.claim.en.map(line => <span>{line}</span>)}<small>{persona.claim.zh}</small></p>

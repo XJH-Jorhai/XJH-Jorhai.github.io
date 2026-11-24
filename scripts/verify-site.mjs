@@ -65,6 +65,12 @@ try {
   await paged.waitForFunction(()=>document.querySelectorAll('#about .hp-eye.is-ready').length===2);
   await paged.mouse.move(8,400,{steps:4});
   await paged.waitForFunction(()=>parseFloat(document.querySelector('#about').style.getPropertyValue('--ex'))<-.3,null,{timeout:15000});
+  // Petting: rubbing back and forth over her head makes hearts rise.
+  // Hearts are counted as they are created: on a slow runner they may have faded before a check looks.
+  await paged.evaluate(()=>{window.__hearts=0;new MutationObserver(records=>{for(const record of records)window.__hearts+=[...record.addedNodes].filter(node=>node.classList?.contains('hp-heart')).length;}).observe(document.querySelector('#about [data-hp-hearts]'),{childList:true});});
+  const head=await paged.locator('#about [data-hp-head]').boundingBox();
+  for(let i=0;i<12;i++){await paged.mouse.move(head.x+head.width*(i%2?.75:.25),head.y+head.height*.5,{steps:4});await paged.waitForTimeout(60);}
+  await paged.waitForFunction(()=>window.__hearts>0,null,{timeout:10000});
   await paged.mouse.move(640,4,{steps:4});
   await paged.waitForTimeout(900);
   await paged.locator('[data-pager] a').last().click();

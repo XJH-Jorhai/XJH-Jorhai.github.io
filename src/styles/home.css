@@ -198,12 +198,14 @@ html[data-page='about'] .pager a[aria-current]::after {background:var(--chalk);}
 .home > .page.h-persona {padding:0;align-content:stretch;}
 .hp-stage {position:absolute;inset:0;overflow:hidden;isolation:isolate;}
 /* The slab, given a shift (--sx, --sy) so the word's paper-white copy can be clipped to where the slab
-   actually is after both have moved. It overshoots the stage so moving it never shows an edge. */
+   actually is after both have moved. The ground is --o larger than the stage on every side (and its
+   shapes are drawn --o further in), so moving it never shows an edge. */
 .hp-ground,.hp-slab,.hp-blade {position:absolute;inset:0;}
-.hp-ground {translate:var(--gx) var(--gy);}
-.hp-slab,.hp-cut {--sx:0px;--sy:0px;clip-path:polygon(calc(var(--a) - 6svh + var(--sx)) calc(-6svh + var(--sy)),120% calc(-6svh + var(--sy)),120% calc(106svh + var(--sy)),calc(var(--a) + 106svh + var(--sx)) calc(106svh + var(--sy)));}
+.hp-ground {--o:48px;inset:calc(var(--o) * -1);translate:var(--gx) var(--gy);}
+.hp-cut {--o:0px;}
+.hp-slab,.hp-cut {--sx:0px;--sy:0px;clip-path:polygon(calc(var(--a) - 6svh + var(--sx) + var(--o)) calc(-6svh + var(--sy) + var(--o)),120% calc(-6svh + var(--sy) + var(--o)),120% calc(106svh + var(--sy) + var(--o)),calc(var(--a) + 106svh + var(--sx) + var(--o)) calc(106svh + var(--sy) + var(--o)));}
 .hp-slab {background:var(--navy);}
-.hp-blade {background:var(--red);clip-path:polygon(calc(var(--a) + 5vw - 6svh) -6svh,calc(var(--a) + 9.5vw - 6svh) -6svh,calc(var(--a) + 9.5vw + 106svh) 106svh,calc(var(--a) + 5vw + 106svh) 106svh);}
+.hp-blade {background:var(--red);clip-path:polygon(calc(var(--a) + 5vw - 6svh + var(--o)) calc(-6svh + var(--o)),calc(var(--a) + 9.5vw - 6svh + var(--o)) calc(-6svh + var(--o)),calc(var(--a) + 9.5vw + 106svh + var(--o)) calc(106svh + var(--o)),calc(var(--a) + 5vw + 106svh + var(--o)) calc(106svh + var(--o)));}
 .hp-word {position:absolute;inset:0;z-index:1;margin:0;pointer-events:none;}
 .hp-word-layer {position:absolute;inset:0;display:flex;justify-content:flex-end;align-items:flex-end;padding:0 calc(var(--gutter) + 26px) 2.4svh 0;font:italic 900 min(19vw,31svh)/.8 var(--display);letter-spacing:-.005em;white-space:nowrap;translate:var(--wx) var(--wy);}
 .hp-cut {color:var(--color-base);--sx:calc(var(--gx) - var(--wx));--sy:calc(var(--gy) - var(--wy));}
@@ -212,16 +214,25 @@ html[data-page='about'] .pager a[aria-current]::after {background:var(--chalk);}
    own silhouette lies behind her and slides the other way, like a hard shadow from the pointer. */
 .hp-figure-box {position:absolute;z-index:2;left:calc(var(--a) + 2vw);bottom:0;height:var(--fig);aspect-ratio:645 / 1524;perspective:1400px;}
 .hp-figure-body,.hp-figure,.hp-shadow {position:absolute;inset:0;width:100%;height:100%;max-width:none;}
-.hp-figure-body {transform-origin:50% 100%;transform:rotateY(calc(var(--px) * 9deg)) rotateX(calc(var(--py) * -5deg)) translateX(calc(var(--px) * 10px));}
+/* Mostly a shift towards the pointer, with only a hint of turn: a larger turn made her look like a card. */
+.hp-figure-body {transform-origin:50% 100%;transform:translate(calc(var(--px) * 16px),calc(var(--py) * 6px)) rotateY(calc(var(--px) * 2.5deg)) rotateX(calc(var(--py) * -1.2deg));}
 /* Her eyes: the white and the iris, clipped to the eye opening (the white layer's own alpha); the iris
-   slides by --ex / --ey times its travel. Shown only once persona-stage.ts has loaded both layers. */
+   slides by --ex / --ey times its travel that way (left, right, up and down differ: the outer corners
+   reach further). Shown only once persona-stage.ts has loaded both layers. */
 .hp-eye {position:absolute;display:none;-webkit-mask:var(--white) 0 0 / 100% 100% no-repeat;mask:var(--white) 0 0 / 100% 100% no-repeat;}
 .hp-eye.is-ready {display:block;}
 .hp-eye img {position:absolute;inset:0;width:100%;height:100%;max-width:none;}
-.hp-eye-iris {translate:calc(var(--ex,0) * var(--rx)) calc(var(--ey,0) * var(--ry));}
+.hp-eye-iris {translate:calc(max(var(--ex,0),0) * var(--rr) + min(var(--ex,0),0) * var(--rl)) calc(max(var(--ey,0),0) * var(--rd) + min(var(--ey,0),0) * var(--ru));}
 .hp-shadow {background:var(--red);-webkit-mask:var(--mask) center / 100% 100% no-repeat;mask:var(--mask) center / 100% 100% no-repeat;transform:translate(calc(var(--px) * -22px + 16px),calc(var(--py) * -10px + 6px));opacity:.92;}
 .h-persona.is-tracking :is(.hp-figure-body,.hp-shadow,.hp-word-layer,.hp-ground) {will-change:transform,translate;}
-@media (prefers-reduced-motion:reduce) {.hp-eye.is-ready {display:none;}}
+/* Petting: the head (hat and the top of her hair, in % of the figure) and the hearts that rise from it. */
+.hp-head {position:absolute;left:14%;top:.4%;width:57%;height:15%;pointer-events:none;}
+.hp-hearts {position:absolute;inset:0;z-index:1;pointer-events:none;}
+.hp-heart {position:absolute;display:block;line-height:0;filter:drop-shadow(2px 3px 0 var(--navy));}
+.hp-heart svg {width:100%;height:auto;overflow:visible;}
+.hp-heart path {fill:var(--red);stroke:var(--color-base);stroke-width:1.8;stroke-linejoin:round;}
+.hp-heart.is-paper path {fill:var(--color-base);stroke:var(--red);}
+@media (prefers-reduced-motion:reduce) {.hp-eye.is-ready,.hp-hearts {display:none;}}
 /* Right, on the navy. */
 .hp-side {position:absolute;z-index:3;right:calc(var(--gutter) + 26px);top:clamp(64px,10svh,104px);display:grid;justify-items:end;gap:clamp(14px,2.6svh,30px);text-align:right;}
 .hp-claim {margin:0;font:italic 900 clamp(22px,min(2.8vw,5svh),46px)/.92 var(--display);text-transform:uppercase;color:var(--chalk);}
@@ -276,8 +287,8 @@ html[data-page='about'] .pager a[aria-current]::after {background:var(--red);}
   .hp-about-note {font-size:12.5px;}
   .hp-stage {position:relative;order:2;flex:none;height:100svh;
     --y:30svh;}
-  .hp-slab,.hp-cut {clip-path:polygon(calc(-6vw + var(--sx)) calc(var(--y) - 56vw + var(--sy)),calc(106vw + var(--sx)) calc(var(--y) + 56vw + var(--sy)),calc(106vw + var(--sx)) calc(110% + var(--sy)),calc(-6vw + var(--sx)) calc(110% + var(--sy)));}
-  .hp-blade {clip-path:polygon(-6vw calc(var(--y) - 56vw + 5vw),106vw calc(var(--y) + 56vw + 5vw),106vw calc(var(--y) + 56vw + 14vw),-6vw calc(var(--y) - 56vw + 14vw));}
+  .hp-slab,.hp-cut {clip-path:polygon(calc(-6vw + var(--sx) + var(--o)) calc(var(--y) - 56vw + var(--sy) + var(--o)),calc(106vw + var(--sx) + var(--o)) calc(var(--y) + 56vw + var(--sy) + var(--o)),calc(106vw + var(--sx) + var(--o)) calc(110% + var(--sy)),calc(-6vw + var(--sx) + var(--o)) calc(110% + var(--sy)));}
+  .hp-blade {clip-path:polygon(calc(-6vw + var(--o)) calc(var(--y) - 56vw + 5vw + var(--o)),calc(106vw + var(--o)) calc(var(--y) + 56vw + 5vw + var(--o)),calc(106vw + var(--o)) calc(var(--y) + 56vw + 14vw + var(--o)),calc(-6vw + var(--o)) calc(var(--y) - 56vw + 14vw + var(--o)));}
   .hp-word-layer {justify-content:flex-start;align-items:flex-start;padding:4svh 0 0 var(--gutter);font-size:min(23vw,19svh);}
   .hp-figure-box {--fig:min(70svh,160vw);left:auto;right:-4vw;}
   .hp-side {top:auto;bottom:clamp(28px,5svh,48px);right:auto;left:var(--gutter);justify-items:start;text-align:left;gap:16px;max-width:58vw;}

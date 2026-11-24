@@ -44,7 +44,7 @@ export function initPager(){
   const nav=document.querySelector<HTMLElement>('[data-pager]');
   const ticks=nav?Array.from(nav.querySelectorAll<HTMLAnchorElement>('a')):[];
   /** '#work' → 1; '' and '#main' → the cover; anything else → -1. */
-  const indexOf=(hash:string)=>{const id=hash.replace(/^#/,'');return id===''||id==='main'?0:pages.findIndex(page=>page.id===id);};
+  const indexOf=(hash:string)=>{const id=hash.replace(/^#/,'');return id===''||id==='main'?0:pages.findIndex(page=>page.id===id||page.dataset.alias===id);};
   const locked=()=>root.classList.contains('gate-lock');
   const remeasure=()=>dispatchEvent(new Event('resize')); // the scenes read element positions on resize
 

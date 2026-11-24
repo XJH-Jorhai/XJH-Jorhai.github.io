@@ -57,3 +57,15 @@ smiling broadly, open mouth, blushing, sparkles, chibi, childish proportions, bi
 2. 存到 `inputs/source/persona/`（透明或绿底都行），告诉维护者。
 3. 更新 `inputs/persona-recipe.json`（路径、哈希、背景方式；透明图用 `"background": "alpha"`，并按需要调 `alpha.floor`），运行 `npm run persona -- --debug <目录>`，在四种底色上检查边缘（尤其腿边：生成器常留一层很淡的背景雾），首页第 4 屏和 Persona 页会一起换上新图。
 4. 新图的宽高比不同，两处的人物位置要复核：`home.css` 的 `.hp-figure` / `--fig`，`persona.css` 的 `--fig` / `--wl`（大字从人物身后接出去的位置）。
+
+## 眼睛跟随鼠标需要的素材（可选，2026-11-24）
+
+首页 Persona 与 About 那一屏现在已经有鼠标透视（各层不同深度、人物微转）。如果还想要「眼睛跟着鼠标看」，需要一张**去掉了瞳孔的同一张图**：网页会把原图里的虹膜和瞳孔剪下来，放在这张「只有眼白」的图上方，随鼠标在眼眶里移动几个像素。只有眼睛那一小块会被用到，其余部分不需要和原图完全一致，但构图、大小必须一样。
+
+用图像编辑（不是重新生成）：把 `key-visual-v2.webp` 作为输入图，只改眼睛。
+
+```text
+Edit only the eyes of this exact image and change nothing else. Remove both irises and pupils completely, leaving only the whites of the eyes inside the same eyelid shapes. Keep the eyelids, eyelashes, eyelid lines, eyebrows, eye shape, face, hair, hat, lighting and every other pixel exactly as they are. The empty eye whites should have the same soft shading as in the original: a slightly darker band just under the upper eyelid and a gentle grey-lavender shadow toward the corners, no highlights, no glow. Keep the transparent background. Same canvas size (1024×1536), same position of everything.
+```
+
+交付：存为 `inputs/source/persona/key-visual-v2-noiris.png`（透明背景），告诉维护者。拿到后会：核对两张图眼睛以外是否对齐；在原图上描出两只眼眶和两块虹膜；把虹膜做成可移动的图层，限制在眼眶内移动（约 ±3px），只在精细指针、未要求减少动效时启用。

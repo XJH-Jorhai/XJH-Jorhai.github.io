@@ -11,14 +11,15 @@
  *   flat sides are past the screen in under half a second; what is left of the dark is four 45°
  *   corners that retreat, more and more slowly, to where the blocks land.
  *
- * Two layers carry the same mark: `night` (dark stage, dust, paper-white pieces) lies over `day`
- * (navy pieces on nothing, the page shows through). The iris is a hole in `night`, so pieces are
- * white on the dark side of its edge and navy on the page side — the colour change is the edge
- * passing over them as they land. The pieces stay as the hero's frame and scroll away with it.
+ * The mark is drawn twice on one canvas: paper-white on the dark stage, navy underneath. The iris is a
+ * hole cut in the dark, so pieces are white on the dark side of its edge and navy on the page side — the
+ * colour change is the edge passing over them as they land. The navy pieces stay as the hero's frame
+ * and scroll away with it.
  *
  * Without JS there is no gate. With reduced motion, a repeat visit in the same session, a hash or an
  * already-scrolled page, the frame is shown settled straight away.
  */
+import brand from '../../data/brand.json';
 type Key='tl'|'br'|'tr'|'bl'|'ru'|'rl'|'c';
 interface Pose {x:number;y:number;s:number;o:number}
 interface Mark {scale:number;z:number;rot:number;tx:number;ty:number}
@@ -113,54 +114,115 @@ function opening(t:number,width:number,zoom:number,from:From):Frame{
   return out;
 }
 
-/**
- * Dust: specks in a tunnel around the view axis. `vz` moves them towards (+) or away from (−) the
- * viewer; the whole field turns with the mark. Fast specks are drawn as the short path they travelled
- * this frame, always along the one radial flow. 2D canvas, not WebGL.
- */
-function createDust(canvas:HTMLCanvasElement){
-  const ctx=canvas.getContext('2d');
+/* ---------- renderer: one 2D canvas ---------- */
+// Everything the opening shows is drawn on a single canvas each frame: the dark stage with its glow
+// and dust, the paper-white mark, the iris cut out of the dark, the navy mark seen through it and the
+// shade along its edge. The mark used to be stacked SVG elements scaled up to ~30x with a 3D transform,
+// and the browser re-rasterised several screen-sized layers every frame; on modest machines the opening
+// dropped to a few frames a second and flickered. A canvas draws the same geometry at any scale for
+// the cost of a few small paths.
+
+const PIECES=Object.fromEntries(KEYS.map(k=>[k,new Path2D(brand.pieces[k])])) as Record<Key,Path2D>;
+const RED='#EF3025',NAVY='#083366',WHITE='#E9E3D6',PERSPECTIVE=1100;
+type Dust={x:number;y:number;z:number;s:number;px:number;py:number}
+
+function createRenderer(canvas:HTMLCanvasElement){
+  const ctx=canvas.getContext('2d')!;
+  let W=1,H=1,R=1,back:HTMLCanvasElement|null=null;
   const rnd=(i:number,n:number)=>{const v=Math.sin(i*n)*43758.5453;return v-Math.floor(v);};
-  const pts=Array.from({length:360},(_,i)=>({x:rnd(i+1,12.9898)*2-1,y:rnd(i+1,78.233)*2-1,z:rnd(i+1,3.7127)*.95+.05,s:.65+rnd(i+1,9.173)*.9,px:NaN,py:NaN}));
-  return (dt:number,a:number,vz:number,rot:number)=>{
-    if(!ctx)return;const w=innerWidth,h=innerHeight,r=Math.min(devicePixelRatio,2);
-    if(canvas.width!==Math.round(w*r)||canvas.height!==Math.round(h*r)){canvas.width=Math.round(w*r);canvas.height=Math.round(h*r);}
-    ctx.setTransform(r,0,0,r,0,0);ctx.clearRect(0,0,w,h);if(a<=0)return;
-    const f=Math.min(w,h)*.9,th=rot*Math.PI/180*.35,cs=Math.cos(th),sn=Math.sin(th);ctx.lineCap='round';
-    for(const p of pts){
+  const dots:Dust[]=Array.from({length:360},(_,i)=>({x:rnd(i+1,12.9898)*2-1,y:rnd(i+1,78.233)*2-1,z:rnd(i+1,3.7127)*.95+.05,s:.65+rnd(i+1,9.173)*.9,px:NaN,py:NaN}));
+
+  /** Match the canvas to its box. The pixel ratio is capped so a big screen stays under ~2.6 Mpx. */
+  function size(){
+    const w=Math.max(1,canvas.clientWidth),h=Math.max(1,canvas.clientHeight);
+    const r=Math.min(devicePixelRatio||1,2,Math.sqrt(2.6e6/(w*h)));
+    if(w===W&&h===H&&r===R&&back)return;
+    W=w;H=h;R=r;canvas.width=Math.round(w*r);canvas.height=Math.round(h*r);
+    // The dark stage's gradient is drawn once and blitted: the same ellipse the CSS background uses.
+    back=document.createElement('canvas');back.width=canvas.width;back.height=canvas.height;
+    const b=back.getContext('2d')!,rx=.6*w*r,ry=.55*h*r,g=b.createRadialGradient(0,0,0,0,0,rx);
+    g.addColorStop(0,'#121c31');g.addColorStop(.48,'#080d18');g.addColorStop(1,'#030408');
+    b.setTransform(1,0,0,ry/rx,back.width/2,back.height/2);b.fillStyle=g;b.fillRect(-back.width,-back.height/(ry/rx),back.width*2,back.height*2/(ry/rx));
+  }
+  /** The mark's transform: the same as the old CSS (translateZ · rotateX · rotateY · rotate · scale about
+   *  the screen centre, perspective 1100px). The small tilt is drawn as its foreshortening (cos). */
+  function markMatrix(m:Mark,M:number){
+    const depth=PERSPECTIVE/(PERSPECTIVE-m.z),a=m.rot*Math.PI/180,cs=Math.cos(a),sn=Math.sin(a);
+    const kx=Math.cos(m.ty*Math.PI/180)*depth*m.scale,ky=Math.cos(m.tx*Math.PI/180)*depth*m.scale;
+    return {a:cs*kx,b:sn*ky,c:-sn*kx,d:cs*ky,M};
+  }
+  function piece(k:Key,q:Pose,mm:{a:number;b:number;c:number;d:number;M:number}){
+    // piece box = mark box (M px); translate(q.x·M, q.y·M), scale(q.s) about its centre; path in 720 units
+    const u=mm.M/720*q.s,ox=q.x*mm.M-360*u,oy=q.y*mm.M-360*u;
+    ctx.setTransform(R*mm.a*u,R*mm.b*u,R*mm.c*u,R*mm.d*u,R*(W/2+mm.a*ox+mm.c*oy),R*(H/2+mm.b*ox+mm.d*oy));
+    ctx.fill(PIECES[k]);
+  }
+  function iris(f:Frame){
+    const a=f.mark.rot*Math.PI/180,cs=Math.cos(a),sn=Math.sin(a),g=f.win,k=Math.max(0,Math.min(g,2*g-f.reach));
+    const pts=([[g-k,-g],[g,-g+k],[g,g-k],[g-k,g],[-g+k,g],[-g,g-k],[-g,-g+k],[-g+k,-g]] as const).map(([u,v])=>[W/2+u*cs-v*sn,H/2+u*sn+v*cs] as const);
+    const covered=([[-W/2,-H/2],[W/2,-H/2]] as const).every(([x,y])=>{const u=Math.abs(x*cs+y*sn),v=Math.abs(-x*sn+y*cs);return u<=g&&v<=g&&u+v<=2*g-k;});
+    return {pts,covered,g,k,a};
+  }
+  function shade(alpha:number,g:number,k:number,a:number){
+    if(alpha<=0)return;
+    const depth=Math.min(64,Math.max(10,g*.16));
+    for(let i=0;i<8;i++){
+      // sides at distance g (length 2(g−k)), cuts at distance (2g−k)/√2 (length k√2)
+      const flat=i%2===0,dist=flat?g:(2*g-k)/Math.SQRT2,half=flat?g-k:k/Math.SQRT2;if(half<=.5)continue;
+      const t=a+i*Math.PI/4,cs=Math.cos(t),sn=Math.sin(t);
+      ctx.setTransform(R*cs,R*sn,-R*sn,R*cs,R*(W/2-sn*dist),R*(H/2+cs*dist));
+      const band=ctx.createLinearGradient(0,0,0,-depth);band.addColorStop(0,`rgba(4,8,20,${(.3*alpha).toFixed(3)})`);band.addColorStop(1,'rgba(4,8,20,0)');
+      ctx.fillStyle=band;ctx.fillRect(-half,-depth,2*half,depth);
+    }
+  }
+  function dust(dt:number,alpha:number,vz:number,rot:number){
+    const f=Math.min(W,H)*.9,th=rot*Math.PI/180*.35,cs=Math.cos(th),sn=Math.sin(th);
+    ctx.setTransform(R,0,0,R,0,0);ctx.lineCap='round';
+    for(const p of dots){
       p.z-=vz*dt;if(p.z<=.02){p.z+=1;p.px=NaN;}else if(p.z>1.02){p.z-=1;p.px=NaN;}
-      const x=w/2+(p.x*cs-p.y*sn)*f/p.z,y=h/2+(p.x*sn+p.y*cs)*f/p.z;
-      const al=a*Math.min(1,(1-p.z)*1.4)*Math.min(1,p.z*9)*.55,size=Math.max(.8,1.9*(1-p.z))*p.s;
+      const x=W/2+(p.x*cs-p.y*sn)*f/p.z,y=H/2+(p.x*sn+p.y*cs)*f/p.z;
+      const al=alpha*Math.min(1,(1-p.z)*1.4)*Math.min(1,p.z*9)*.55,size=Math.max(.8,1.9*(1-p.z))*p.s;
       let dx=x-p.px,dy=y-p.py;const len=Math.hypot(dx,dy);p.px=x;p.py=y;
-      if(al<.01||x<-60||x>w+60||y<-60||y>h+60)continue;
+      if(al<.01||x<-60||x>W+60||y<-60||y>H+60)continue;
       if(len>2.2&&len<400){const k=Math.min(1,44/len);dx*=k;dy*=k;
         ctx.strokeStyle=`rgba(226,220,206,${al.toFixed(3)})`;ctx.lineWidth=size;ctx.beginPath();ctx.moveTo(x-dx,y-dy);ctx.lineTo(x,y);ctx.stroke();
       }else{ctx.fillStyle=`rgba(226,220,206,${al.toFixed(3)})`;ctx.fillRect(x-size/2,y-size/2,size,size);}
     }
-  };
-}
-
-/**
- * Shade: the dark sheet lies a little above the page; along the iris' edge it shades the page.
- * Eight soft bands, one per side, drawn at half resolution on a canvas in the day layer.
- * g: half side, k: length cut off each corner, a: angle in radians.
- */
-function createShade(canvas:HTMLCanvasElement){
-  const ctx=canvas.getContext('2d');let drawn=false;
-  return (alpha:number,g=0,k=0,a=0)=>{
-    if(!ctx)return;const w=innerWidth,h=innerHeight;
-    if(canvas.width!==Math.round(w/2)||canvas.height!==Math.round(h/2)){canvas.width=Math.round(w/2);canvas.height=Math.round(h/2);drawn=true;}
-    if(alpha<=0&&!drawn)return;
-    ctx.setTransform(.5,0,0,.5,0,0);ctx.clearRect(0,0,w,h);drawn=alpha>0;if(!drawn)return;
-    const depth=Math.min(64,Math.max(10,g*.16)),band=ctx.createLinearGradient(0,0,0,-depth);
-    band.addColorStop(0,`rgba(4,8,20,${(.3*alpha).toFixed(3)})`);band.addColorStop(1,'rgba(4,8,20,0)');
-    ctx.translate(w/2,h/2);ctx.rotate(a);ctx.fillStyle=band;
-    for(let i=0;i<8;i++){
-      // sides at distance g (length 2(g−k)), cuts at distance (2g−k)/√2 (length k√2); +y points at the edge
-      const flat=i%2===0,dist=flat?g:(2*g-k)/Math.SQRT2,half=flat?g-k:k/Math.SQRT2;
-      if(half>.5){ctx.save();ctx.rotate(i*Math.PI/4);ctx.translate(0,dist);ctx.fillRect(-half,-depth,2*half,depth);ctx.restore();}
+  }
+  /** Draw one frame. `stage` is false once the opening has landed: only the navy frame is left. */
+  function draw(f:Frame,M:number,dt:number,{stage=true,glowPieces=false}={}){
+    size();ctx.setTransform(1,0,0,1,0,0);ctx.clearRect(0,0,canvas.width,canvas.height);
+    const mm=markMatrix(f.mark,M),open=f.win>0||!stage;
+    // 1 what the iris shows: the page's own navy mark (the key square fades from paper-white to clear)
+    if(open)for(const k of KEYS){
+      if(k==='c'){if(f.veil<=0)continue;ctx.globalAlpha=f.veil;ctx.fillStyle=WHITE;}else ctx.fillStyle=k[0]==='r'?RED:NAVY;
+      piece(k,f.p[k],mm);ctx.globalAlpha=1;
     }
-  };
+    if(!stage)return;
+    const hole=f.win>0?iris(f):null;
+    if(hole?.covered)return;
+    if(hole)shade(f.shade,hole.g,hole.k,hole.a);
+    // 2 the dark stage, with the iris cut out of it
+    ctx.save();ctx.setTransform(R,0,0,R,0,0);
+    if(hole){ctx.beginPath();ctx.rect(0,0,W,H);ctx.moveTo(hole.pts[0]![0],hole.pts[0]![1]);for(const [x,y] of hole.pts.slice(1))ctx.lineTo(x,y);ctx.closePath();ctx.clip('evenodd');}
+    // Before the iris opens the CSS background is the dark (the canvas stays transparent there); once
+    // it opens the canvas paints the dark itself, around the hole.
+    ctx.setTransform(1,0,0,1,0,0);if(hole)ctx.drawImage(back!,0,0);
+    if(f.glow>0){ // cobalt light behind the mark, filled only where it reaches
+      const cx=canvas.width/2,cy=canvas.height/2,rad=(.12+f.glow*.1)*Math.hypot(W/2,H/2)*R,g=ctx.createRadialGradient(cx,cy,0,cx,cy,rad);
+      g.addColorStop(0,`rgba(52,104,214,${(f.glow*.42).toFixed(3)})`);g.addColorStop(1,'rgba(52,104,214,0)');ctx.fillStyle=g;ctx.fillRect(cx-rad,cy-rad,rad*2,rad*2);
+    }
+    if(f.dust>0)dust(dt,f.dust,f.vz,f.mark.rot);
+    // 3 the paper-white mark on the dark (its key square is the iris once the opening starts)
+    for(const k of KEYS){
+      const q=f.p[k];if(q.o<=0||(k==='c'&&hole))continue;
+      const red=k[0]==='r';ctx.globalAlpha=q.o;ctx.fillStyle=red?RED:WHITE;
+      if(glowPieces){ctx.shadowColor=red?'rgba(239,48,37,.5)':'rgba(233,227,214,.16)';ctx.shadowBlur=(red?14:20)*R;}
+      piece(k,q,mm);ctx.shadowBlur=0;ctx.globalAlpha=1;
+    }
+    ctx.restore();
+  }
+  return {draw,clear:()=>{ctx.setTransform(1,0,0,1,0,0);ctx.clearRect(0,0,canvas.width,canvas.height);},resetDust:()=>{for(const p of dots)p.px=NaN;}};
 }
 
 export function initGate(){
@@ -168,45 +230,17 @@ export function initGate(){
   const home=document.querySelector<HTMLElement>('[data-home]');
   const hero=home?.querySelector<HTMLElement>('.hero');
   const showHome=()=>home?.classList.add('is-open');
-  if(!found){showHome();return;}
-  const gate:HTMLElement=found;
   const root=document.documentElement;
-  const night=gate.querySelector<HTMLElement>('[data-gate-night]')!;
-  const markEl=gate.querySelector<HTMLButtonElement>('[data-gate-mark]')!;
-  const markDay=gate.querySelector<HTMLElement>('[data-gate-mark-day]')!;
-  const layer=(el:HTMLElement)=>new Map<Key,HTMLElement>(Array.from(el.querySelectorAll<HTMLElement>('[data-piece]')).map(p=>[p.dataset.piece as Key,p]));
-  const piecesNight=layer(markEl),piecesDay=layer(markDay);
-  const dust=createDust(gate.querySelector<HTMLCanvasElement>('[data-gate-dust]')!);
-  const shade=createShade(gate.querySelector<HTMLCanvasElement>('[data-gate-shade]')!);
-  // Measured on the day layer: it keeps its layout after the night layer is removed.
-  const width=()=>Math.max(markDay.offsetWidth,1);
-  const zoomTo=()=>final().outer*(innerWidth+innerHeight)/2/241*720/width();
-
-  function apply(f:Frame){
-    const m=f.mark,flat=`rotate(${m.rot.toFixed(2)}deg) scale(${m.scale.toFixed(4)})`;
-    markEl.style.transform=`translateZ(${m.z.toFixed(1)}px) rotateX(${m.tx.toFixed(2)}deg) rotateY(${m.ty.toFixed(2)}deg) ${flat}`;
-    markDay.style.transform=flat;
-    for(const k of KEYS){
-      const q=f.p[k],tf=`translate(${(q.x*100).toFixed(3)}%,${(q.y*100).toFixed(3)}%) scale(${q.s.toFixed(4)})`;
-      const n=piecesNight.get(k)!,d=piecesDay.get(k)!;
-      n.style.transform=tf;d.style.transform=tf;
-      n.style.opacity=k==='c'&&f.win>0?'0':q.o.toFixed(3); // the key square is the iris now
-      d.style.opacity=k==='c'?f.veil.toFixed(3):'1';
-    }
-    night.style.setProperty('--glow',f.glow.toFixed(3));
-    // The iris: an eight-sided hole in the night layer, turning with the mark.
-    if(f.win>0){
-      const w=innerWidth,h=innerHeight,a=m.rot*Math.PI/180,cs=Math.cos(a),sn=Math.sin(a);
-      const g=f.win,k=Math.max(0,Math.min(g,2*g-f.reach)); // k: length cut off each corner
-      const pts=([[g-k,-g],[g,-g+k],[g,g-k],[g-k,g],[-g+k,g],[-g,g-k],[-g,-g+k],[-g+k,-g]] as const).map(([u,v])=>`${(w/2+u*cs-v*sn).toFixed(1)}px ${(h/2+u*sn+v*cs).toFixed(1)}px`);
-      // covered once both distinct screen corners lie inside the iris
-      const covered=([[-w/2,-h/2],[w/2,-h/2]] as const).every(([x,y])=>{const u=Math.abs(x*cs+y*sn),v=Math.abs(-x*sn+y*cs);return u<=g&&v<=g&&u+v<=2*g-k;});
-      night.style.visibility=covered?'hidden':'visible';
-      night.style.clipPath=`polygon(evenodd,0 0,100% 0,100% 100%,0 100%,0 0,${pts.join(',')},${pts[0]})`;
-      shade(covered?0:f.shade,g,k,a);
-    }else{night.style.clipPath='';night.style.visibility='visible';shade(0);}
-    if(hero)hero.style.scale=f.dolly===1?'':f.dolly.toFixed(4);
-  }
+  // Tell the page's other motion (WebGL covers, the golem) that the opening is out of the way.
+  const done=()=>document.dispatchEvent(new Event('teisu:gate-done'));
+  if(!found){showHome();done();return;}
+  const gate:HTMLElement=found;
+  const canvas=gate.querySelector<HTMLCanvasElement>('[data-gate-canvas]')!;
+  const markEl=gate.querySelector<HTMLButtonElement>('[data-gate-mark]')!; // the hit area, focus and label
+  const view=createRenderer(canvas);
+  const width=()=>Math.max(markEl.offsetWidth,1);
+  const zoomTo=()=>final().outer*(canvas.clientWidth+canvas.clientHeight)/2/241*720/width();
+  const apply=(f:Frame,dt:number,glowPieces=false)=>{view.draw(f,width(),dt,{glowPieces});if(hero)hero.style.scale=f.dolly===1?'':f.dolly.toFixed(4);};
 
   let phase:'intro'|'idle'|'charge'|'open'|'done'='intro',raf=0,t0=performance.now(),last=t0;
   let peek=0,peekTarget=0,w=0,holding=false,released=false,from:From=REST;
@@ -215,15 +249,16 @@ export function initGate(){
   const listeners:[EventTarget,string,(e:any)=>void][]=[];
   const on=(target:EventTarget,type:string,fn:(e:any)=>void)=>{target.addEventListener(type,fn as EventListener,{passive:false});listeners.push([target,type,fn]);};
 
-  /** The pieces stay: the fixed layer becomes the hero's frame, absolute at the page top. */
+  /** The pieces stay: the layer becomes the hero's frame, absolute at the page top. */
   function settle(){
     phase='done';cancelAnimationFrame(raf);
-    gate.classList.remove('is-opening','is-ready');gate.classList.add('is-settled');
-    markEl.tabIndex=-1;markEl.setAttribute('aria-hidden','true');dust(0,0,0,0);
-    const landed=()=>apply(opening(T.end,width(),zoomTo(),from));
-    landed();showHome();root.classList.remove('gate-lock');
+    gate.classList.remove('is-opening','is-ready');gate.classList.add('is-settled','is-live');
+    markEl.tabIndex=-1;markEl.setAttribute('aria-hidden','true');
+    const landed=()=>view.draw(opening(T.end,width(),zoomTo(),from),width(),0,{stage:false});
+    landed();if(hero)hero.style.scale='';showHome();root.classList.remove('gate-lock');
     for(const [t,type,fn] of listeners)t.removeEventListener(type,fn as EventListener);
     addEventListener('resize',landed,{passive:true});
+    done();
   }
 
   // Whether to play was decided in <head> before the first paint (PageShell): reduced motion, a repeat
@@ -253,7 +288,8 @@ export function initGate(){
     else if(phase==='idle')f=idle(now/1000,peek,tilt);
     else if(phase==='charge'){w=Math.min(1,w+dt/(holding?.42:.2));f=charge(now/1000,peek,w,tilt);if(released&&w>=MIN_WIND)open();}
     else{f=opening(t,width(),zoomTo(),from);if(t>=T.home)showHome();if(t>=T.end){sessionStorage.setItem('teisu-gate','1');settle();return;}}
-    apply(f);dust(dt,f.dust,f.vz,f.mark.rot);
+    apply(f,dt,phase!=='open');
+    if(phase==='open'&&!gate.classList.contains('is-live'))gate.classList.add('is-live'); // the canvas now paints the dark, around the iris
     raf=requestAnimationFrame(tick);
   }
 
@@ -279,6 +315,6 @@ export function initGate(){
     seek(which:'intro'|'charge'|'open',v:number){cancelAnimationFrame(raf);phase='idle';
       const flat={x:0,y:0},c=charge(0,0,1,flat);
       const f=which==='intro'?intro(v,flat):which==='charge'?charge(0,0,v,flat):opening(v,width(),zoomTo(),{scale:c.mark.scale,rot:c.mark.rot,peek:0,w:1,glow:c.glow});
-      gate.classList.toggle('is-opening',which==='open');gate.classList.toggle('is-ready',which!=='intro');if(which==='open'&&v>=T.home)showHome();apply(f);dust(.016,f.dust,f.vz,f.mark.rot);},
+      gate.classList.toggle('is-opening',which==='open');gate.classList.toggle('is-ready',which!=='intro');gate.classList.toggle('is-live',which==='open');if(which==='open'&&v>=T.home)showHome();view.resetDust();apply(f,.016,which!=='open');},
   }});
 }

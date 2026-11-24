@@ -2,34 +2,22 @@
    note rows and work covers are shared with every other page (tokens.css, global.css, components). */
 
 /* ================= Gate: the dark stage; the pieces stay as the hero's corner blocks ================= */
-/* Two layers carry the same mark: `night` (dark, dust, paper-white pieces) over `day` (navy pieces on
-   nothing). gate.ts cuts an iris in `night`; what its edge has passed is already the page. */
+/* gate.ts draws the whole opening on one canvas. Until its first frame (and before it runs at all,
+   see gate-boot) the dark comes from the CSS background; the button is only the mark's hit area. */
 html.gate-lock,html.gate-lock body {overflow:hidden;}
-.gate {position:fixed;inset:0;z-index:60;overflow:hidden;}
+.gate {position:fixed;inset:0;z-index:60;overflow:hidden;display:grid;place-items:center;background:radial-gradient(ellipse 60% 55% at 50% 50%,#121c31 0%,#080d18 48%,#030408 100%);}
 .gate[hidden] {display:none;}
 /* Before gate.ts runs: the dark stage is already showing (class set in <head>, see PageShell). */
-html.gate-boot .gate[hidden] {display:block;}
+html.gate-boot .gate[hidden] {display:grid;}
 html.gate-boot,html.gate-boot body {overflow:hidden;}
-.gate-layer {position:absolute;inset:0;display:grid;place-items:center;overflow:hidden;}
-.gate-night {--glow:.2;background:radial-gradient(ellipse 60% 55% at 50% 50%,#121c31 0%,#080d18 48%,#030408 100%);}
-.gate-night::before {content:'';position:absolute;inset:0;background:radial-gradient(circle at 50% 50%,rgb(52 104 214 / calc(var(--glow) * .42)) 0,transparent calc(12% + var(--glow) * 10%));}
-.gate-day {visibility:hidden;}
-.gate:is(.is-opening,.is-settled) .gate-day {visibility:visible;}
-.gate-dust,.gate-shade {position:absolute;inset:0;width:100%;height:100%;pointer-events:none;}
-.gate-space {position:relative;perspective:1100px;}
-.gate-mark {position:relative;display:block;width:clamp(116px,11vw,176px);aspect-ratio:1;padding:0;border:0;background:none;transform-style:preserve-3d;}
-button.gate-mark {cursor:pointer;touch-action:none;-webkit-tap-highlight-color:transparent;}
+.gate.is-live {background:none;}
+.gate-canvas {position:absolute;inset:0;width:100%;height:100%;pointer-events:none;}
+.gate-space {position:relative;}
+.gate-mark {position:relative;display:block;width:clamp(116px,11vw,176px);aspect-ratio:1;padding:0;border:0;background:none;cursor:pointer;touch-action:none;-webkit-tap-highlight-color:transparent;}
 .gate-mark:focus,.gate-mark:focus-visible {outline:none;}
-.gate .piece {position:absolute;inset:0;width:100%;height:100%;overflow:visible;transform-origin:50% 50%;}
-.gate-night .piece {opacity:0;}
-.gate .piece.is-red path {fill:var(--red);}
-.gate-night .piece.is-ink path,.gate .piece.is-veil path {fill:#E9E3D6;}
-.gate-day .piece.is-ink path {fill:var(--navy);}
-.gate:not(.is-opening) .gate-night .piece.is-red {filter:drop-shadow(0 0 14px rgb(239 48 37 / .5));}
-.gate:not(.is-opening) .gate-night .piece.is-ink {filter:drop-shadow(0 0 20px rgb(233 227 214 / .16));}
 /* Settled: absolute at the page top, one screen tall, behind the hero content; scrolls away with it. */
 .gate.is-settled {position:absolute;inset:0 0 auto 0;height:100svh;z-index:1;pointer-events:none;}
-.gate.is-settled :is(.gate-night,.gate-shade) {display:none;}
+.gate.is-settled .gate-mark {visibility:hidden;}
 
 /* ================= Hero: a typographic cover ================= */
 /* FIELD / NOTES are constructed from strokes (StrokeWord) and set huge and staggered. Around them the
@@ -141,7 +129,7 @@ html.paged .home > .page {position:fixed;inset:0;min-height:0;overflow:hidden au
 html.paged .home > .page:not(.is-current) {display:none;}
 html.paged .site-footer {position:fixed;left:0;right:0;bottom:0;z-index:3;display:none;padding-block:22px;}
 html.paged[data-page='end'] .site-footer {display:flex;}
-html.paged:not([data-page='cover']) .gate.is-settled .gate-day {visibility:hidden;} /* hidden, not removed: nothing to rebuild on the way back */
+html.paged:not([data-page='cover']) .gate.is-settled {visibility:hidden;} /* hidden, not removed: nothing to rebuild on the way back */
 
 /* Ticks: one small blade per page at the right edge; the label shows on hover and focus. */
 .pager {position:fixed;right:clamp(8px,1.5vw,24px);top:50%;translate:0 -50%;z-index:40;display:grid;justify-items:end;gap:6px;color:var(--navy);}

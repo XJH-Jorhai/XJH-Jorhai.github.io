@@ -56,13 +56,14 @@ __spatial.snapshot()
 
 ### Persona 素材
 
-两张原图放在 `inputs/source/persona/`（`key-visual.webp` 主视觉、`reference-sheet.webp` 设定图），不进仓库。`npm run persona` 按 `inputs/persona-recipe.json` 生成 `public/media/persona/` 下的素材和 `src/data/persona.assets.json`：
+原图放在 `inputs/source/persona/`（`key-visual-v2.webp` 主视觉、`reference-sheet.webp` 设定图、`key-visual-v2-eyes-plate.webp` 去虹膜的眼部特写），不进仓库。`npm run persona` 按 `inputs/persona-recipe.json` 生成 `public/media/persona/` 下的素材和 `src/data/persona.assets.json`：
 
 - `figure.webp`：主视觉里的人物。现用的 v2 是透明背景图（配方 `"background": "alpha"`）：直接用它的透明通道，透明度 ≤ `alpha.floor` 的背景残雾清零、只保留最大的一块。按颜色抠的流程（`background` 为颜色列表，配合手工描的 `keep` 多边形）仍保留，给不透明的原图用。加 `--debug <目录>` 会输出人物叠在四种底色上的预览，换图后先看这个。
+- `eye-{left,right}-{white,iris}.webp`：首页 Persona 与 About 屏眼睛跟随用的两层，按配方 `eyes` 里手工描的眼眶、虹膜轮廓生成（2 倍分辨率）。特写和原图的眼距比例不同，所以每只眼睛单独对齐（`plateBox` → `sourceBox`），颜色按虹膜外一圈眼白自动校正（`gain`）。`--debug` 会同时输出这四层的 PNG。改了轮廓后在浏览器里看虹膜移到四个方向时有没有残留描线或白边。
 - `view-*`、`mood-*`、`detail-*`、`head-back`：设定图上的矩形裁切，像素不动。
 - 色值：设定图色卡的中位数取样。
 
-换了原图要更新配方里的 `sha256`，并重新核对裁切框和帽子轮廓。主视觉的绘画 prompt 在 `inputs/persona-prompts.md`。新图如果是透明背景，把配方里 `keyVisual.background` 改成 `"alpha"`（直接用图的透明通道，不再按颜色抠，`keep` 等字段可删）；如果是纯绿底，`background` 改成只有一项绿色，`keep` 清空。
+换了原图要更新配方里的 `sha256`，并重新核对裁切框和帽子轮廓。换主视觉时眼睛那两层也要重做：按 `inputs/persona-prompts.md` 再要一张去虹膜特写，重新描眼眶和虹膜；做好之前可以先删掉配方里的 `eyes`（页面就没有眼睛跟随）。主视觉的绘画 prompt 在 `inputs/persona-prompts.md`。新图如果是透明背景，把配方里 `keyVisual.background` 改成 `"alpha"`（直接用图的透明通道，不再按颜色抠，`keep` 等字段可删）；如果是纯绿底，`background` 改成只有一项绿色，`keep` 清空。
 
 素材处理记录自动写入 `reports/`。铁傀儡海报重建：预览运行时执行 `node scripts/prepare-piston-poster.mjs`。
 

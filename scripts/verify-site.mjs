@@ -25,6 +25,8 @@ try {
       assert.ok((await page.locator('h1').textContent()).includes(title),`${path}: h1`);
       assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),`${path}: overflow at ${width}`);
       await page.locator('img').evaluateAll(images=>{for(const image of images)image.loading='eager';return Promise.all(images.map(image=>image.decode()));});
+      // Reduced motion: the eye-follow layers are never fetched.
+      if(path==='/')assert.equal(await page.locator('.hp-eye img').count(),0,`eyes loaded with reduced motion at ${width}`);
     }
     await page.close();
   }
@@ -59,6 +61,11 @@ try {
   assert.equal(await paged.locator('#about .hp-figure').isVisible(),true);
   assert.equal(await paged.locator('#about a[href="/persona/"]').count(),1);
   assert.equal(await paged.locator('#about-heading').isVisible(),true);
+  // Eye follow: both eyes load on a fine pointer, and the irises turn towards the pointer.
+  await paged.waitForFunction(()=>document.querySelectorAll('#about .hp-eye.is-ready').length===2);
+  await paged.mouse.move(8,400,{steps:4});
+  await paged.waitForFunction(()=>parseFloat(document.querySelector('#about').style.getPropertyValue('--ex'))<-.3,null,{timeout:15000});
+  await paged.mouse.move(640,4,{steps:4});
   await paged.waitForTimeout(900);
   await paged.locator('[data-pager] a').last().click();
   await paged.waitForFunction(()=>document.documentElement.dataset.page==='end');

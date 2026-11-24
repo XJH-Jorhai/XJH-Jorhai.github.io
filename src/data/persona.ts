@@ -8,6 +8,13 @@ const asset = (group: 'view' | 'mood' | 'detail', id: string) => assets[group].f
 
 export const persona = {
   figure: assets.figure,
+  // Eye-follow layers (home Persona & About page): placed in % of the figure, the iris travel in % of
+  // the eye box. See scripts/process-persona.mjs and persona-stage.ts.
+  eyes: assets.eyes.map(({ box, range, white, iris }) => {
+    const [x, y, w, h] = box as [number, number, number, number], [rx, ry] = range as [number, number];
+    const pct = (v: number, of: number) => `${(v / of * 100).toFixed(4)}%`;
+    return { white, iris, style: `left:${pct(x, assets.figure.width)};top:${pct(y, assets.figure.height)};width:${pct(w, assets.figure.width)};height:${pct(h, assets.figure.height)};--rx:${pct(rx, w)};--ry:${pct(ry, h)}` };
+  }),
   figureAlt: '原创角色的立姿像：戴白色渔夫帽、系粉色蝴蝶结的蜜金色短发女性，穿灰紫色针织开衫、白衬衫配粉色细丝带和格纹短裙；一只手插在开衫口袋里，另一只手两指扶着帽檐，神情平静。',
   concept: ['Persona', 'Visual identity', 'Concept 01'],
   claim: { en: ['Soft Character,', 'Bold Expression.'], zh: '柔和的人物，强烈的表达。' },

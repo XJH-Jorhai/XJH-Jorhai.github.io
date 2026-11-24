@@ -7,6 +7,9 @@
 html.gate-lock,html.gate-lock body {overflow:hidden;}
 .gate {position:fixed;inset:0;z-index:60;overflow:hidden;}
 .gate[hidden] {display:none;}
+/* Before gate.ts runs: the dark stage is already showing (class set in <head>, see PageShell). */
+html.gate-boot .gate[hidden] {display:block;}
+html.gate-boot,html.gate-boot body {overflow:hidden;}
 .gate-layer {position:absolute;inset:0;display:grid;place-items:center;overflow:hidden;}
 .gate-night {--glow:.2;background:radial-gradient(ellipse 60% 55% at 50% 50%,#121c31 0%,#080d18 48%,#030408 100%);}
 .gate-night::before {content:'';position:absolute;inset:0;background:radial-gradient(circle at 50% 50%,rgb(52 104 214 / calc(var(--glow) * .42)) 0,transparent calc(12% + var(--glow) * 10%));}
@@ -101,6 +104,17 @@ button.gate-mark {cursor:pointer;touch-action:none;-webkit-tap-highlight-color:t
 }
 @media(max-width:900px) and (max-height:700px) {
   .hero-lede {display:none;}
+}
+/* Wide but short, or just over the narrow layout: the five stepped lines would run into NOTES, so the
+   lede becomes one plain paragraph of two or three lines that fits beside FIELD. */
+@media (min-width:901px) and (max-height:680px), (min-width:901px) and (max-width:1100px) {
+  .hero-lede {white-space:normal;max-width:30em;}
+  .hero-lede.stair > * {display:inline;margin-left:0;}
+}
+/* Short screens: the four contents links go side by side instead of stepping down four lines. */
+@media (min-width:901px) and (max-height:680px) {
+  .hero-index {display:flex;gap:clamp(16px,2.4vw,36px);}
+  .hero-index a {margin-right:0;}
 }
 
 /* ================= Pages ================= */

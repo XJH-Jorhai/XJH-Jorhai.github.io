@@ -13,9 +13,11 @@
  * so no device ever sees an eye without its iris.
  *
  * Petting: rubbing the pointer back and forth over her head (the hat and the top of her hair, an
- * invisible ellipse that turns with her) makes hearts pop up where the pointer is. Movement over the
- * head charges a little store that leaks away; once it is full and the pointer has turned back at
- * least once in the last moment, a heart rises and the store is spent. One pass across does nothing.
+ * invisible ellipse that turns with her) makes hearts pop up where the pointer is. Every time the
+ * pointer turns back over her head after a real stroke, from the second turn on, a heart is owed;
+ * leaving the head (or a long pause) starts over, so one pass across, or a single back-and-forth,
+ * does nothing. It counts turns, not time or speed, so it works the same however slowly the page is
+ * drawing (busy pages deliver fewer, longer pointer moves); the frame loop only draws owed hearts.
  *
  * Pointer events only store the pointer; the shared frame loop eases towards it (the eyes faster than
  * the body), reads the rubbing, and stops once everything has arrived. Leaving the page eases
@@ -34,10 +36,10 @@ export function initPersonaStage(){
   // Layout is read at most every 800 ms (and after an enter or a resize), not on every frame.
   let pointer:{x:number,y:number}|null=null,box:DOMRect|null=null,centre:{x:number,y:number}|null=null,measured=0,eyesOn=false;
   let head:DOMRect|null=null,heartsBox:DOMRect|null=null;
-  // Petting input (kept by the pointer events, so every movement counts whatever the frame rate): the
-  // distance moved since the last frame, the last horizontal direction and when it last turned. The
-  // frame loop turns it into charge and hearts.
-  let travel=0,heading=0,turned=-1e9,charge=0,lastHeart=-1e9,count=0;
+  // Petting input: the horizontal direction of the current stroke and how far it has gone, how many
+  // turns in a row and when the last one was, and the hearts owed (where the pointer was) but not drawn.
+  let heading=0,stroke=0,turns=0,turned=-1e9,lastOwed=-1e9,count=0;
+  const owed:{x:number,y:number}[]=[];
 
   function measure(){
     box=page!.getBoundingClientRect();measured=performance.now();centre=null;
@@ -59,11 +61,18 @@ export function initPersonaStage(){
     if(!head||head.width<1)return false;
     const u=(p.x-head.left)/head.width*2-1,v=(p.y-head.top)/head.height*2-1;return u*u+v*v<=1;
   };
-  function pet(dt:number){
-    const now=performance.now(),moved=travel;travel=0;charge*=Math.exp(-dt/450);
-    if(!pointer||!hearts||!onHead(pointer))return;
-    charge+=moved;
-    if(charge>110&&now-turned<700&&now-lastHeart>150){charge-=55;lastHeart=now;heart(pointer);}
+  function rub(from:{x:number,y:number},to:{x:number,y:number}){
+    if(!hearts||!onHead(to)){heading=stroke=turns=0;return;}
+    const now=performance.now(),dx=to.x-from.x;
+    if(Math.abs(dx)<=1.5)return;
+    const dir=Math.sign(dx);
+    if(heading&&dir!==heading&&stroke>=24){
+      turns=now-turned<4000?turns+1:1;turned=now;
+      if(turns>=2&&now-lastOwed>120){lastOwed=now;if(owed.length<4)owed.push({...to});}
+      stroke=0;
+    }
+    if(dir!==heading)stroke=0;
+    heading=dir;stroke+=Math.abs(dx);
   }
   function heart(at:{x:number,y:number}){
     if(!hearts||!heartsBox||hearts.childElementCount>=14)return;
@@ -81,7 +90,7 @@ export function initPersonaStage(){
   }
   function tick({delta}:{delta:number}){
     const {tx,ty,gx,gy}=targets(),dt=Math.min(delta,100),k=1-Math.exp(-dt/220),ke=1-Math.exp(-dt/80);
-    pet(dt);
+    for(const at of owed.splice(0))heart(at);
     x+=(tx-x)*k;y+=(ty-y)*k;ex+=(gx-ex)*ke;ey+=(gy-ey)*ke;
     const resting=Math.max(Math.abs(tx-x),Math.abs(ty-y),Math.abs(gx-ex),Math.abs(gy-ey))<.002;
     if(resting){x=tx;y=ty;ex=gx;ey=gy;}
@@ -109,11 +118,9 @@ export function initPersonaStage(){
   page.addEventListener('pointermove',event=>{
     if(!allowed()||event.pointerType!=='mouse')return;
     if(!pointer)page.classList.add('is-tracking');
-    else{
-      const dx=event.clientX-pointer.x;travel+=Math.hypot(dx,event.clientY-pointer.y);
-      if(Math.abs(dx)>1.5){const dir=Math.sign(dx);if(heading&&dir!==heading)turned=event.timeStamp;heading=dir;}
-    }
-    pointer={x:event.clientX,y:event.clientY};wake();
+    const next={x:event.clientX,y:event.clientY};
+    if(pointer)rub(pointer,next);
+    pointer=next;wake();
   });
   page.addEventListener('pointerenter',()=>{box=null;});
   page.addEventListener('pointerleave',()=>{pointer=null;wake();});

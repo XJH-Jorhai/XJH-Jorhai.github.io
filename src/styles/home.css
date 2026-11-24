@@ -145,14 +145,9 @@ html:is([data-page='notes'],[data-page='about']) .pager {color:var(--chalk);}
 html[data-page='notes'] .pager a[aria-current]::after {background:var(--red-soft);}
 html[data-page='about'] .pager a[aria-current]::after {background:var(--chalk);}
 
-/* The blades: navy bars with red, 45°-cut ends — the mark's own blades — standing side by side and
-   parked below the screen. Going forward they rise from below, one after another, and leave through
-   the top; going back they come down from above. */
-.wipe {--n:6;--tip:calc(100vw / var(--n));--edge:clamp(12px,1.8vw,30px);position:fixed;inset:0;z-index:58;overflow:hidden;pointer-events:none;}
-.wipe > span {position:absolute;top:calc(var(--tip) * -1);left:calc(var(--i) * 100% / var(--n) - .5px);width:calc(100% / var(--n) + 1px);height:calc(100% + var(--tip) * 2);transform:translateY(108%);}
-.wipe > span::before,.wipe > span::after {content:'';position:absolute;inset:0;clip-path:polygon(0 var(--tip),100% 0,100% calc(100% - var(--tip)),0 100%);}
-.wipe > span::before {inset:calc(var(--edge) * -1) 0;background:var(--red);}
-.wipe > span::after {background:var(--navy);}
+/* The page transition is drawn on this canvas (sweep.ts): the cover's corner blocks and a sweep of
+   colour bands along the mark's diagonal. Hidden between transitions. */
+.wipe {position:fixed;inset:0;width:100%;height:100%;z-index:58;pointer-events:none;visibility:hidden;}
 
 /* Entrances (paged only). They are animations, so they play again each time a page is shown. */
 @keyframes enter-fade {from {opacity:0;}}
@@ -293,8 +288,6 @@ html.paged .h-outro {padding-bottom:clamp(84px,12svh,120px);}
   .home .h-work .work-gallery.work-gallery--poster .work-item:nth-child(n) {grid-column:1 / -1;max-width:calc(var(--cover) * 1.5);margin:0 0 clamp(14px,2.4svh,28px);justify-self:start;}
   .home .h-work .work-gallery.work-gallery--poster .work-item:nth-child(even) {justify-self:end;}
   .pager a span {display:none;}
-  .wipe {--n:4;}
-  .wipe > span:nth-child(n+5) {display:none;}
   .pager {right:4px;gap:2px;}
   .pager a::after {width:8px;height:3px;}
   .pager a[aria-current]::after {width:14px;}

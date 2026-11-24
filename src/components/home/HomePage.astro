@@ -112,7 +112,7 @@ const pad = (n: number) => String(n).padStart(2, '0');
       </div>
     </section>
   </div>
-  <!-- Paged home (pager.ts): a tick per page, and the blades that rise across the screen when the page changes. -->
+  <!-- Paged home (pager.ts): a tick per page, and the canvas the page transition is drawn on (sweep.ts). -->
   <nav class="pager" data-pager aria-label="分屏导航" hidden>
     <a href="#cover"><span>Cover</span></a>
     <a href="#work"><span>Work</span></a>
@@ -121,7 +121,7 @@ const pad = (n: number) => String(n).padStart(2, '0');
     <a href="#about"><span>About</span></a>
     <a href="#end"><span>Index</span></a>
   </nav>
-  <div class="wipe" data-wipe aria-hidden="true">{[0, 1, 2, 3, 4, 5].map(i => <span style={`--i:${i}`}></span>)}</div>
+  <canvas class="wipe" data-wipe aria-hidden="true"></canvas>
   <script>
     import { initGate } from '../../lib/motion/gate';
     import { initPager } from '../../lib/motion/pager';

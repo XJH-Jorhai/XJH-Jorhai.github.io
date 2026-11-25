@@ -68,9 +68,16 @@ try {
   // Petting: rubbing back and forth over her head makes hearts rise.
   // Hearts are counted as they are created: on a slow runner they may have faded before a check looks.
   await paged.evaluate(()=>{window.__hearts=0;new MutationObserver(records=>{for(const record of records)window.__hearts+=[...record.addedNodes].filter(node=>node.classList?.contains('hp-heart')).length;}).observe(document.querySelector('#about [data-hp-hearts]'),{childList:true});});
-  const head=await paged.locator('#about [data-hp-head]').boundingBox();
-  for(let i=0;i<12;i++){await paged.mouse.move(head.x+head.width*(i%2?.75:.25),head.y+head.height*.5,{steps:4});await paged.waitForTimeout(60);}
-  await paged.waitForFunction(()=>window.__hearts>0,null,{timeout:10000});
+  // Wait for her entrance to finish and for her to settle with the pointer on her head before reading
+  // where the head is (she rises into place and shifts towards the pointer), then rub until a heart
+  // rises or 40 strokes have gone by.
+  await paged.waitForFunction(()=>document.getAnimations().every(animation=>!(animation.effect?.target instanceof Element&&animation.effect.target.closest('#about'))||animation.playState!=='running'),null,{timeout:10000});
+  let head=await paged.locator('#about [data-hp-head]').boundingBox();
+  await paged.mouse.move(head.x+head.width/2,head.y+head.height/2,{steps:4});
+  await paged.waitForTimeout(1500);
+  head=await paged.locator('#about [data-hp-head]').boundingBox();
+  for(let i=0;i<40&&!(await paged.evaluate(()=>window.__hearts>0));i++){await paged.mouse.move(head.x+head.width*(i%2?.68:.32),head.y+head.height*.5,{steps:4});await paged.waitForTimeout(60);}
+  await paged.waitForFunction(()=>window.__hearts>0,null,{timeout:5000});
   await paged.mouse.move(640,4,{steps:4});
   await paged.waitForTimeout(900);
   await paged.locator('[data-pager] a').last().click();

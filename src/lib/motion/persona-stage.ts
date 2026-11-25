@@ -33,7 +33,7 @@ export function initPersonaStage(){
   const headZone=page.querySelector<HTMLElement>('[data-hp-head]'),hearts=page.querySelector<HTMLElement>('[data-hp-hearts]');
   let x=0,y=0,ex=0,ey=0,running=false;
   // The pointer (client px) while it is over the page, else null; where her eyes are on screen.
-  // Layout is read at most every 800 ms (and after an enter or a resize), not on every frame.
+  // Layout is read at most every 300 ms (and after an enter or a resize), not on every frame.
   let pointer:{x:number,y:number}|null=null,box:DOMRect|null=null,centre:{x:number,y:number}|null=null,measured=0,eyesOn=false;
   let head:DOMRect|null=null,heartsBox:DOMRect|null=null;
   // Petting input: the horizontal direction of the current stroke and how far it has gone, how many
@@ -51,7 +51,7 @@ export function initPersonaStage(){
   }
   function targets(){
     if(!pointer)return {tx:0,ty:0,gx:0,gy:0};
-    if(!box||performance.now()-measured>800)measure();
+    if(!box||performance.now()-measured>300)measure();
     const tx=Math.max(-1,Math.min(1,(pointer.x-box!.left)/box!.width*2-1)),ty=Math.max(-1,Math.min(1,(pointer.y-box!.top)/Math.min(box!.height,innerHeight)*2-1));
     if(!centre)return {tx,ty,gx:0,gy:0};
     const dx=pointer.x-centre.x,dy=pointer.y-centre.y,reach=Math.max(Math.hypot(dx,dy),Math.min(innerWidth,innerHeight)*.28);

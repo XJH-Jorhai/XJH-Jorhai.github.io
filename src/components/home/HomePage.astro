@@ -38,12 +38,14 @@ const pad = (n: number) => String(n).padStart(2, '0');
          second copy clipped to the slab). Headings are for screen readers; the poster carries no small
          print beyond what must be there (the draft stamp). -->
     <section class="h-work page poster" id="work" data-page tabindex="-1" aria-labelledby="work-heading">
-      <div class="pg-ground" aria-hidden="true"><i class="pg-slab"></i></div>
-      <div class="pg-word">
-        <span class="pg-word-layer pg-ink"><a href="/work/" aria-label={`全部作品（${pad(workCount)}）`}><StrokeWord text="WORK" id="work-ink" class="pw" /></a></span>
-        <span class="pg-word-layer pg-cut" aria-hidden="true"><span><StrokeWord text="WORK" id="work-cut" class="pw" /></span></span>
+      <div class="pg-art">
+        <div class="pg-ground" aria-hidden="true"><i class="pg-slab"></i></div>
+        <div class="pg-word">
+          <span class="pg-word-layer pg-ink"><a href="/work/" aria-label={`全部作品（${pad(workCount)}）`}><StrokeWord text="WORK" id="work-ink" class="pw" /></a></span>
+          <span class="pg-word-layer pg-cut" aria-hidden="true"><span><StrokeWord text="WORK" id="work-cut" class="pw" /></span></span>
+        </div>
+        <Glass class="pg-glass" />
       </div>
-      <Glass class="pg-glass" />
       <div class="page-width pg-body">
         <h2 id="work-heading" class="visually-hidden">Selected work 作品</h2>
         <WorkGallery variant="poster" />
@@ -51,12 +53,14 @@ const pad = (n: number) => String(n).padStart(2, '0');
     </section>
 
     <section class="h-notes tone-night page poster" id="notes" data-page tabindex="-1" aria-labelledby="notes-heading">
-      <div class="pg-ground" aria-hidden="true"><i class="pg-slab"></i></div>
-      <div class="pg-word">
-        <span class="pg-word-layer pg-ink"><a href="/notes/" aria-label={`全部笔记（${pad(journalNotes.length)}）`}><StrokeWord text="NOTES" id="notes-ink" class="pw" /></a></span>
-        <span class="pg-word-layer pg-cut" aria-hidden="true"><span><StrokeWord text="NOTES" id="notes-cut" class="pw" /></span></span>
+      <div class="pg-art">
+        <div class="pg-ground" aria-hidden="true"><i class="pg-slab"></i></div>
+        <div class="pg-word">
+          <span class="pg-word-layer pg-ink"><a href="/notes/" aria-label={`全部笔记（${pad(journalNotes.length)}）`}><StrokeWord text="NOTES" id="notes-ink" class="pw" /></a></span>
+          <span class="pg-word-layer pg-cut" aria-hidden="true"><span><StrokeWord text="NOTES" id="notes-cut" class="pw" /></span></span>
+        </div>
+        <Glass class="pg-glass" />
       </div>
-      <Glass class="pg-glass" />
       <div class="page-width pg-body">
         <h2 id="notes-heading" class="visually-hidden">Notes &amp; observations 笔记</h2>
         <p class="pg-stamp" data-enter style="--k:2"><span>Drafts</span>草稿</p>
@@ -104,8 +108,10 @@ const pad = (n: number) => String(n).padStart(2, '0');
          way out. A painted slab with a glass blade in the top-right corner answers the cover's corner
          blocks. -->
     <section class="h-outro page poster" id="about" data-alias="end" data-page tabindex="-1" aria-labelledby="about-heading">
-      <div class="pg-ground" aria-hidden="true"><i class="pg-slab"></i></div>
-      <Glass class="pg-glass" />
+      <div class="pg-art">
+        <div class="pg-ground" aria-hidden="true"><i class="pg-slab"></i></div>
+        <Glass class="pg-glass" />
+      </div>
       <div class="page-width pg-body">
         <h2 id="about-heading" class="visually-hidden">About 关于</h2>
         <div class="h-outro-row">
@@ -135,7 +141,9 @@ const pad = (n: number) => String(n).padStart(2, '0');
     import { initGate } from '../../lib/motion/gate';
     import { initPager } from '../../lib/motion/pager';
     import { initPersonaStage } from '../../lib/motion/persona-stage';
+    import { initPosterStage } from '../../lib/motion/poster-stage';
     initPersonaStage();
+    initPosterStage();
     initPager();
     initGate();
   </script>

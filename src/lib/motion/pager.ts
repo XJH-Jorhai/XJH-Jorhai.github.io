@@ -93,9 +93,14 @@ export function initPager(){
       });
     }finally{
       for(const page of [from,to]){page.style.translate='';page.style.clipPath='';}
-      from.classList.remove('is-leaving');root.classList.remove('is-flipping');delete root.dataset.leaving;
+      from.classList.remove('is-leaving');delete root.dataset.leaving;
       for(const el of [gate,footer])if(el){el.style.zIndex='';el.style.translate='';el.style.clipPath='';}
-      busy=false;remeasure();setTimeout(remeasure,900);
+      // The scenes measure the new page now; the posters stay up two more frames, until WebGL has
+      // drawn at the new positions, so nothing jumps when they hand over.
+      remeasure();
+      await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+      root.classList.remove('is-flipping');
+      busy=false;setTimeout(remeasure,900);
     }
     if(queued>=0){const next=queued;queued=-1;void go(next);}
   }

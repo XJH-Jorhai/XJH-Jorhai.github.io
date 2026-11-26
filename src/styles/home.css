@@ -239,7 +239,7 @@ html[data-page='notes'] .pager a[aria-current]::after {background:var(--red-soft
      below the captions */
   --g1:-9vw;--g2:4vw;--gy:66svh;
   --cover:clamp(150px,calc(100svh - var(--cap-h) * .8 - 210px),480px);}
-.home .h-work .work-tags {display:none;}
+/* the tags stay above each title, a caption's worth of small type (kept on purpose, 2026-11-26); phones drop them */
 .home .h-work .pg-body {padding-top:clamp(0px,2svh,24px);}
 .home > .page.h-work {align-content:start;}
 .home .h-work .work-gallery.work-gallery--poster {align-items:start;}

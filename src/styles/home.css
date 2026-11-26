@@ -126,7 +126,18 @@ html.gate-boot,html.gate-boot body {overflow:hidden;}
 
 html.paged,html.paged body {height:100%;overflow:hidden;overscroll-behavior:none;}
 html.paged .home > .page {position:fixed;inset:0;min-height:0;overflow:hidden auto;}
-html.paged .home > .page:not(.is-current) {display:none;}
+html.paged .home > .page:not(.is-current):not(.is-leaving) {display:none;}
+/* During a page push (pager.ts) both pages share the screen: the new one on top, both opaque paper
+   (the notes page has its own night), the WebGL canvas out of the way and the covers' posters shown. */
+html.is-flipping .home > .page.is-leaving {z-index:0;}
+html.is-flipping .home > .page.is-current {z-index:1;}
+html.is-flipping .home > .page:is(.is-current,.is-leaving):not(.night-band) {background-color:var(--color-base);box-shadow:0 0 0 100vmax var(--color-base);}
+html.is-flipping .home > .page:is(.is-current,.is-leaving) {will-change:translate,clip-path;}
+html.is-flipping .spatial-canvas {visibility:hidden !important;}
+html.is-flipping [data-renderer='webgl2'] .visual-carrier {opacity:1 !important;}
+html.is-flipping .piston-stage img {visibility:visible !important;}
+html.paged[data-leaving='cover'] .gate.is-settled.is-settled {visibility:visible;}
+html.paged[data-leaving='end'] .site-footer.site-footer {display:flex;}
 html.paged .site-footer {position:fixed;left:0;right:0;bottom:0;z-index:3;display:none;padding-block:22px;}
 html.paged[data-page='end'] .site-footer {display:flex;}
 html.paged:not([data-page='cover']) .gate.is-settled {visibility:hidden;} /* hidden, not removed: nothing to rebuild on the way back */

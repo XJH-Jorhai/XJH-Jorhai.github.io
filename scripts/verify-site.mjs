@@ -58,6 +58,8 @@ try {
   await paged.waitForTimeout(900); // keys pressed while the blades are still moving are ignored on purpose
   await paged.keyboard.press('ArrowDown');
   await paged.waitForFunction(()=>document.documentElement.dataset.page==='about');
+  // The new page is current from the start of the push; wait for the push itself to end.
+  await paged.waitForFunction(()=>!document.documentElement.classList.contains('is-flipping'));
   assert.equal(await paged.locator('#about .hp-figure').isVisible(),true);
   assert.equal(await paged.locator('#about a[href="/persona/"]').count(),1);
   assert.equal(await paged.locator('#about-heading').isVisible(),true);

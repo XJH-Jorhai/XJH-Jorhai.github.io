@@ -1,10 +1,13 @@
 import {createSweep} from './sweep';
 /**
  * Home pager. The home page's sections are full-screen pages: one is shown at a time and a wheel
- * notch, a swipe, an arrow key or an in-page link switches to the next, behind the corner blocks and
- * a sweep of colour bands (sweep.ts) that rise from below (going forward) or come down from above
- * (going back). The page is swapped while the screen is covered, so nothing on a page ever moves and
- * the WebGL scenes only have to measure again once.
+ * notch, a swipe, an arrow key or an in-page link switches to the next in one continuous push
+ * (sweep.ts): a 45° seam with stripes of colour on it crosses the screen from below (going forward)
+ * or from above (going back); the new page is already there behind it, playing its entrance, while
+ * the old page drifts out in front of it. Both pages are opaque paper while they share the screen.
+ * The WebGL scenes sit out the push (their posters show instead) and measure again once it is done.
+ * Two things drawn outside the pages belong to one of them: the cover's corner blocks and the end
+ * page's footer. They are clipped and moved with their page.
  *
  * Without JS or with reduced motion there is no pager: the sections simply follow each other as one
  * long page. A page taller than the screen scrolls inside itself first; the pager takes over at its
@@ -55,9 +58,11 @@ export function initPager(){
     for(const [i,a] of ticks.entries()){if(i===index)a.setAttribute('aria-current','true');else a.removeAttribute('aria-current');}
     root.dataset.page=page.id;page.scrollTop=0;splitLines(page);
     history.replaceState(history.state,'',index===0?location.pathname+location.search:`#${page.id}`);
-    remeasure();
   }
-  root.classList.add('paged');if(nav)nav.hidden=false;show(current);
+  root.classList.add('paged');if(nav)nav.hidden=false;show(current);remeasure();
+  const gate=document.querySelector<HTMLElement>('.gate'),footer=document.querySelector<HTMLElement>('.site-footer');
+  /** What is drawn outside a page but belongs to it. */
+  const attached=(page:HTMLElement)=>page===pages[0]?(gate?.classList.contains('is-settled')?gate:null):page===pages[pages.length-1]?footer:null;
   // Line boxes depend on the width: split again when it changes (our own re-measure events do not change it).
   addEventListener('resize',()=>splitLines(pages[current]!));
 
@@ -67,12 +72,31 @@ export function initPager(){
     if(locked()||index<0||index>=pages.length)return;
     if(busy){if(explicit)queued=index;return;}
     if(index===current)return;
-    busy=true;const dir=index>current?1:-1;
+    busy=true;const dir=index>current?1:-1,from=pages[current]!,to=pages[index]!;
     try{
-      await sweep?.cover(dir); // corners fly in, the colours sweep over: from below when going forward
-      show(index);pages[index]!.focus({preventScroll:true});
-      await sweep?.reveal(dir); // and carry on out the same way; the new page plays its entrance
-    }finally{busy=false;setTimeout(remeasure,900);}
+      if(!sweep){show(index);to.focus({preventScroll:true});return;}
+      // Both pages on screen: the old one stays (is-leaving), the new one is current from the start.
+      root.classList.add('is-flipping');root.dataset.leaving=from.id;from.classList.add('is-leaving');
+      const fromBox=from.getBoundingClientRect(); // read before anything moves
+      show(index);to.focus({preventScroll:true});
+      const toBox=to.getBoundingClientRect(),drift=Math.min(innerHeight*.12,110)*dir;
+      // The corner blocks and the footer go with their page: above the pages for the push, clipped like it.
+      const goes=attached(from),comes=attached(to),boxOf=(el:HTMLElement|null)=>el?el.getBoundingClientRect():null;
+      for(const el of [goes,comes])if(el)el.style.zIndex='3';
+      const goesBox=boxOf(goes),comesBox=boxOf(comes);
+      await sweep.flip(dir,({progress,incoming,outgoing})=>{
+        const out=-progress*drift,inn=(1-progress)*drift;
+        from.style.translate=`0 ${out}px`;from.style.clipPath=outgoing(fromBox.left,fromBox.top+out);
+        to.style.translate=`0 ${inn}px`;to.style.clipPath=incoming(toBox.left,toBox.top+inn);
+        if(goes&&goesBox){goes.style.translate=`0 ${out}px`;goes.style.clipPath=outgoing(goesBox.left,goesBox.top+out);}
+        if(comes&&comesBox){comes.style.translate=`0 ${inn}px`;comes.style.clipPath=incoming(comesBox.left,comesBox.top+inn);}
+      });
+    }finally{
+      for(const page of [from,to]){page.style.translate='';page.style.clipPath='';}
+      from.classList.remove('is-leaving');root.classList.remove('is-flipping');delete root.dataset.leaving;
+      for(const el of [gate,footer])if(el){el.style.zIndex='';el.style.translate='';el.style.clipPath='';}
+      busy=false;remeasure();setTimeout(remeasure,900);
+    }
     if(queued>=0){const next=queued;queued=-1;void go(next);}
   }
 

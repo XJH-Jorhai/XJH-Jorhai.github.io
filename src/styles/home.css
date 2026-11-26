@@ -184,36 +184,15 @@ html[data-page='notes'] .pager a[aria-current]::after {background:var(--red-soft
 :is(.pg-slab,.hp-slab)::after {scale:-1 1;mix-blend-mode:luminosity;filter:brightness(.42) contrast(1.9);opacity:.9;}
 
 /* ================= Glass ================= */
-/* A pane is a stack of layers sharing one outline (Glass.astro): its cast shadow, its rim (the plate's
-   thickness, seen at the edges: a deeper red), its face (a copy of what lies beneath, shifted across the
-   pane as a thick plate refracts it, under the tint and the brushwork), a faint gloss, a shaded inner
-   edge and a lit edge. Each page draws the outline from two edge offsets, --a1 (outer) and --a2
-   (inner), and for a shard the height --ay it is cut off at; the pane gives its own as --g1 / --g2 /
-   --gy, and every layer derives its outline from those: the face is inset by the thickness --ge, the
-   lit edge is a thin strip just inside the face's outer edge, the shaded edge one inside its inner
-   edge. --refract is the shift of the scene seen through it, square to the pane. No blur. */
-.glass-pane {position:absolute;inset:0;z-index:0;overflow:hidden;pointer-events:none;--ge:9px;--refract:13px 13px;}
-.gl {position:absolute;inset:0;display:block;
-  /* a shard's cut runs square to the pane, so a strip further in is cut lower: half its offset, plus
-     the thickness for the layers inside the rim */
-  --ay:calc(var(--gy,0px) + (var(--a1) - var(--g1)) / 2 + var(--cut-in,0px));}
-.gl-shade,.gl-rim {--a1:var(--g1);--a2:var(--g2);}
-.gl-face,.gl-sheen {--a1:calc(var(--g1) + var(--ge));--a2:calc(var(--g2) - var(--ge));--cut-in:calc(var(--ge) * .7);}
-.gl-spec {--a1:calc(var(--g1) + var(--ge));--a2:calc(var(--g1) + var(--ge) + 2.5px);--cut-in:calc(var(--ge) * .7);}
-.gl-dark {--a1:calc(var(--g2) - var(--ge) - 12px);--a2:calc(var(--g2) - var(--ge));--cut-in:calc(var(--ge) * .7);}
-.gl-shade {translate:18px 24px;background:rgb(96 14 20 / .13);}
-/* Shading across the pane: each pane gives the direction square to it (--across) and where its two
-   edges fall along that direction (--lo, --hi); --c-lo / --c-hi say which edge is lit. */
-.glass-pane {--bright:rgb(255 158 140 / .95);--deep:rgb(140 12 16 / .92);--c-lo:var(--bright);--c-hi:var(--deep);--s-lo:rgb(255 250 244 / .3);--s-hi:rgb(255 250 244 / 0);}
-.gl-rim {background:linear-gradient(var(--across),var(--c-lo) var(--lo),rgb(228 42 32 / .82) calc((var(--lo) + var(--hi)) / 2),var(--c-hi) var(--hi));}
-.gl-face {background:var(--glass-ground,var(--color-base));overflow:hidden;}
-.gl-scene {position:absolute;inset:0;translate:var(--refract);}
-.gl-scene .hp-slab {animation:none !important;}
-.gl-tint {position:absolute;inset:0;background:rgb(232 40 32 / .66);}
-.gl-tint::after {--paint-size:max(260vw,420svh);--paint-at:0 0;mix-blend-mode:luminosity;filter:brightness(.7) contrast(1.7);opacity:.2;}
-.gl-sheen {background:linear-gradient(var(--across),var(--s-lo) var(--lo),rgb(255 250 244 / 0) calc(var(--lo) + (var(--hi) - var(--lo)) * .42),rgb(255 250 244 / 0) calc(var(--lo) + (var(--hi) - var(--lo)) * .7),var(--s-hi) var(--hi)),linear-gradient(172deg,rgb(255 255 255 / .14),rgb(255 255 255 / 0) 40%);}
-.gl-dark {background:rgb(86 6 8 / .34);}
-.gl-spec {background:rgb(255 246 238 / .9);}
+/* A pane of red glass is one flat layer of red laid over what lies under it by hard light, like a gel
+   in front of a lamp: it stays a bright red everywhere, and the light and shade beneath come through it
+   (the painted slab's strokes, a giant word's shape, a touch lighter over the paper). A little of the
+   portrait's brushwork is in the red itself. (Multiply was tried: everything navy under it went black.) Flat on purpose: a bevelled, shadowed, refracting version (2026-11-26) read as
+   plastic and fought the flat posters. Each page gives the pane's outline from its two edge offsets
+   (--a1 / --a2, set from --g1 / --g2) and, for a shard, the height it is cut off at (--ay, from --gy). */
+.glass-pane {position:absolute;inset:0;z-index:0;overflow:hidden;pointer-events:none;mix-blend-mode:hard-light;}
+.gl {position:absolute;inset:0;display:block;--a1:var(--g1);--a2:var(--g2);--ay:var(--gy,0px);background:var(--glass,#EB3228);}
+.gl::after {content:'';position:absolute;inset:0;background:url('/media/persona/oil-1254.webp') no-repeat 0 0 / max(260vw,420svh) auto;mix-blend-mode:luminosity;filter:brightness(1.15) contrast(1.3);opacity:.22;pointer-events:none;}
 
 /* ================= Poster skeleton (Work, Notes, About) ================= */
 /* One giant word, one painted slab, glass. The giant word is built from the cover's own strokes
@@ -233,9 +212,7 @@ html[data-page='notes'] .pager a[aria-current]::after {background:var(--red-soft
 /* the glass lies over the word as well as the painting */
 .pg-glass {z-index:0;}
 .h-work .gl {clip-path:polygon(calc(100% - var(--s) + var(--a1) + 100svh - var(--ay)) var(--ay),calc(100% - var(--s) + (var(--a1) + var(--a2)) / 2 + 100svh - var(--ay)) calc(var(--ay) + (var(--a2) - var(--a1)) / 2),calc(100% - var(--s) + var(--a2)) 100%,calc(100% - var(--s) + var(--a1)) 100%);}
-.h-notes .glass-pane {--refract:13px -13px;--c-lo:var(--deep);--c-hi:var(--bright);--s-lo:rgb(255 250 244 / 0);--s-hi:rgb(255 250 244 / .3);}
 .h-notes .gl {clip-path:polygon(calc(var(--s) - var(--a1) + var(--ay) - 100svh) var(--ay),calc(var(--s) - var(--a1)) 100%,calc(var(--s) - var(--a2)) 100%,calc(var(--s) - (var(--a1) + var(--a2)) / 2 + var(--ay) - 100svh) calc(var(--ay) + (var(--a2) - var(--a1)) / 2));}
-.h-outro .glass-pane {--refract:13px -13px;}
 .h-outro .gl {clip-path:polygon(calc(100% - var(--s) + var(--a1)) 0,calc(100% - var(--s) + var(--a2)) 0,100% calc(var(--s) - var(--a2)),100% calc(var(--s) - var(--a1)));}
 .pg-word-layer {display:flex;align-items:flex-end;justify-content:var(--word-justify);padding:0 var(--gutter);color:var(--word-ink);}
 .pg-word-layer > * {display:block;margin-bottom:calc(var(--cap-h) * -.2);}
@@ -261,7 +238,6 @@ html[data-page='notes'] .pager a[aria-current]::after {background:var(--red-soft
   /* the glass: a shard rising from the bottom across the slab's edge and over the K, cut off square
      below the captions */
   --g1:-9vw;--g2:4vw;--gy:66svh;
-  --across:135deg;--lo:calc((100vw + 100svh - var(--s) + var(--g1)) * .7071);--hi:calc((100vw + 100svh - var(--s) + var(--g2)) * .7071);
   --cover:clamp(150px,calc(100svh - var(--cap-h) * .8 - 210px),480px);}
 .home .h-work .work-tags {display:none;}
 .home .h-work .pg-body {padding-top:clamp(0px,2svh,24px);}
@@ -278,8 +254,7 @@ html[data-page='notes'] .pager a[aria-current]::after {background:var(--red-soft
 .h-notes {background:var(--night);--s:min(40svh,30vw);--cap-h:min(30svh,calc((100vw - var(--gutter) * 2) / 4.5));--slab:polygon(0 calc(100% - var(--s)),var(--s) 100%,0 100%);
   /* the glass: a shard rising from the bottom across the slab's edge and over the N, cut off square
      below the list */
-  --g1:-9vw;--g2:4vw;--gy:56svh;--glass-ground:var(--night);
-  --across:45deg;--lo:calc((var(--s) - var(--g2)) * .7071);--hi:calc((var(--s) - var(--g1)) * .7071);
+  --g1:-9vw;--g2:4vw;--gy:56svh;
   --word-ink:var(--chalk);--word-hover:var(--red-soft);--word-cut:var(--night);--word-justify:flex-end;}
 .home > .page.h-notes {align-content:start;}
 .home .h-notes .note-row {padding-block:clamp(14px,2.8svh,34px);grid-template-columns:clamp(56px,6vw,96px) 1fr;}
@@ -320,10 +295,9 @@ html[data-page='notes'] .pager a[aria-current]::after {background:var(--red-soft
 .hp-stage {--s2:min(42svh,30vw);}
 .hp-slab.hp-slab-low {clip-path:polygon(calc(-6vw + var(--o)) calc(100svh - var(--s2) - 6vw + var(--o)),calc(var(--s2) + 6svh + var(--o)) calc(106svh + var(--o)),calc(-6vw + var(--o)) calc(106svh + var(--o)));}
 /* The two panes of glass, square to the slabs' edges: the outline as a function of the edge offsets. */
-.hp-glass {--refract:13px -13px;}
-.hp-glass-main {--g1:4vw;--g2:11vw;--across:45deg;--lo:calc((var(--a) + var(--g1) + 100svh + var(--o) * 2) * .7071);--hi:calc((var(--a) + var(--g2) + 100svh + var(--o) * 2) * .7071);}
+.hp-glass-main {--g1:5vw;--g2:9.5vw;}
 .hp-glass-main .gl {clip-path:polygon(calc(var(--a) + var(--a1) - 6svh + var(--o)) calc(-6svh + var(--o)),calc(var(--a) + var(--a2) - 6svh + var(--o)) calc(-6svh + var(--o)),calc(var(--a) + var(--a2) + 106svh + var(--o)) calc(106svh + var(--o)),calc(var(--a) + var(--a1) + 106svh + var(--o)) calc(106svh + var(--o)));}
-.hp-glass-low {--g1:-5vw;--g2:3vw;--across:45deg;--lo:calc((var(--s2) - var(--g2) + var(--o) * 2) * .7071);--hi:calc((var(--s2) - var(--g1) + var(--o) * 2) * .7071);--c-lo:var(--deep);--c-hi:var(--bright);--s-lo:rgb(255 250 244 / 0);--s-hi:rgb(255 250 244 / .3);}
+.hp-glass-low {--g1:-5vw;--g2:3vw;}
 .hp-glass-low .gl {clip-path:polygon(calc(-6vw + var(--o)) calc(100svh - var(--s2) + var(--a1) - 6vw + var(--o)),calc(var(--s2) + 6svh - var(--a1) + var(--o)) calc(106svh + var(--o)),calc(var(--s2) + 6svh - var(--a2) + var(--o)) calc(106svh + var(--o)),calc(-6vw + var(--o)) calc(100svh - var(--s2) + var(--a2) - 6vw + var(--o)));}
 .hp-word {position:absolute;inset:0;z-index:1;margin:0;pointer-events:none;}
 .hp-ink .hp-part {pointer-events:auto;color:inherit;transition:color .35s var(--ease);}
@@ -378,7 +352,7 @@ html[data-page='persona'] .pager a[aria-current]::after {background:var(--red);}
 @media (max-aspect-ratio:1/1) {
   .hp-stage {--y:34svh;}
   .hp-slab,.hp-cut {clip-path:polygon(calc(-6vw + var(--sx) + var(--o)) calc(var(--y) - 56vw + var(--sy) + var(--o)),calc(106vw + var(--sx) + var(--o)) calc(var(--y) + 56vw + var(--sy) + var(--o)),calc(106vw + var(--sx) + var(--o)) calc(110% + var(--sy)),calc(-6vw + var(--sx) + var(--o)) calc(110% + var(--sy)));}
-  .hp-glass-main {--g1:5vw;--g2:15vw;--lo:calc((50vw - var(--y) - var(--g2) + 100svh + var(--o) * 2) * .7071);--hi:calc((50vw - var(--y) - var(--g1) + 100svh + var(--o) * 2) * .7071);--c-lo:var(--deep);--c-hi:var(--bright);--s-lo:rgb(255 250 244 / 0);--s-hi:rgb(255 250 244 / .3);}
+  .hp-glass-main {--g1:5vw;--g2:14vw;}
   .hp-glass-main .gl {clip-path:polygon(calc(-6vw + var(--o)) calc(var(--y) - 56vw + var(--a1) + var(--o)),calc(106vw + var(--o)) calc(var(--y) + 56vw + var(--a1) + var(--o)),calc(106vw + var(--o)) calc(var(--y) + 56vw + var(--a2) + var(--o)),calc(-6vw + var(--o)) calc(var(--y) - 56vw + var(--a2) + var(--o)));}
   .hp-word-layer {--cap-h:min(17vw,12svh);}
   .hp-part-a {top:clamp(44px,8svh,80px);}
@@ -392,8 +366,7 @@ html[data-page='persona'] .pager a[aria-current]::after {background:var(--red);}
 
 /* ================= (04) About: paper; the slab in the top-right corner, TEISU on the bottom ================= */
 .h-outro {--s:min(34svh,24vw);--slab:polygon(calc(100% - var(--s)) 0,100% 0,100% var(--s));
-  --g1:-4vw;--g2:3vw;
-  --across:45deg;--lo:calc((100vw - var(--s) + var(--g1) + 100svh) * .7071);--hi:calc((100vw - var(--s) + var(--g2) + 100svh) * .7071);}
+  --g1:-4vw;--g2:3vw;}
 html.paged .home > .page.h-outro {padding-bottom:clamp(76px,9svh,100px);}
 .home > .page.h-outro {align-content:start;}
 .h-outro-row {display:flex;align-items:flex-start;justify-content:space-between;gap:clamp(24px,4vw,64px);margin-bottom:clamp(14px,2.4svh,32px);}

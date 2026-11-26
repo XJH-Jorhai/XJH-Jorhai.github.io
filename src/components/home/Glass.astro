@@ -1,22 +1,8 @@
 ---
-// A pane of red glass (home.css, "Glass"). Its outline comes from the page's CSS (each page gives the
-// pane's two edges and, for a shard, where it is cut off); this markup only stacks the layers that make
-// it read as a solid piece of glass rather than a tinted area:
-//   shade  the coloured shadow it casts on the page, offset down-right
-//   rim    the glass's thickness, seen at its edges: a deeper red band all round
-//   face   what lies under it, seen through it: a copy of the page beneath (the slot: the painted slab,
-//          the giant word), shifted a little across the pane as a thick plate refracts it, then the tint
-//          and the brushwork in the glass itself
-//   sheen  a faint gloss along its length;  dark  the shaded inner edge;  spec  the lit edge
-// Purely decorative (aria-hidden). No blur anywhere.
+// A pane of red glass (home.css, "Glass"): one flat layer of red laid over what lies under it by hard
+// light — it stays a bright red, and the strokes of the painted slab and the shape of a giant word come
+// through it — with a little of the portrait's brushwork in the red itself. Its outline comes from the page's CSS. Purely decorative (aria-hidden).
 interface Props { class?: string }
 const { class: className } = Astro.props;
 ---
-<span class:list={['glass-pane', className]} aria-hidden="true">
-  <i class="gl gl-shade"></i>
-  <i class="gl gl-rim"></i>
-  <span class="gl gl-face"><span class="gl-scene"><slot /></span><i class="gl-tint"></i></span>
-  <i class="gl gl-sheen"></i>
-  <i class="gl gl-dark"></i>
-  <i class="gl gl-spec"></i>
-</span>
+<span class:list={['glass-pane', className]} aria-hidden="true"><i class="gl"></i></span>

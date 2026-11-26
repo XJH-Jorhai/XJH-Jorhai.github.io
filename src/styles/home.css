@@ -126,7 +126,6 @@ html.paged .home > .page:not(.is-current):not(.is-leaving) {display:none;}
 html.is-flipping .home > .page.is-leaving {z-index:0;}
 html.is-flipping .home > .page.is-current {z-index:1;}
 html.is-flipping .home > .page:is(.is-current,.is-leaving):not(.h-notes) {background-color:var(--color-base);box-shadow:0 0 0 100vmax var(--color-base);}
-html.is-flipping .home > .page:is(.is-current,.is-leaving) {will-change:translate,clip-path;}
 html.is-flipping .spatial-canvas {visibility:hidden !important;}
 html.is-flipping [data-renderer='webgl2'] .visual-carrier {opacity:1 !important;}
 html.is-flipping .piston-stage img {visibility:visible !important;}
@@ -204,16 +203,23 @@ html[data-page='notes'] .pager a[aria-current]::after {background:var(--red-soft
    red glass laid across the slab's edge: over the painting on one side, over the paper and the word on
    the other (the persona blade's effect, used everywhere). Headings are visually hidden: the word is
    the title. */
-.poster {--slab:polygon(0 0,0 0,0 0);--cap-h:min(34svh,calc((100vw - var(--gutter) * 2) / 4.4));--word-ink:var(--navy);--word-hover:var(--red);--word-cut:var(--color-base);--word-justify:flex-start;overflow:hidden;}
+.poster {--slab:polygon(0 0,0 0,0 0);
+  /* pointer depth (poster-stage.ts sets --px / --py, -1…1): the slab's outline shifts a little, the
+     glass, nearer, more; both away from the pointer. The painting inside the slab stays put, so the slab
+     reads as a window sliding over it. Outlines overshoot the page by --ov, so no edge ever shows. */
+  --px:0;--py:0;--dx:calc(var(--px) * -10px);--dy:calc(var(--py) * -8px);--lx:calc(var(--px) * -26px);--ly:calc(var(--py) * -18px);--ov:90px;--cap-h:min(34svh,calc((100vw - var(--gutter) * 2) / 4.4));--word-ink:var(--navy);--word-hover:var(--red);--word-cut:var(--color-base);--word-justify:flex-start;overflow:hidden;}
 .pg-ground,.pg-slab,.pg-word,.pg-word-layer {position:absolute;inset:0;pointer-events:none;}
 .pg-ground,.pg-word {z-index:0;margin:0;}
+/* The slab, the word and the glass are one group of their own, so the glass is laid only on them: the
+   paper the pages get for the push (pager.ts) can never change its colour mid-switch. */
+.pg-art {position:absolute;inset:0;z-index:0;isolation:isolate;pointer-events:none;}
 .pg-ground,.pg-word {overflow:hidden;}
 .pg-slab {background:var(--navy);clip-path:var(--slab);}
 /* the glass lies over the word as well as the painting */
 .pg-glass {z-index:0;}
-.h-work .gl {clip-path:polygon(calc(100% - var(--s) + var(--a1) + 100svh - var(--ay)) var(--ay),calc(100% - var(--s) + (var(--a1) + var(--a2)) / 2 + 100svh - var(--ay)) calc(var(--ay) + (var(--a2) - var(--a1)) / 2),calc(100% - var(--s) + var(--a2)) 100%,calc(100% - var(--s) + var(--a1)) 100%);}
-.h-notes .gl {clip-path:polygon(calc(var(--s) - var(--a1) + var(--ay) - 100svh) var(--ay),calc(var(--s) - var(--a1)) 100%,calc(var(--s) - var(--a2)) 100%,calc(var(--s) - (var(--a1) + var(--a2)) / 2 + var(--ay) - 100svh) calc(var(--ay) + (var(--a2) - var(--a1)) / 2));}
-.h-outro .gl {clip-path:polygon(calc(100% - var(--s) + var(--a1)) 0,calc(100% - var(--s) + var(--a2)) 0,100% calc(var(--s) - var(--a2)),100% calc(var(--s) - var(--a1)));}
+.h-work .gl {clip-path:polygon(calc(100% - var(--s) + var(--a1) + 100svh - var(--ay) + var(--lx)) calc(var(--ay) + var(--ly)),calc(100% - var(--s) + (var(--a1) + var(--a2)) / 2 + 100svh - var(--ay) + var(--lx)) calc(var(--ay) + (var(--a2) - var(--a1)) / 2 + var(--ly)),calc(100% - var(--s) + var(--a2) - var(--ov) + var(--lx)) calc(100% + var(--ov) + var(--ly)),calc(100% - var(--s) + var(--a1) - var(--ov) + var(--lx)) calc(100% + var(--ov) + var(--ly)));}
+.h-notes .gl {clip-path:polygon(calc(var(--s) - var(--a1) + var(--ay) - 100svh + var(--lx)) calc(var(--ay) + var(--ly)),calc(var(--s) - var(--a1) + var(--ov) + var(--lx)) calc(100% + var(--ov) + var(--ly)),calc(var(--s) - var(--a2) + var(--ov) + var(--lx)) calc(100% + var(--ov) + var(--ly)),calc(var(--s) - (var(--a1) + var(--a2)) / 2 + var(--ay) - 100svh + var(--lx)) calc(var(--ay) + (var(--a2) - var(--a1)) / 2 + var(--ly)));}
+.h-outro .gl {clip-path:polygon(calc(100% - var(--s) + var(--a1) - var(--ov) + var(--lx)) calc(var(--ly) - var(--ov)),calc(100% - var(--s) + var(--a2) - var(--ov) + var(--lx)) calc(var(--ly) - var(--ov)),calc(100% + var(--ov) + var(--lx)) calc(var(--s) - var(--a2) + var(--ov) + var(--ly)),calc(100% + var(--ov) + var(--lx)) calc(var(--s) - var(--a1) + var(--ov) + var(--ly)));}
 .pg-word-layer {display:flex;align-items:flex-end;justify-content:var(--word-justify);padding:0 var(--gutter);color:var(--word-ink);}
 .pg-word-layer > * {display:block;margin-bottom:calc(var(--cap-h) * -.2);}
 /* The posters' words: the cover's strokes, slanted. */
@@ -234,7 +240,7 @@ html[data-page='notes'] .pager a[aria-current]::after {background:var(--red-soft
 
 /* ================= (01) Work: paper; WORK bottom-left, the slab in the bottom-right corner ================= */
 .h-work {--s:min(44svh,36vw);--cap-h:min(38svh,calc((100vw - var(--gutter) * 2) / 4.1));
---slab:polygon(100% calc(100% - var(--s)),100% 100%,calc(100% - var(--s)) 100%);
+--slab:polygon(calc(100% + var(--ov) + var(--dx)) calc(100% - var(--s) - var(--ov) + var(--dy)),calc(100% + var(--ov) + var(--dx)) calc(100% + var(--ov) + var(--dy)),calc(100% - var(--s) - var(--ov) + var(--dx)) calc(100% + var(--ov) + var(--dy)));
   /* the glass: a shard rising from the bottom across the slab's edge and over the K, cut off square
      below the captions */
   --g1:-9vw;--g2:4vw;--gy:66svh;
@@ -251,7 +257,7 @@ html[data-page='notes'] .pager a[aria-current]::after {background:var(--red-soft
 .home .h-work .work-item:nth-child(even) .work-cover {width:100%;max-width:calc(var(--cover) * 1.16);}
 
 /* ================= (02) Notes: flat night; NOTES bottom-right, the slab in the bottom-left corner ================= */
-.h-notes {background:var(--night);--s:min(40svh,30vw);--cap-h:min(30svh,calc((100vw - var(--gutter) * 2) / 4.5));--slab:polygon(0 calc(100% - var(--s)),var(--s) 100%,0 100%);
+.h-notes {background:var(--night);--s:min(40svh,30vw);--cap-h:min(30svh,calc((100vw - var(--gutter) * 2) / 4.5));--slab:polygon(calc(var(--dx) - var(--ov)) calc(100% - var(--s) - var(--ov) + var(--dy)),calc(var(--s) + var(--ov) + var(--dx)) calc(100% + var(--ov) + var(--dy)),calc(var(--dx) - var(--ov)) calc(100% + var(--ov) + var(--dy)));
   /* the glass: a shard rising from the bottom across the slab's edge and over the N, cut off square
      below the list */
   --g1:-9vw;--g2:4vw;--gy:56svh;
@@ -365,7 +371,7 @@ html[data-page='persona'] .pager a[aria-current]::after {background:var(--red);}
 }
 
 /* ================= (04) About: paper; the slab in the top-right corner, TEISU on the bottom ================= */
-.h-outro {--s:min(34svh,24vw);--slab:polygon(calc(100% - var(--s)) 0,100% 0,100% var(--s));
+.h-outro {--s:min(34svh,24vw);--slab:polygon(calc(100% - var(--s) - var(--ov) + var(--dx)) calc(var(--dy) - var(--ov)),calc(100% + var(--ov) + var(--dx)) calc(var(--dy) - var(--ov)),calc(100% + var(--ov) + var(--dx)) calc(var(--s) + var(--ov) + var(--dy)));
   --g1:-4vw;--g2:3vw;}
 html.paged .home > .page.h-outro {padding-bottom:clamp(76px,9svh,100px);}
 .home > .page.h-outro {align-content:start;}

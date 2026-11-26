@@ -118,12 +118,23 @@ export function initPersonaStage(){
   page.addEventListener('pointermove',event=>{
     if(!allowed()||event.pointerType!=='mouse')return;
     if(!pointer)page.classList.add('is-tracking');
-    const next={x:event.clientX,y:event.clientY};
-    if(pointer)rub(pointer,next);
-    pointer=next;wake();
+    // When frames are slow the browser folds several moves into one event; read every one of them, so
+    // a quick back-and-forth is still seen as turns.
+    const moves=event.getCoalescedEvents?.() ?? [];
+    for(const move of moves.length?moves:[event]){
+      const next={x:move.clientX,y:move.clientY};
+      if(pointer)rub(pointer,next);
+      pointer=next;
+    }
+    wake();
   });
   page.addEventListener('pointerenter',()=>{box=null;});
   page.addEventListener('pointerleave',()=>{pointer=null;wake();});
   addEventListener('resize',()=>{box=null;});
   reduced.addEventListener('change',()=>{if(reduced.matches){pointer=null;wake();}else loadEyes();});
+  // Diagnostics, only under ?inspect: the petting and gaze state, for tests.
+  if(new URLSearchParams(location.search).has('inspect'))Object.assign(window,{__persona:{get state(){
+    const r=(b:DOMRect|null)=>b&&[Math.round(b.left),Math.round(b.top),Math.round(b.width),Math.round(b.height)];
+    return {allowed:allowed(),eyesOn,running,pointer,head:r(head),heartsBox:r(heartsBox),onHead:pointer?onHead(pointer):null,heading,stroke:Math.round(stroke),turns,owed:owed.length,sinceOwed:Math.round(performance.now()-lastOwed),hearts:hearts?.childElementCount??null};
+  }}});
 }

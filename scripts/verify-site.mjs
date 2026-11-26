@@ -47,7 +47,7 @@ try {
   // Paged home (motion allowed): a deep link opens its page, keys and in-page links switch pages.
   const paged=await browser.newPage({viewport:{width:1280,height:800}});
   paged.on('pageerror',error=>errors.push(String(error)));
-  await paged.goto(base+'/#work');
+  await paged.goto(base+'/?inspect#work'); // ?inspect: the pages expose their state for the checks below
   const current=()=>paged.evaluate(()=>document.documentElement.dataset.page);
   assert.equal(await paged.evaluate(()=>document.documentElement.classList.contains('paged')),true);
   assert.equal(await current(),'work');
@@ -79,8 +79,11 @@ try {
   await paged.mouse.move(head.x+head.width/2,head.y+head.height/2,{steps:4});
   await paged.waitForTimeout(1500);
   head=await paged.locator('#persona [data-hp-head]').boundingBox();
-  for(let i=0;i<40&&!(await paged.evaluate(()=>window.__hearts>0));i++){await paged.mouse.move(head.x+head.width*(i%2?.68:.32),head.y+head.height*.5,{steps:4});await paged.waitForTimeout(60);}
-  await paged.waitForFunction(()=>window.__hearts>0,null,{timeout:5000});
+  for(let i=0;i<40&&!(await paged.evaluate(()=>window.__hearts>0));i++){await paged.mouse.move(head.x+head.width*(i%2?.68:.32),head.y+head.height*.5,{steps:4});await paged.waitForTimeout(140);}
+  await paged.waitForFunction(()=>window.__hearts>0,null,{timeout:5000}).catch(async error=>{
+    console.error('No heart rose. Persona state:',JSON.stringify(await paged.evaluate(()=>window.__persona?.state)),'head box:',JSON.stringify(head),'at head centre:',await paged.evaluate(([x,y])=>{const el=document.elementFromPoint(x,y);return el?`${el.tagName}.${el.className}`:null;},[head.x+head.width/2,head.y+head.height/2]),'html:',await paged.evaluate(()=>document.documentElement.className));
+    throw error;
+  });
   await paged.mouse.move(640,4,{steps:4});
   await paged.waitForTimeout(900);
   await paged.locator('[data-pager] a').last().click();

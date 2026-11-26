@@ -129,7 +129,8 @@ export function createSweep(canvas:HTMLCanvasElement){
         if(raw<1)requestAnimationFrame(tick);
         else{if(ctx){ctx.setTransform(1,0,0,1,0,0);ctx.clearRect(0,0,canvas.width,canvas.height);}canvas.style.visibility='hidden';done();}
       };
-      requestAnimationFrame(tick);
+      // The first frame is drawn at once, so the new page is clipped before anything is painted.
+      tick(t0);
     });
   }
   return {flip};

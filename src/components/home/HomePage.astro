@@ -27,58 +27,54 @@ const pad = (n: number) => String(n).padStart(2, '0');
         </div>
         <p class="hero-byline" data-h style="--d:.7s"><span class="h-no">Kept by</span><span class="hero-handle">{journal.author}</span></p>
         <p class="hero-line"><span class="hero-line-flat" data-h style="--d:.8s">{journal.introduction}</span>{journal.motto.map((column, c) => <span class="hero-col" aria-hidden="true">{[...column].map((char, i) => <i style={`--c:${c * 8 + i}`}>{char}</i>)}</span>)}</p>
-        <div class="hero-foot">
-          <p class="h-no" data-h style="--d:.95s">研究 · 制作 · 观察</p>
-          <nav class="hero-index stair" aria-label="本页内容">
-            <a href="#work" data-h style="--step:0;--d:1s"><span>(01)</span>Work</a>
-            <a href="#notes" data-h style="--step:1;--d:1.08s"><span>(02)</span>Notes</a>
-            <a href="#persona" data-h style="--step:2;--d:1.16s"><span>(03)</span>Persona</a>
-            <a href="#about" data-h style="--step:3;--d:1.24s"><span>(04)</span>About</a>
-          </nav>
-        </div>
+        <div class="hero-foot" aria-hidden="true"></div>
       </div>
     </section>
 
-    <!-- Every page after the cover is a poster on one skeleton (home.css, "Poster skeleton"): a small
-         mono heading top-left, one giant word on the bottom edge running off it, and one 45° navy slab
-         with a red blade inside its edge. Where the word crosses the slab it changes colour (it is set
-         twice, the second copy clipped to the slab). -->
+    <!-- Every page after the cover is a poster on one skeleton (home.css, "Poster skeleton"): one giant
+         word on the bottom edge running off it, which is also the way in (WORK opens /work/ and so on),
+         one 45° slab painted with the oil portrait's brushwork, and a pane of red glass laid across the
+         slab's edge, over the painting on one side and the paper and the word on the other. Where the word crosses the slab it changes colour (it is set twice, the
+         second copy clipped to the slab). Headings are for screen readers; the poster carries no small
+         print beyond what must be there (the draft stamp). -->
     <section class="h-work page poster" id="work" data-page tabindex="-1" aria-labelledby="work-heading">
-      <div class="pg-ground" aria-hidden="true"><i class="pg-slab"></i><i class="pg-blade"></i></div>
-      <p class="pg-word" aria-hidden="true">{['pg-ink', 'pg-cut'].map(layer => <span class:list={['pg-word-layer', layer]}><span>Work</span></span>)}</p>
-      <p class="page-edge" aria-hidden="true">(01) Selected work <i>/</i> Fieldnotes <i>/</i> Teisu</p>
+      <div class="pg-ground" aria-hidden="true"><i class="pg-slab"></i></div>
+      <div class="pg-word">
+        <span class="pg-word-layer pg-ink"><a href="/work/" aria-label={`全部作品（${pad(workCount)}）`}>Work</a></span>
+        <span class="pg-word-layer pg-cut" aria-hidden="true"><span>Work</span></span>
+      </div>
+      <i class="pg-pane glass" aria-hidden="true"></i>
       <div class="page-width pg-body">
-        <header class="pg-head">
-          <h2 id="work-heading" class="pg-tag h-no" data-enter style="--k:0"><span>(01)</span><span>Selected work</span><span>作品</span></h2>
-          <p class="pg-meta h-no" data-enter style="--k:1"><span>{pad(workCount)} projects</span><a href="/work/">全部作品 <span aria-hidden="true">↗</span></a></p>
-        </header>
+        <h2 id="work-heading" class="visually-hidden">Selected work 作品</h2>
         <WorkGallery variant="poster" />
       </div>
     </section>
 
     <section class="h-notes tone-night page poster" id="notes" data-page tabindex="-1" aria-labelledby="notes-heading">
-      <div class="pg-ground" aria-hidden="true"><i class="pg-slab"></i><i class="pg-blade"></i></div>
-      <p class="pg-word" aria-hidden="true">{['pg-ink', 'pg-cut'].map(layer => <span class:list={['pg-word-layer', layer]}><span>Notes</span></span>)}</p>
-      <p class="page-edge" aria-hidden="true">(02) Notes &amp; observations <i>/</i> Fieldnotes <i>/</i> Teisu</p>
+      <div class="pg-ground" aria-hidden="true"><i class="pg-slab"></i></div>
+      <div class="pg-word">
+        <span class="pg-word-layer pg-ink"><a href="/notes/" aria-label={`全部笔记（${pad(journalNotes.length)}）`}>Notes</a></span>
+        <span class="pg-word-layer pg-cut" aria-hidden="true"><span>Notes</span></span>
+      </div>
+      <i class="pg-pane glass" aria-hidden="true"></i>
       <div class="page-width pg-body">
-        <header class="pg-head">
-          <h2 id="notes-heading" class="pg-tag h-no" data-enter style="--k:0"><span>(02)</span><span>Notes &amp; observations</span><span>笔记</span></h2>
-          <p class="pg-meta h-no" data-enter style="--k:1"><span>{pad(journalNotes.length)} drafts</span><a href="/notes/">全部记录 <span aria-hidden="true">↗</span></a></p>
-        </header>
+        <h2 id="notes-heading" class="visually-hidden">Notes &amp; observations 笔记</h2>
+        <p class="pg-stamp" data-enter style="--k:2"><span>Drafts</span>草稿</p>
         <NoteList limit={3} />
       </div>
     </section>
 
     <!-- (03) Persona: a magazine cover. PERSONA is broken in two and set behind her: PER at the top-left
          beside her head, SONA running off the bottom edge on the right with her skirt over the S, so the
-         word frames her along the diagonal instead of crossing her. The slab, the blade and her red
-         shadow are painted with the brushwork of her oil portrait. No statements: a few cover lines into
-         /persona/, the issuer and the keeper. On a fine pointer the layers move at different depths, her
+         word frames her along the diagonal instead of crossing her; the word opens /persona/. The slab,
+         the red glass blade and her red shadow are painted with the brushwork of her oil portrait. On a fine pointer the layers move at different depths, her
          eyes follow the pointer and rubbing her head makes hearts pop up (persona-stage.ts). -->
     <section class="h-persona page" id="persona" data-page tabindex="-1" aria-labelledby="persona-heading">
       <div class="hp-stage" data-hp-stage>
         <div class="hp-ground" aria-hidden="true"><i class="hp-slab"></i><i class="hp-blade"></i></div>
-        <p class="hp-word" aria-hidden="true">{['hp-ink', 'hp-cut'].map(layer => <span class:list={['hp-word-layer', layer]}>{['PER', 'SONA'].map((part, p) => <span class:list={['hp-part', `hp-part-${p ? 'b' : 'a'}`]}>{[...part].map((char, i) => <span class="hp-letter" style={`--i:${p * 3 + i}`}>{char}</span>)}</span>)}</span>)}</p>
+        <div class="hp-word">{['hp-ink', 'hp-cut'].map(layer => <span class:list={['hp-word-layer', layer]} aria-hidden={layer === 'hp-cut' ? 'true' : undefined}>{['PER', 'SONA'].map((part, p) => layer === 'hp-ink'
+          ? <a class:list={['hp-part', `hp-part-${p ? 'b' : 'a'}`]} href="/persona/" aria-label={p ? undefined : '人物设定'} aria-hidden={p ? 'true' : undefined} tabindex={p ? -1 : undefined}>{[...part].map((char, i) => <span class="hp-letter" style={`--i:${p * 3 + i}`}>{char}</span>)}</a>
+          : <span class:list={['hp-part', `hp-part-${p ? 'b' : 'a'}`]}>{[...part].map((char, i) => <span class="hp-letter" style={`--i:${p * 3 + i}`}>{char}</span>)}</span>)}</span>)}</div>
         <div class="hp-figure-box">
           <span class="hp-shadow" aria-hidden="true" style={`--mask:url(${persona.figure.src})`}></span>
           <div class="hp-figure-body">
@@ -89,47 +85,28 @@ const pad = (n: number) => String(n).padStart(2, '0');
           <span class="hp-hearts" aria-hidden="true" data-hp-hearts></span>
         </div>
       </div>
-      <h2 id="persona-heading" class="hp-tag h-no" data-enter style="--k:0"><span>(03)</span><span>Persona</span><span>人物设定</span></h2>
-      <nav class="hp-lines" aria-label="人物设定目录">
-        {persona.coverLines.map((line, i) => <a href={`/persona/#${line.id}`} data-enter="right" style={`--k:${4 + i}`}><span class="hp-line-no">{pad(i + 1)}</span><strong>{line.zh}</strong><em>{line.en}</em></a>)}
-      </nav>
-      <div class="hp-side tone-night">
-        <dl class="hp-colophon">
-          <div data-enter style="--k:7"><dt>Issued by</dt><dd>TEISU</dd></div>
-          <div data-enter style="--k:8"><dt>Kept by</dt><dd>{journal.author}</dd></div>
-        </dl>
-        <a class="hp-link" href="/persona/" data-enter style="--k:9"><span class="hp-link-en">View persona</span><span class="hp-link-arrow" aria-hidden="true">↗</span></a>
-      </div>
-      <p class="page-edge" aria-hidden="true">(03) Persona <i>/</i> Fieldnotes <i>/</i> Teisu</p>
+      <h2 id="persona-heading" class="visually-hidden">Persona 人物设定</h2>
     </section>
 
-    <!-- (04) About and the index: who keeps this, the ways out, and the issuing mark as the giant word.
-         A navy slab in the top-right corner answers the cover's corner blocks. -->
+    <!-- (04) About: who keeps this, the golem, and the issuing mark as the giant word; the footer is the
+         way out. A painted slab with a glass blade in the top-right corner answers the cover's corner
+         blocks. -->
     <section class="h-outro page poster" id="about" data-alias="end" data-page tabindex="-1" aria-labelledby="about-heading">
-      <div class="pg-ground" aria-hidden="true"><i class="pg-slab"></i><i class="pg-blade"></i></div>
-      <p class="page-edge" aria-hidden="true">(04) About <i>/</i> Fieldnotes <i>/</i> Teisu</p>
+      <div class="pg-ground" aria-hidden="true"><i class="pg-slab"></i></div>
+      <i class="pg-pane glass" aria-hidden="true"></i>
       <div class="page-width pg-body">
-        <header class="pg-head">
-          <h2 id="about-heading" class="pg-tag h-no" data-enter style="--k:0"><span>(04)</span><span>About</span><span>关于</span></h2>
-        </header>
+        <h2 id="about-heading" class="visually-hidden">About 关于</h2>
         <div class="h-outro-row">
           <div class="h-about">
             <p class="h-about-title"><span data-enter="cut" style="--k:1">保持好奇，</span><span data-enter="cut" style="--k:2.4">慢慢做。</span></p>
             <p class="h-about-text" data-lines style="--k:4">{journal.about}</p>
-            <p class="h-about-note" data-lines style="--k:6">这个空间会随着项目一起生长。介绍文字为初稿，笔记目录暂为写作提纲占位，之后逐步换成真实的过程与记录。</p>
-          </div>
-          <div class="h-outro-side">
-            <div class="h-outro-object" data-enter="fade" style="--k:3"><PistonGolem /></div>
-            <ul class="h-outro-links stair">
-              <li data-enter="right" style="--k:3;--step:3"><a href="/work/">Work <span aria-hidden="true">↗</span></a></li>
-              <li data-enter="right" style="--k:4;--step:2"><a href="/notes/">Notes <span aria-hidden="true">↗</span></a></li>
-              <li data-enter="right" style="--k:5;--step:1"><a href="/persona/">Persona <span aria-hidden="true">↗</span></a></li>
-              <li data-enter="right" style="--k:6;--step:0"><a href="https://github.com/XJH-Jorhai">GitHub <span aria-hidden="true">↗</span></a></li>
-            </ul>
+            <p class="pg-stamp" data-enter style="--k:6"><span>Draft</span>初稿</p>
           </div>
         </div>
-        <p class="h-outro-sign h-no"><span data-enter style="--k:4">Fieldnotes</span><span data-enter style="--k:5">Issued by Teisu</span><span data-enter style="--k:6">Kept by {journal.author}</span></p>
-        <div class="h-outro-mark" data-enter="cut" style="--k:4"><Wordmark uid="outro" /></div>
+        <div class="h-outro-mark">
+          <div data-enter="cut" style="--k:4"><Wordmark uid="outro" /></div>
+          <div class="h-outro-object" data-enter="fade" style="--k:6"><PistonGolem /></div>
+        </div>
       </div>
     </section>
   </div>

@@ -33,7 +33,7 @@ try {
   const page=await browser.newPage({reducedMotion:'reduce'});
   page.on('pageerror',error=>errors.push(String(error)));
   await page.goto(base);
-  await page.getByRole('link',{name:'全部记录'}).click();
+  await page.getByRole('link',{name:/全部笔记/}).click(); // the giant NOTES is the way in
   assert.equal(new URL(page.url()).pathname,'/notes/');
   await page.locator('summary').first().focus();await page.keyboard.press('Enter');
   assert.equal(await page.locator('details').first().evaluate(el=>el.open),true);
@@ -52,6 +52,7 @@ try {
   assert.equal(await paged.evaluate(()=>document.documentElement.classList.contains('paged')),true);
   assert.equal(await current(),'work');
   assert.equal(await paged.locator('#work').isVisible(),true);
+  assert.equal(await paged.locator('#work .pg-ink a[href="/work/"]').isVisible(),true); // the giant word is the way in
   assert.equal(await paged.locator('#cover').isVisible(),false);
   await paged.keyboard.press('ArrowDown');
   await paged.waitForFunction(()=>document.documentElement.dataset.page==='notes');
@@ -61,7 +62,7 @@ try {
   // The new page is current from the start of the push; wait for the push itself to end.
   await paged.waitForFunction(()=>!document.documentElement.classList.contains('is-flipping'));
   assert.equal(await paged.locator('#persona .hp-figure').isVisible(),true);
-  assert.equal(await paged.locator('#persona a[href="/persona/"]').count(),1);
+  assert.ok(await paged.locator('#persona a[href="/persona/"]').count()>=1);
   assert.equal(await paged.locator('#persona-heading').isVisible(),true);
   // Eye follow: both eyes load on a fine pointer, and the irises turn towards the pointer.
   await paged.waitForFunction(()=>document.querySelectorAll('#persona .hp-eye.is-ready').length===2);

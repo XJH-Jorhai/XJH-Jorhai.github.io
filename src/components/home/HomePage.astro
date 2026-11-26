@@ -8,7 +8,6 @@ import Wordmark from './Wordmark.astro';
 import StrokeWord from './StrokeWord.astro';
 import { journal, journalNotes } from '../../data/journal';
 import { persona } from '../../data/persona';
-import '@fontsource/barlow-condensed/900-italic.css';
 import { getCollection } from 'astro:content';
 import '../../styles/home.css';
 const workCount = (await getCollection('projects')).length;
@@ -40,8 +39,8 @@ const pad = (n: number) => String(n).padStart(2, '0');
     <section class="h-work page poster" id="work" data-page tabindex="-1" aria-labelledby="work-heading">
       <div class="pg-ground" aria-hidden="true"><i class="pg-slab"></i></div>
       <div class="pg-word">
-        <span class="pg-word-layer pg-ink"><a href="/work/" aria-label={`全部作品（${pad(workCount)}）`}>Work</a></span>
-        <span class="pg-word-layer pg-cut" aria-hidden="true"><span>Work</span></span>
+        <span class="pg-word-layer pg-ink"><a href="/work/" aria-label={`全部作品（${pad(workCount)}）`}><StrokeWord text="WORK" id="work-ink" class="pw" /></a></span>
+        <span class="pg-word-layer pg-cut" aria-hidden="true"><span><StrokeWord text="WORK" id="work-cut" class="pw" /></span></span>
       </div>
       <i class="pg-pane glass" aria-hidden="true"></i>
       <div class="page-width pg-body">
@@ -53,8 +52,8 @@ const pad = (n: number) => String(n).padStart(2, '0');
     <section class="h-notes tone-night page poster" id="notes" data-page tabindex="-1" aria-labelledby="notes-heading">
       <div class="pg-ground" aria-hidden="true"><i class="pg-slab"></i></div>
       <div class="pg-word">
-        <span class="pg-word-layer pg-ink"><a href="/notes/" aria-label={`全部笔记（${pad(journalNotes.length)}）`}>Notes</a></span>
-        <span class="pg-word-layer pg-cut" aria-hidden="true"><span>Notes</span></span>
+        <span class="pg-word-layer pg-ink"><a href="/notes/" aria-label={`全部笔记（${pad(journalNotes.length)}）`}><StrokeWord text="NOTES" id="notes-ink" class="pw" /></a></span>
+        <span class="pg-word-layer pg-cut" aria-hidden="true"><span><StrokeWord text="NOTES" id="notes-cut" class="pw" /></span></span>
       </div>
       <i class="pg-pane glass" aria-hidden="true"></i>
       <div class="page-width pg-body">
@@ -71,10 +70,17 @@ const pad = (n: number) => String(n).padStart(2, '0');
          eyes follow the pointer and rubbing her head makes hearts pop up (persona-stage.ts). -->
     <section class="h-persona page" id="persona" data-page tabindex="-1" aria-labelledby="persona-heading">
       <div class="hp-stage" data-hp-stage>
-        <div class="hp-ground" aria-hidden="true"><i class="hp-slab"></i><i class="hp-blade"></i></div>
-        <div class="hp-word">{['hp-ink', 'hp-cut'].map(layer => <span class:list={['hp-word-layer', layer]} aria-hidden={layer === 'hp-cut' ? 'true' : undefined}>{['PER', 'SONA'].map((part, p) => layer === 'hp-ink'
-          ? <a class:list={['hp-part', `hp-part-${p ? 'b' : 'a'}`]} href="/persona/" aria-label={p ? undefined : '人物设定'} aria-hidden={p ? 'true' : undefined} tabindex={p ? -1 : undefined}>{[...part].map((char, i) => <span class="hp-letter" style={`--i:${p * 3 + i}`}>{char}</span>)}</a>
-          : <span class:list={['hp-part', `hp-part-${p ? 'b' : 'a'}`]}>{[...part].map((char, i) => <span class="hp-letter" style={`--i:${p * 3 + i}`}>{char}</span>)}</span>)}</span>)}</div>
+        <div class="hp-ground" aria-hidden="true"><i class="hp-slab"></i><i class="hp-blade"></i><i class="hp-slab hp-slab-low"></i><i class="hp-blade hp-blade-low"></i></div>
+        <div class="hp-word">
+          <span class="hp-word-layer hp-ink">
+            <a class="hp-part hp-part-a" href="/persona/" aria-label="人物设定"><StrokeWord text="PER" id="per-ink" class="pw" /></a>
+            <a class="hp-part hp-part-b" href="/persona/" aria-hidden="true" tabindex="-1"><StrokeWord text="SONA" id="sona-ink" class="pw" delay={.25} /></a>
+          </span>
+          <span class="hp-word-layer hp-cut" aria-hidden="true">
+            <span class="hp-part hp-part-a"><StrokeWord text="PER" id="per-cut" class="pw" /></span>
+            <span class="hp-part hp-part-b"><StrokeWord text="SONA" id="sona-cut" class="pw" delay={.25} /></span>
+          </span>
+        </div>
         <div class="hp-figure-box">
           <span class="hp-shadow" aria-hidden="true" style={`--mask:url(${persona.figure.src})`}></span>
           <div class="hp-figure-body">

@@ -186,23 +186,27 @@ html[data-page='notes'] .pager a[aria-current]::after {background:var(--red-soft
 :is(.glass,.hp-blade)::after {--paint-size:max(260vw,420svh);--paint-at:0 0;mix-blend-mode:luminosity;filter:brightness(.8) contrast(1.6);opacity:.42;}
 
 /* ================= Poster skeleton (Work, Notes, About) ================= */
-/* One giant word, one painted slab, glass. The giant word (Barlow Condensed 900 italic) sits on the
-   bottom edge and runs off it, behind the content, and is the way in (a link). The slab is a 45° piece
+/* One giant word, one painted slab, glass. The giant word is built from the cover's own strokes
+   (lettering.ts: WORK, NOTES, PER / SONA), slanted 10° for the posters, and draws itself in each time
+   its page is shown; it sits on the bottom edge and runs off it, behind the content, and is the way in
+   (a link). The slab is a 45° piece
    with a glass blade inside its edge; --slab and --blade are their outlines in the page's own box, and
    the word's second copy is clipped to --slab, so the word changes colour where it crosses. The blade is
    red glass laid across the slab's edge: over the painting on one side, over the paper and the word on
    the other (the persona blade's effect, used everywhere). Headings are visually hidden: the word is
    the title. */
-.home {--display:'Barlow Condensed','Arial Narrow',var(--font-display);}
-.poster {--slab:polygon(0 0,0 0,0 0);--blade:polygon(0 0,0 0,0 0);--word-size:min(44svh,30vw);--word-ink:var(--navy);--word-hover:var(--red);--word-cut:var(--color-base);--word-justify:flex-start;overflow:hidden;}
+.poster {--slab:polygon(0 0,0 0,0 0);--blade:polygon(0 0,0 0,0 0);--cap-h:min(34svh,calc((100vw - var(--gutter) * 2) / 4.4));--word-ink:var(--navy);--word-hover:var(--red);--word-cut:var(--color-base);--word-justify:flex-start;overflow:hidden;}
 .pg-ground,.pg-slab,.pg-word,.pg-word-layer {position:absolute;inset:0;pointer-events:none;}
 .pg-ground,.pg-word {z-index:0;margin:0;}
 .pg-ground,.pg-word {overflow:hidden;}
 .pg-slab {background:var(--navy);clip-path:var(--slab);}
 /* the glass lies over the word as well as the painting */
 .pg-pane {position:absolute;inset:0;z-index:0;pointer-events:none;clip-path:var(--blade);}
-.pg-word-layer {display:flex;align-items:flex-end;justify-content:var(--word-justify);padding:0 calc(var(--gutter) - .04em);font:italic 900 var(--word-size)/.8 var(--display);letter-spacing:-.01em;text-transform:uppercase;white-space:nowrap;color:var(--word-ink);}
-.pg-word-layer > * {display:block;margin-bottom:calc(var(--word-size) * -.17);}
+.pg-word-layer {display:flex;align-items:flex-end;justify-content:var(--word-justify);padding:0 var(--gutter);color:var(--word-ink);}
+.pg-word-layer > * {display:block;margin-bottom:calc(var(--cap-h) * -.2);}
+/* The posters' words: the cover's strokes, slanted. */
+.pw {display:block;height:var(--cap-h);width:auto;max-width:none;overflow:visible;transform:skewX(-10deg);transform-origin:0 100%;}
+.pw path {fill:none;stroke:currentColor;stroke-linejoin:miter;stroke-miterlimit:6;stroke-dasharray:calc(var(--len) * 1px) calc((var(--len) + var(--lead)) * 1px + 20px);stroke-dashoffset:calc(var(--lead) * -1px);}
 .pg-ink a {pointer-events:auto;color:inherit;transition:color .35s var(--ease);}
 .pg-ink a:is(:hover,:focus-visible) {color:var(--word-hover);}
 .pg-cut {color:var(--word-cut);clip-path:var(--slab);}
@@ -211,18 +215,18 @@ html[data-page='notes'] .pager a[aria-current]::after {background:var(--red-soft
 .pg-stamp {display:inline-flex;align-items:baseline;gap:10px;margin:0;padding:5px 12px 4px;border:2px solid var(--mark);font:700 12px/1.3 var(--font-mono);letter-spacing:.18em;text-transform:uppercase;color:var(--mark);rotate:-6deg;}
 .pg-stamp span {font-weight:400;}
 /* The word rises into place after the content. */
-@keyframes pg-word {from {translate:0 38%;}}
+/* The word draws itself in, stroke by stroke, each time its page is shown (as the cover's title does). */
 @media (prefers-reduced-motion:no-preference) {
-  html.paged .poster .pg-word-layer > * {animation:pg-word 1.1s var(--ease) .25s backwards;}
+  html.paged .page .pw path {animation:stroke-in var(--dur,1s) cubic-bezier(.2,.75,.15,1) both;animation-delay:calc(.18s + var(--w0,0s) + var(--i) * 85ms);}
 }
 
 /* ================= (01) Work: paper; WORK bottom-left, the slab in the bottom-right corner ================= */
-.h-work {--s:min(44svh,36vw);--word-size:min(50svh,34vw);
+.h-work {--s:min(44svh,36vw);--cap-h:min(38svh,calc((100vw - var(--gutter) * 2) / 4.1));
 --slab:polygon(100% calc(100% - var(--s)),100% 100%,calc(100% - var(--s)) 100%);
   /* the glass: a shard rising from the bottom across the slab's edge and over the K, cut off square
      below the captions */
   --blade:polygon(calc(100% - var(--s) - 9vw + 34svh) 66svh,calc(100% - var(--s) - 2.5vw + 34svh) calc(66svh + 6.5vw),calc(100% - var(--s) + 4vw) 100%,calc(100% - var(--s) - 9vw) 100%);
-  --cover:clamp(150px,calc(100svh - var(--word-size) * .63 - 200px),480px);}
+  --cover:clamp(150px,calc(100svh - var(--cap-h) * .8 - 210px),480px);}
 .home .h-work .work-tags {display:none;}
 .home .h-work .pg-body {padding-top:clamp(0px,2svh,24px);}
 .home > .page.h-work {align-content:start;}
@@ -235,7 +239,7 @@ html[data-page='notes'] .pager a[aria-current]::after {background:var(--red-soft
 .home .h-work .work-item:nth-child(even) .work-cover {width:100%;max-width:calc(var(--cover) * 1.16);}
 
 /* ================= (02) Notes: flat night; NOTES bottom-right, the slab in the bottom-left corner ================= */
-.h-notes {background:var(--night);--s:min(50svh,38vw);--slab:polygon(0 calc(100% - var(--s)),var(--s) 100%,0 100%);
+.h-notes {background:var(--night);--s:min(40svh,30vw);--cap-h:min(30svh,calc((100vw - var(--gutter) * 2) / 4.5));--slab:polygon(0 calc(100% - var(--s)),var(--s) 100%,0 100%);
   /* the glass: a shard rising from the bottom across the slab's edge and over the N, cut off square
      below the list */
   --blade:polygon(calc(var(--s) + 9vw - 44svh) 56svh,calc(var(--s) + 9vw) 100%,calc(var(--s) - 4vw) 100%,calc(var(--s) + 2.5vw - 44svh) calc(56svh + 6.5vw));
@@ -274,16 +278,21 @@ html[data-page='notes'] .pager a[aria-current]::after {background:var(--red-soft
 .hp-slab,.hp-cut {--sx:0px;--sy:0px;clip-path:polygon(calc(var(--a) - 6svh + var(--sx) + var(--o)) calc(-6svh + var(--sy) + var(--o)),120% calc(-6svh + var(--sy) + var(--o)),120% calc(106svh + var(--sy) + var(--o)),calc(var(--a) + 106svh + var(--sx) + var(--o)) calc(106svh + var(--sy) + var(--o)));}
 .hp-blade {clip-path:polygon(calc(var(--a) + 5vw - 6svh + var(--o)) calc(-6svh + var(--o)),calc(var(--a) + 9.5vw - 6svh + var(--o)) calc(-6svh + var(--o)),calc(var(--a) + 9.5vw + 106svh + var(--o)) calc(106svh + var(--o)),calc(var(--a) + 5vw + 106svh + var(--o)) calc(106svh + var(--o)));}
 .hp-slab {background:var(--navy);} /* painted, and the blade is glass: see "Paint and glass" */
+/* A second painted block in the bottom-left corner, its edge parallel to the slab's: she stands on a
+   diagonal band of paper between the two, as the cover's corner blocks frame its title. Its glass lies
+   across its edge. */
+.hp-stage {--s2:min(42svh,30vw);}
+.hp-slab.hp-slab-low {clip-path:polygon(calc(-6vw + var(--o)) calc(100svh - var(--s2) - 6vw + var(--o)),calc(var(--s2) + 6svh + var(--o)) calc(106svh + var(--o)),calc(-6vw + var(--o)) calc(106svh + var(--o)));}
+.hp-blade.hp-blade-low {clip-path:polygon(calc(-6vw + var(--o)) calc(100svh - var(--s2) - 11vw + var(--o)),calc(var(--s2) + 6svh + 5vw + var(--o)) calc(106svh + var(--o)),calc(var(--s2) + 6svh - 3vw + var(--o)) calc(106svh + var(--o)),calc(-6vw + var(--o)) calc(100svh - var(--s2) - 3vw + var(--o)));}
 .hp-word {position:absolute;inset:0;z-index:1;margin:0;pointer-events:none;}
 .hp-ink .hp-part {pointer-events:auto;color:inherit;transition:color .35s var(--ease);}
 .hp-ink .hp-part:is(:hover,:focus-visible) {color:var(--red);}
-.hp-word-layer {position:absolute;inset:0;font:italic 900 min(24vw,36svh)/.8 var(--display);letter-spacing:-.01em;white-space:nowrap;translate:var(--wx) var(--wy);}
+.hp-word-layer {position:absolute;inset:0;--cap-h:min(17vw,26svh);translate:var(--wx) var(--wy);}
 .hp-part {position:absolute;display:block;}
-.hp-part-a {left:calc(var(--gutter) - .03em);top:clamp(40px,7svh,72px);}
-.hp-part-b {left:calc(var(--a) + 2vw + var(--fig) * .22);bottom:-.17em;}
+.hp-part-a {left:var(--gutter);top:clamp(40px,7svh,72px);}
+.hp-part-b {left:calc(var(--a) + 2vw + var(--fig) * .2);bottom:calc(var(--cap-h) * -.2);}
 .hp-ink {color:var(--navy);}
 .hp-cut {color:var(--color-base);--sx:calc(var(--gx) - var(--wx));--sy:calc(var(--gy) - var(--wy));}
-.hp-letter {display:inline-block;}
 /* She stands across the edge. A red cut-out of her own silhouette lies behind her and slides the other
    way, like a hard shadow from the pointer. */
 .hp-figure-box {position:absolute;z-index:2;left:calc(var(--a) + 2vw);bottom:0;height:var(--fig);aspect-ratio:645 / 1524;perspective:1400px;}
@@ -313,13 +322,13 @@ html[data-page='persona'] .pager a[aria-current]::after {background:var(--red);}
    shadow rise, the masthead arrives letter by letter. Separate properties from the pointer motion
    (translate here, transform there), so they never fight. */
 @keyframes hp-slab {from {translate:42vw -42vw;}}
-@keyframes hp-letter {from {opacity:0;transform:translateX(.45em) skewX(-14deg);}}
+@keyframes hp-slab-low {from {translate:-42vw 42vw;}}
 @keyframes hp-figure {from {opacity:0;translate:0 6%;}}
 @keyframes hp-shadow {from {opacity:0;translate:-3% 0;}}
 @media (prefers-reduced-motion:no-preference) {
   html.paged .h-persona .hp-slab {animation:hp-slab .85s cubic-bezier(.2,.8,.2,1) .05s backwards;}
   html.paged .h-persona .hp-blade {animation:hp-slab .85s cubic-bezier(.2,.8,.2,1) .2s backwards;}
-  html.paged .h-persona .hp-letter {animation:hp-letter .9s var(--ease) backwards;animation-delay:calc(.3s + var(--i) * 50ms);}
+  html.paged .h-persona :is(.hp-slab-low,.hp-blade-low) {animation-name:hp-slab-low;}
   html.paged .h-persona .hp-figure-body {animation:hp-figure 1.1s var(--ease) .32s backwards;}
   html.paged .h-persona .hp-shadow {animation:hp-shadow 1.1s var(--ease) .5s backwards;}
 }
@@ -329,9 +338,10 @@ html[data-page='persona'] .pager a[aria-current]::after {background:var(--red);}
   .hp-stage {--y:34svh;}
   .hp-slab,.hp-cut {clip-path:polygon(calc(-6vw + var(--sx) + var(--o)) calc(var(--y) - 56vw + var(--sy) + var(--o)),calc(106vw + var(--sx) + var(--o)) calc(var(--y) + 56vw + var(--sy) + var(--o)),calc(106vw + var(--sx) + var(--o)) calc(110% + var(--sy)),calc(-6vw + var(--sx) + var(--o)) calc(110% + var(--sy)));}
   .hp-blade {clip-path:polygon(calc(-6vw + var(--o)) calc(var(--y) - 56vw + 5vw + var(--o)),calc(106vw + var(--o)) calc(var(--y) + 56vw + 5vw + var(--o)),calc(106vw + var(--o)) calc(var(--y) + 56vw + 14vw + var(--o)),calc(-6vw + var(--o)) calc(var(--y) - 56vw + 14vw + var(--o)));}
-  .hp-word-layer {font-size:min(27vw,19svh);}
+  .hp-word-layer {--cap-h:min(17vw,12svh);}
   .hp-part-a {top:clamp(44px,8svh,80px);}
-  .hp-part-b {left:calc(var(--gutter) - .03em);top:calc(clamp(44px,8svh,80px) + .78em);bottom:auto;}
+  .hp-part-b {left:var(--gutter);top:calc(clamp(44px,8svh,80px) + var(--cap-h) * 1.22);bottom:auto;}
+  .hp-slab-low,.hp-blade-low {display:none;}
   .hp-figure-box {--fig:min(78svh,170vw);left:auto;right:-8vw;}
 }
 @media (max-aspect-ratio:1/1) and (max-width:600px) {

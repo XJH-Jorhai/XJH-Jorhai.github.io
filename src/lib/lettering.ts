@@ -1,5 +1,6 @@
 /**
- * Constructed lettering for the cover title, drawn as a logotype rather than letter by letter.
+ * Constructed lettering for the cover title and the home posters' giant words, drawn as a logotype
+ * rather than letter by letter.
  * A stroke is one continuous line (a centre line with a constant weight) and may run through a
  * whole letter or on into the next one: E is a bracket and a bar, N, O and S are one line each,
  * L runs along the baseline into D's bowl and down D's stem, T's bar runs on as E's top arm.
@@ -62,6 +63,43 @@ const NOTES: StrokeDef[] = [
   // S: one line from the upper terminal to the lower one.
   { from: [2812, 236], segs: [['L', 2812, 206], ['A', r, 0, 2672, T], ['L', 2560, T], ['A', r, 0, 2420, 206], ['L', 2420, 210], ['A', r, 0, 2560, 350], ['L', 2672, 350], ['A', r, 1, 2812, 490], ['L', 2812, 494], ['A', r, 1, 2672, B], ['L', 2560, B], ['A', r, 1, 2420, 494], ['L', 2420, 464]] },
 ];
+/**
+ * The same hand for the home posters' giant words (WORK, NOTES, PER / SONA): one glyph table, set with
+ * an even 64-unit gap. Every letter is one or two strokes; where a letter has a stem to climb, the stroke
+ * comes in as a ribbon from outside the word (lead), as on the cover. Sharp-jointed letters (N, W, K, A)
+ * are drawn in place and trimmed to the cap height so their mitres do not stick out.
+ *   R: one stroke up the stem, over the bowl, back to the stem and down the leg.
+ *   P: the same without the leg.  K: a stem and one chevron.  W: one zigzag.  A: one Λ and a bar.
+ */
+const M = 372; // centre line of the bowls' lower bar (R, P)
+const q = 156; // bowl radius of R and P
+const GLYPHS: Record<string, { width: number; strokes: (x: number) => StrokeDef[] }> = {
+  N: { width: 540, strokes: x => [{ from: [x + h, CAP], segs: [['L', x + h, 0], ['L', x + 474, CAP], ['L', x + 474, 0]], clip: [x, x + 540] }] },
+  O: { width: 580, strokes: x => [{ from: [x + 290, T], segs: [['L', x + 266, T], ['A', R, 0, x + 66, T + R], ['L', x + 66, B - R], ['A', R, 0, x + 266, B], ['L', x + 314, B], ['A', R, 0, x + 514, B - R], ['L', x + 514, T + R], ['A', R, 0, x + 314, T], ['L', x + 250, T]] }] },
+  S: { width: 524, strokes: x => [{ from: [x + 458, 236], segs: [['L', x + 458, 206], ['A', r, 0, x + 318, T], ['L', x + 206, T], ['A', r, 0, x + 66, 206], ['L', x + 66, 210], ['A', r, 0, x + 206, 350], ['L', x + 318, 350], ['A', r, 1, x + 458, 490], ['L', x + 458, 494], ['A', r, 1, x + 318, B], ['L', x + 206, B], ['A', r, 1, x + 66, 494], ['L', x + 66, 464]] }] },
+  E: { width: 520, strokes: x => [
+    { from: [x + 462, T], lead: FAR, segs: [['L', x + 66, T], ['L', x + 66, B], ['L', x + 462, B]] },
+    { from: [x + 66, 340], segs: [['L', x + 436, 340]] },
+  ] },
+  W: { width: 820, strokes: x => [{ from: [x + 40, 0], segs: [['L', x + 230, CAP], ['L', x + 410, 0], ['L', x + 590, CAP], ['L', x + 780, 0]], clip: [x - 30, x + 850] }] },
+  R: { width: 540, strokes: x => [{ from: [x + h, CAP], lead: FAR, segs: [['L', x + h, T], ['L', x + 300, T], ['A', q, 1, x + 456, T + q], ['L', x + 456, M - q], ['A', q, 1, x + 300, M], ['L', x + 200, M], ['L', x + 500, CAP]], clip: [x - 10, x + 580] }] },
+  P: { width: 520, strokes: x => [{ from: [x + h, CAP], lead: FAR, segs: [['L', x + h, T], ['L', x + 300, T], ['A', q, 1, x + 456, T + q], ['L', x + 456, M - q], ['A', q, 1, x + 300, M], ['L', x + 100, M]] }] },
+  K: { width: 540, strokes: x => [
+    { from: [x + h, 0], lead: FAR, segs: [['L', x + h, CAP]] },
+    { from: [x + 520, 0], segs: [['L', x + 150, 380], ['L', x + 520, CAP]], clip: [x, x + 560] },
+  ] },
+  A: { width: 620, strokes: x => [
+    { from: [x + 30, CAP], segs: [['L', x + 310, 0], ['L', x + 590, CAP]], clip: [x - 20, x + 640] },
+    { from: [x + 150, 470], segs: [['L', x + 470, 470]] },
+  ] },
+};
+const GAP = 64;
+function compose(text: string): { width: number; strokes: StrokeDef[] } {
+  let x = 0;const strokes: StrokeDef[] = [];
+  for (const char of text) { const glyph = GLYPHS[char]; if (!glyph) throw new Error(`No glyph for "${char}"`); strokes.push(...glyph.strokes(x)); x += glyph.width + GAP; }
+  return { width: x - GAP, strokes };
+}
+
 const WORDS: Record<string, { width: number; strokes: StrokeDef[] }> = {
   FIELD: { width: 2302, strokes: FIELD },
   NOTES: { width: 2878, strokes: NOTES },
@@ -82,8 +120,7 @@ function build(def: StrokeDef, order: number, clip?: string): Stroke {
 }
 
 export function word(text: string, id: string): Word {
-  const source = WORDS[text];
-  if (!source) throw new Error(`No constructed lettering for "${text}"`);
+  const source = WORDS[text] ?? compose(text);
   const clips: Word['clips'] = [];
   const strokes = source.strokes.map((def, index) => {
     let clip: string | undefined;

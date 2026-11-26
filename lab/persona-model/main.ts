@@ -16,6 +16,7 @@ import * as THREE from 'three';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {VRMLoaderPlugin, VRMUtils, MToonMaterial, type VRM} from '@pixiv/three-vrm';
+import {shape} from './shape';
 
 const NAVY=new THREE.Color('#083366'),RED=new THREE.Color('#EF3025');
 const params=new URLSearchParams(location.search),shot=params.has('shot');
@@ -89,7 +90,7 @@ loader.parse(bytes.buffer,'./',gltf=>{
   vrm=gltf.userData.vrm as VRM;
   VRMUtils.removeUnnecessaryVertices(gltf.scene);VRMUtils.combineSkeletons(gltf.scene);
   vrm.scene.traverse(o=>{o.frustumCulled=false;});
-  scene.add(vrm.scene);pose(vrm);teisu(vrm,true);
+  scene.add(vrm.scene);shape(vrm);pose(vrm);teisu(vrm,true);
   if(vrm.lookAt)vrm.lookAt.target=gaze;
   status.textContent='';ready=true;
 },err=>{status.textContent='failed to load the model';console.error(err);});
@@ -137,6 +138,7 @@ requestAnimationFrame(frame);
 // Headless turntable: pose still, eyes ahead, the camera at a given angle (orthographic for the 3 views).
 if(shot)Object.assign(window,{__model:{
   get ready(){return ready;},
+  get vrm(){return vrm;},
   view(deg:number,orthographic=false){
     still=true;pointerOn=false;
     if(vrm){
@@ -151,6 +153,18 @@ if(shot)Object.assign(window,{__model:{
     // settle springs and the look-at, then draw
     for(let i=0;i<90;i++)vrm?.update(1/60);
     renderer.render(scene,active);
+  },
+  /** Landmark heights in metres (bones; the chin from the face mesh at rest), for measuring proportions. */
+  landmarks(){
+    if(!vrm)return null;vrm.scene.updateMatrixWorld(true);
+    const at=(n:Parameters<VRM['humanoid']['getRawBoneNode']>[0])=>{const node=vrm!.humanoid.getRawBoneNode(n);return node?node.getWorldPosition(new THREE.Vector3()).toArray().map(v=>+v.toFixed(4)):null;};
+    let chin=Infinity,top=-Infinity;
+    vrm.scene.traverse(o=>{const m=o as THREE.Mesh;if(!m.isMesh)return;const p=m.geometry.attributes.position!,v=new THREE.Vector3();
+      for(let i=0;i<p.count;i++){v.fromBufferAttribute(p,i).applyMatrix4(m.matrixWorld);
+        if(/face/i.test(m.name)&&Math.abs(v.x)<.02&&v.z>0&&v.y>1.2)chin=Math.min(chin,v.y);
+        if(/hair|face|head/i.test(m.name))top=Math.max(top,v.y);}});
+    const names=['head','neck','leftEye','leftShoulder','leftUpperArm','leftLowerArm','leftHand','leftMiddleDistal','hips','spine','chest','upperChest','leftUpperLeg','leftLowerLeg','leftFoot','leftToes'] as const;
+    return {chin:+chin.toFixed(4),top:+top.toFixed(4),meshes:vrm.scene.children.length,...Object.fromEntries(names.map(n=>[n,at(n)]))};
   },
   /** The model's height (head top to soles) in metres, for the 3-view overlay. */
   bounds(){if(!vrm)return null;const box=new THREE.Box3().setFromObject(vrm.scene);return {min:box.min.toArray(),max:box.max.toArray()};},

@@ -17,6 +17,7 @@ import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {VRMLoaderPlugin, VRMUtils, MToonMaterial, type VRM} from '@pixiv/three-vrm';
 import {shape} from './shape';
+import {clothes} from './clothes';
 
 const NAVY=new THREE.Color('#083366'),RED=new THREE.Color('#EF3025');
 const params=new URLSearchParams(location.search),shot=params.has('shot');
@@ -90,7 +91,7 @@ loader.parse(bytes.buffer,'./',gltf=>{
   vrm=gltf.userData.vrm as VRM;
   VRMUtils.removeUnnecessaryVertices(gltf.scene);VRMUtils.combineSkeletons(gltf.scene);
   vrm.scene.traverse(o=>{o.frustumCulled=false;});
-  scene.add(vrm.scene);shape(vrm);pose(vrm);teisu(vrm,true);
+  scene.add(vrm.scene);shape(vrm);clothes(vrm);pose(vrm);teisu(vrm,true);
   if(vrm.lookAt)vrm.lookAt.target=gaze;
   status.textContent='';ready=true;
 },err=>{status.textContent='failed to load the model';console.error(err);});

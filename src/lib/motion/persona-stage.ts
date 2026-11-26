@@ -38,7 +38,7 @@ export function initPersonaStage(){
   let head:DOMRect|null=null,heartsBox:DOMRect|null=null;
   // Petting input: the horizontal direction of the current stroke and how far it has gone, how many
   // turns in a row and when the last one was, and the hearts owed (where the pointer was) but not drawn.
-  let heading=0,stroke=0,turns=0,turned=-1e9,lastOwed=-1e9,count=0;
+  let heading=0,stroke=0,turns=0,moved=-1e9,lastOwed=-1e9,count=0;
   const owed:{x:number,y:number}[]=[];
 
   function measure(){
@@ -64,10 +64,14 @@ export function initPersonaStage(){
   function rub(from:{x:number,y:number},to:{x:number,y:number}){
     if(!hearts||!onHead(to)){heading=stroke=turns=0;return;}
     const now=performance.now(),dx=to.x-from.x;
+    // A pause starts over: 4 s without any movement over her head. (Not 4 s between turns: on a slow
+    // machine one stroke alone can take that long, and the count never got past one.)
+    if(now-moved>4000)heading=stroke=turns=0;
+    moved=now;
     if(Math.abs(dx)<=1.5)return;
     const dir=Math.sign(dx);
     if(heading&&dir!==heading&&stroke>=24){
-      turns=now-turned<4000?turns+1:1;turned=now;
+      turns++;
       if(turns>=2&&now-lastOwed>120){lastOwed=now;if(owed.length<4)owed.push({...to});}
       stroke=0;
     }
@@ -135,6 +139,6 @@ export function initPersonaStage(){
   // Diagnostics, only under ?inspect: the petting and gaze state, for tests.
   if(new URLSearchParams(location.search).has('inspect'))Object.assign(window,{__persona:{get state(){
     const r=(b:DOMRect|null)=>b&&[Math.round(b.left),Math.round(b.top),Math.round(b.width),Math.round(b.height)];
-    return {allowed:allowed(),eyesOn,running,pointer,head:r(head),heartsBox:r(heartsBox),onHead:pointer?onHead(pointer):null,heading,stroke:Math.round(stroke),turns,owed:owed.length,sinceOwed:Math.round(performance.now()-lastOwed),hearts:hearts?.childElementCount??null};
+    return {allowed:allowed(),eyesOn,running,pointer,head:r(head),heartsBox:r(heartsBox),onHead:pointer?onHead(pointer):null,heading,stroke:Math.round(stroke),turns,sinceMove:Math.round(performance.now()-moved),owed:owed.length,sinceOwed:Math.round(performance.now()-lastOwed),hearts:hearts?.childElementCount??null};
   }}});
 }

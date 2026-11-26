@@ -17,7 +17,7 @@ import * as THREE from 'three';
 import {MToonMaterial, type VRM} from '@pixiv/three-vrm';
 
 export const CLOTHES = {
-  coat: '#C6B6C7', coatShade: '#8E7F98', cuff: '#B4A3B8',
+  coat: '#C6B6C7', coatShade: '#8E7F98', cuff: '#B4A3B8', coatInside: '#7E7090',
   shirt: '#F7F4EE', shirtShade: '#C9C3CF',
   plaidBase: '#6F6A80', plaidLight: '#D9D4E2', plaidPink: '#E9ACA9', plaidDark: '#4A4660',
   sock: '#F5F2EC', sockShade: '#C8C3CC',
@@ -31,6 +31,8 @@ export const CLOTHES = {
   waist: .985, skirtHem: .708, pleats: 30, pleatDepth: .1,
   /** Sock tops above the soles, measured as 0.44 of the knee's height. */
   sockTop: .226,
+  /** Where the sleeves meet the cardigan: this far out from the shoulder joint (m). */
+  seam: .035,
 };
 const C=CLOTHES;
 
@@ -157,6 +159,23 @@ function skirt(body:THREE.SkinnedMesh,vrm:VRM,mats:THREE.Material[]){
   return attach(body,geo,mats);
 }
 
+/** A tube along a line (from → to), radius by position t (0…1), skinned to two bones blended at the elbow. */
+function tube(body:THREE.SkinnedMesh,from:THREE.Vector3,to:THREE.Vector3,bones:[number,number],elbowT:number,radius:(t:number)=>number,t0:number,t1:number,mats:THREE.Material[]){
+  const d=to.clone().sub(from).normalize(),u=new THREE.Vector3(0,1,0).projectOnPlane(d).normalize(),v=d.clone().cross(u);
+  const rings=28,seg=40,P:number[]=[],U:number[]=[],SI:number[]=[],SW:number[]=[],I:number[]=[];
+  for(let r=0;r<=rings;r++){
+    const t=t0+(t1-t0)*r/rings,c=from.clone().lerp(to,t),rad=radius(t),k=Math.min(1,Math.max(0,(t-elbowT+.07)/.14)),wl=k*k*(3-2*k);
+    for(let s=0;s<=seg;s++){const a=s/seg*Math.PI*2,q=c.clone().addScaledVector(u,Math.cos(a)*rad).addScaledVector(v,Math.sin(a)*rad);
+      P.push(q.x,q.y,q.z);U.push(s/seg*5,t*6);SI.push(bones[0],bones[1],0,0);SW.push(1-wl,wl,0,0);}
+  }
+  for(let r=0;r<rings;r++)for(let s=0;s<seg;s++){const a=r*(seg+1)+s,b=a+seg+1;I.push(a,a+1,b,a+1,b+1,b);}
+  const geo=new THREE.BufferGeometry();
+  geo.setAttribute('position',new THREE.Float32BufferAttribute(P,3));geo.setAttribute('uv',new THREE.Float32BufferAttribute(U,2));
+  geo.setAttribute('skinIndex',new THREE.Uint16BufferAttribute(SI,4));geo.setAttribute('skinWeight',new THREE.Float32BufferAttribute(SW,4));
+  geo.setIndex(I);geo.computeVertexNormals();mats.forEach((_,k)=>geo.addGroup(0,I.length,k));
+  return attach(body,geo,mats);
+}
+
 export function clothes(vrm:VRM){
   const meshes:THREE.SkinnedMesh[]=[];vrm.scene.traverse(o=>{if((o as THREE.SkinnedMesh).isSkinnedMesh)meshes.push(o as THREE.SkinnedMesh);});
   const by=(name:string)=>meshes.find(m=>(m.material as MToonMaterial[])[0]?.name===name)!;
@@ -164,40 +183,56 @@ export function clothes(vrm:VRM){
   const [baseMat,baseOutline]=tops.material as MToonMaterial[];
   const skel=body.skeleton;
 
-  // --- shirt and cardigan body, from the T-shirt (subdivided, so the V follows a straight line)
-  const tee=subdivide(tops.geometry),centreZ=.03;
+  const boneSet=(...names:string[])=>new Set(skel.bones.map((b,i)=>names.some(n=>b.name.includes(n))?i:-1).filter(i=>i>=0));
+  const dominant=(g:THREE.BufferGeometry,i:number)=>{const si=g.attributes.skinIndex!,sw=g.attributes.skinWeight!;let b=0,w=0;for(let k=0;k<4;k++)if(sw.getComponent(i,k)>w){w=sw.getComponent(i,k);b=si.getComponent(i,k);}return b;};
+  vrm.scene.updateMatrixWorld(true);
+  const rest=(n:Bone)=>body.worldToLocal(vrm.humanoid.getRawBoneNode(n)!.getWorldPosition(new THREE.Vector3()));
+  const boneIndex=(n:Bone)=>skel.bones.indexOf(vrm.humanoid.getRawBoneNode(n) as THREE.Bone);
+
+  // --- shirt and cardigan body, from the T-shirt (subdivided, so the V follows a straight line). The
+  // T-shirt's short sleeves are cut off both: the arms get whole sleeves of their own (below), so nothing
+  // lies in layers over the arm.
+  const tee=subdivide(tops.geometry),centreZ=.03,seam=Math.abs(rest('leftUpperArm').x)+C.seam;
+  // a T-shirt vertex is sleeve if it moves with the arm and lies beyond the seam
+  const upperArms=boneSet('UpperArm','LowerArm','Elbow');
+  const sleeve=(i:number,p:THREE.Vector3)=>upperArms.has(dominant(tee,i))&&Math.abs(p.x)>seam;
+  const offArm=(i:number,p:THREE.Vector3)=>!sleeve(i,p);
+  // each arm's axis at the shoulder, and the armhole's radius (how far the T-shirt reaches from it at the seam)
+  const arms=(['left','right'] as const).map(side=>{
+    const sh=rest(`${side}UpperArm` as Bone),sign=Math.sign(sh.x),tp=tee.attributes.position!,q=new THREE.Vector3();let hole=0;
+    for(let i=0;i<tp.count;i++){q.fromBufferAttribute(tp,i);if(Math.sign(q.x)===sign&&upperArms.has(dominant(tee,i))&&Math.abs(Math.abs(q.x)-seam)<.012)hole=Math.max(hole,Math.hypot(q.y-sh.y,q.z-sh.z));}
+    return {side,sh,sign,hole:hole?Math.min(.058,hole):.055};
+  });
+  // the cardigan's armhole closes onto the sleeve: a cut-off sleeve vertex goes to the seam, drawn in to the armhole's radius
+  const toArmhole=(p:THREE.Vector3)=>{const a=arms[p.x>0===arms[0]!.sign>0?0:1]!;p.x=a.sign*seam;const dy=p.y-a.sh.y,dz=p.z-a.sh.z,r=Math.hypot(dy,dz);if(r>a.hole){p.y=a.sh.y+dy*a.hole/r;p.z=a.sh.z+dz*a.hole/r;}};
   // the shirt: a hair inside the T-shirt, tucked into the skirt
-  const shirt=grow(tops,tee,(_,p)=>p.y>C.waist-.01,()=>-.004,p=>[p.x,p.y],dress(baseMat!,undefined,C.shirt,C.shirtShade,null));
+  const shirt=grow(tops,tee,(i,p)=>p.y>C.waist-.01&&offArm(i,p),()=>-.004,p=>[p.x,p.y],dress(baseMat!,undefined,C.shirt,C.shirtShade,null));
   const inV=(p:THREE.Vector3)=>p.z>centreZ&&p.y>C.vBottom&&Math.abs(p.x)<C.vWidth*(p.y-C.vBottom)/(C.vTop-C.vBottom);
   const vHalf=(y:number)=>C.vWidth*(y-C.vBottom)/(C.vTop-C.vBottom);
   const coatMats=dress(baseMat!,baseOutline,C.coat,C.coatShade,knit());coatMats[0]!.side=THREE.FrontSide; // its inside never shows through the V
-  const coat=grow(tops,tee,(_,p)=>!inV(p),(_,p)=>.009+(p.y<1.0?.006*Math.min(1,(1-p.y)/.13):0),
+  // its outline is a darker lavender, not the site's navy: seen through the V it is the inside of the knit
+  coatMats[1]!.userData.outline=C.coatInside;
+  const coat=grow(tops,tee,(i,p)=>!inV(p)&&offArm(i,p),(_,p)=>.009+(p.y<1.0?.006*Math.min(1,(1-p.y)/.13):0),
     p=>[Math.atan2(p.x,p.z-centreZ)/(Math.PI*2)*9,p.y*7],coatMats,
     // the V's edges are straight: a vertex inside the opening goes to the edge on its side
-    p=>{p.x=(p.x<0?-1:1)*Math.max(.002,vHalf(p.y));});
+    p=>{if(Math.abs(p.x)>seam-.001)toArmhole(p);else p.x=(p.x<0?-1:1)*Math.max(.002,vHalf(p.y));});
   // the hem: from the T-shirt's down to the sheet's (only the part below 0.95 m is stretched)
   {const cp=coat.geometry.attributes.position as THREE.BufferAttribute;let low=Infinity;for(let i=0;i<cp.count;i++)low=Math.min(low,cp.getY(i));
    for(let i=0;i<cp.count;i++){const y=cp.getY(i);if(y<.95)cp.setY(i,.95-(.95-y)*(.95-C.hem)/(.95-low));}cp.needsUpdate=true;}
 
-  // --- balloon sleeves, grown from the arms, gathered into cuffs above the hands
-  const boneSet=(...names:string[])=>new Set(skel.bones.map((b,i)=>names.some(n=>b.name.includes(n))?i:-1).filter(i=>i>=0));
-  // (the forearm's twist bone is called J_Roll_*_Hand: it is arm, not hand)
-  const armBones=boneSet('UpperArm','LowerArm','Elbow','Shoulder','Roll_L_Hand','Roll_R_Hand');
-  const dominant=(g:THREE.BufferGeometry,i:number)=>{const si=g.attributes.skinIndex!,sw=g.attributes.skinWeight!;let b=0,w=0;for(let k=0;k<4;k++)if(sw.getComponent(i,k)>w){w=sw.getComponent(i,k);b=si.getComponent(i,k);}return b;};
-  // where the wrist and the shoulder are, read off the skin itself: the hand starts where hand-weighted
-  // vertices start; the arm's axis is the centre of the upper-arm-weighted ones
-  const handBones=boneSet('Bip_L_Hand','Bip_R_Hand','Thumb','Index','Middle','Ring','Little'),bp=body.geometry.attributes.position!;
-  let wrist=Infinity,shoulder=Infinity;const armL=new THREE.Vector3();let nArm=0;
-  for(let i=0;i<bp.count;i++){const x=Math.abs(bp.getX(i)),d=dominant(body.geometry,i);if(bp.getY(i)<1.15)continue;
-    if(handBones.has(d))wrist=Math.min(wrist,x);
-    if(armBones.has(d)&&skel.bones[d]!.name.includes('UpperArm')){shoulder=Math.min(shoulder,x);armL.y+=bp.getY(i);armL.z+=bp.getZ(i);nArm++;}}
-  armL.y/=nArm;armL.z/=nArm;wrist-=.006;
-  grow(body,body.geometry,(i,p)=>armBones.has(dominant(body.geometry,i))&&Math.abs(p.x)<wrist&&p.y>1.15,
-    (_,p)=>{const t=(Math.abs(p.x)-shoulder)/(wrist-shoulder);if(t>.86)return .011;return .012+.03*Math.sin(Math.min(1,Math.max(0,t/.86))*Math.PI)**1.5;},
-    p=>[Math.atan2(p.y-armL.y,p.z-armL.z)/(Math.PI*2)*5,Math.abs(p.x)*9],dress(baseMat!,baseOutline,C.coat,C.coatShade,knit()));
-  // cuffs: a ribbed band at the wrist
-  grow(body,body.geometry,(i,p)=>armBones.has(dominant(body.geometry,i))&&Math.abs(p.x)<wrist+.004&&Math.abs(p.x)>wrist-.045,()=>.016,
-    p=>[Math.atan2(p.y-armL.y,p.z-armL.z)/(Math.PI*2)*6,Math.abs(p.x)*4],dress(baseMat!,baseOutline,C.cuff,C.coatShade,rib()));
+  // --- sleeves: one tube per arm, from inside the shoulder (where it is as wide as the cardigan's
+  // armhole) over a balloon at the forearm to a ribbed cuff at the wrist, skinned to the upper and
+  // lower arm. One piece from shoulder to cuff, so it never looks like layers.
+  const knitMats=dress(baseMat!,baseOutline,C.coat,C.coatShade,knit()),cuffMats=dress(baseMat!,baseOutline,C.cuff,C.coatShade,rib());
+  for(const {side,sh,sign,hole} of arms){
+    const el=rest(`${side}LowerArm` as Bone),wr=rest(`${side}Hand` as Bone);
+    const from=sh.clone().add(new THREE.Vector3(-sign*.04,-.012,0)),to=wr.clone().add(new THREE.Vector3(sign*.004,0,0));
+    const elbowT=from.distanceTo(el)/from.distanceTo(to),bones:[number,number]=[boneIndex(`${side}UpperArm` as Bone),boneIndex(`${side}LowerArm` as Bone)];
+    const balloon=(t:number)=>.046+.022*Math.sin(Math.PI*Math.min(1,(t/.87)**1.35))**1.2;
+    const smooth=(a:number,b:number,x:number)=>{const k=Math.min(1,Math.max(0,(x-a)/(b-a)));return k*k*(3-2*k);};
+    tube(body,from,to,bones,elbowT,t=>hole+(balloon(t)-hole)*smooth(0,.25,t),0,.875,knitMats);
+    tube(body,from,to,bones,elbowT,()=>.037,.865,1,cuffMats);
+  }
 
   // --- skirt
   skirt(body,vrm,dress(baseMat!,baseOutline,'#ffffff','#9a94ad',plaid()));
@@ -233,16 +268,15 @@ export function clothes(vrm:VRM){
   bow.add(new THREE.Mesh(new THREE.SphereGeometry(.0055,10,8),ribbonMat));
   const knotY=C.vTop-.03;
   carry('upperChest',bow,new THREE.Vector3(0,knotY,shirtFront(knotY)+.006));
-  // the tails lie along the shirt, from the knot down over the chest
+  // the tails: one continuous strip each, lying along the shirt from the knot down over the chest
   for(const side of [-1,1]){
-    // in short pieces, each sitting on the shirt's curve (one straight piece would cut into the chest)
-    const at=(k:number)=>{const y=knotY-.004-k*.1;return new THREE.Vector3(side*(.005+k*.014),y,Math.max(shirtFront(y),shirtFront(y+.012),shirtFront(y-.012))+.006);};
-    for(let k=0;k<5;k++){
-      const a=at(k/5),b=at((k+1)/5);
-      const piece=new THREE.Mesh(new THREE.BoxGeometry(.0065,a.distanceTo(b)+.002,.002),ribbonMat);
-      piece.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),a.clone().sub(b).normalize());
-      carry('upperChest',piece,a.clone().add(b).multiplyScalar(.5));
-    }
+    const steps=12,pts:THREE.Vector3[]=[];
+    for(let k=0;k<=steps;k++){const t=k/steps,y=knotY-.004-t*.1;pts.push(new THREE.Vector3(side*(.005+t*.014),y,Math.max(shirtFront(y),shirtFront(y+.012),shirtFront(y-.012))+.006));}
+    const origin=pts[0]!.clone(),P:number[]=[],I:number[]=[],w=.0034;
+    pts.forEach((q,k)=>{const d=q.clone().sub(origin);P.push(d.x-w,d.y,d.z,d.x+w,d.y,d.z);if(k)I.push(2*k-2,2*k-1,2*k,2*k-1,2*k+1,2*k);});
+    const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(P,3));g.setIndex(I);g.computeVertexNormals();
+    const m=ribbonMat.clone() as MToonMaterial;m.side=THREE.DoubleSide;
+    carry('upperChest',new THREE.Mesh(g,m),origin);
   }
   // the shirt's collar: a white point on each side, lying over the cardigan's neckline
   const collarMat=flat(C.shirt,C.shirtShade);

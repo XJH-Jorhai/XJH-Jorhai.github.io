@@ -18,6 +18,7 @@ import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {VRMLoaderPlugin, VRMUtils, MToonMaterial, type VRM} from '@pixiv/three-vrm';
 import {shape} from './shape';
 import {clothes} from './clothes';
+import {headwear, type Headwear} from './headwear';
 
 const NAVY=new THREE.Color('#083366'),RED=new THREE.Color('#EF3025');
 const params=new URLSearchParams(location.search),shot=params.has('shot');
@@ -68,7 +69,7 @@ function teisu(vrm:VRM,on:boolean){
         m.shadeColorFactor.copy(s.shade).lerp(NAVY,.42);
         // a thin red rim, lit side only (rimLightingMix 1): a wide one reads as a glow on dark cloth
         m.parametricRimColorFactor.copy(RED).multiplyScalar(.35);m.parametricRimFresnelPowerFactor=6;m.parametricRimLiftFactor=0;m.rimLightingMixFactor=1;
-        m.outlineColorFactor.copy(NAVY);
+        m.outlineColorFactor.set(m.userData.outline??NAVY); // a garment may keep its own (clothes.ts)
       }else{
         m.shadeColorFactor.copy(s.shade);m.parametricRimColorFactor.copy(s.rim);m.parametricRimFresnelPowerFactor=s.rimPower;m.parametricRimLiftFactor=s.rimLift;m.rimLightingMixFactor=s.rimMix;m.outlineColorFactor.copy(s.outline);
       }
@@ -84,14 +85,16 @@ function pose(vrm:VRM){
   b('leftHand')!.rotation.z=-.12;b('rightHand')!.rotation.z=.12;
 }
 
-let vrm:VRM|null=null,spin=false,yawGoal:number|null=null;
+let vrm:VRM|null=null,spin=false,yawGoal:number|null=null,wear:Headwear|null=null;
 const loader=new GLTFLoader();loader.register(parser=>new VRMLoaderPlugin(parser));
 const bytes=Uint8Array.from(atob((window as unknown as {__baseVrm:string}).__baseVrm),c=>c.charCodeAt(0));
 loader.parse(bytes.buffer,'./',gltf=>{
   vrm=gltf.userData.vrm as VRM;
   VRMUtils.removeUnnecessaryVertices(gltf.scene);VRMUtils.combineSkeletons(gltf.scene);
   vrm.scene.traverse(o=>{o.frustumCulled=false;});
-  scene.add(vrm.scene);shape(vrm);clothes(vrm);pose(vrm);teisu(vrm,true);
+  scene.add(vrm.scene);shape(vrm);clothes(vrm);
+  let hairMat:MToonMaterial|null=null;vrm.scene.traverse(o=>{const m=(o as THREE.Mesh).material;for(const x of Array.isArray(m)?m:[m])if(x instanceof MToonMaterial&&x.name.startsWith('Hair_')&&!hairMat)hairMat=x;});
+  wear=headwear(vrm,hairMat!);pose(vrm);teisu(vrm,true);
   if(vrm.lookAt)vrm.lookAt.target=gaze;
   status.textContent='';ready=true;
 },err=>{status.textContent='failed to load the model';console.error(err);});
@@ -103,6 +106,7 @@ document.querySelector('.hud')!.addEventListener('click',e=>{
   const btn=(e.target as Element).closest('button');if(!btn||!vrm)return;
   const act=btn.dataset.act;
   if(act==='spin'){spin=!spin;btn.setAttribute('aria-pressed',String(spin));}
+  else if(act==='hat'){const on=btn.getAttribute('aria-pressed')!=='true';btn.setAttribute('aria-pressed',String(on));wear?.setHat(on);}
   else if(act==='toon'){const on=btn.getAttribute('aria-pressed')!=='true';btn.setAttribute('aria-pressed',String(on));teisu(vrm,on);}
   else{spin=false;document.querySelector('[data-act=spin]')!.setAttribute('aria-pressed','false');yawGoal=act==='front'?0:act==='side'?90:180;}
 });
@@ -140,16 +144,17 @@ requestAnimationFrame(frame);
 if(shot)Object.assign(window,{__model:{
   get ready(){return ready;},
   get vrm(){return vrm;},
-  view(deg:number,orthographic=false){
+  setHat(on:boolean){wear?.setHat(on);},
+  view(deg:number,orthographic=false,dist=4.6,eyeY=1.0,targetY=.86){
     still=true;pointerOn=false;
     if(vrm){
       vrm.expressionManager?.setValue('blink',0);
       for(const n of ['chest','spine','hips','neck'] as const){const node=vrm.humanoid.getNormalizedBoneNode(n)!;node.rotation.x=0;node.rotation.z=0;if(n==='neck')node.rotation.y=0;}
       gaze.position.set(0,1.35,2);
     }
-    const a=THREE.MathUtils.degToRad(deg),c=orthographic?ortho:camera,r=orthographic?10:4.6,y=orthographic?.8:1.0;
-    c.position.set(Math.sin(a)*r,y,Math.cos(a)*r);c.lookAt(0,orthographic?.8:.86,0);
-    if(!orthographic){controls.target.set(0,.86,0);}
+    const a=THREE.MathUtils.degToRad(deg),c=orthographic?ortho:camera,r=orthographic?10:dist,y=orthographic?.8:eyeY;
+    c.position.set(Math.sin(a)*r,y,Math.cos(a)*r);c.lookAt(0,orthographic?.8:targetY,0);
+    if(!orthographic){controls.target.set(0,targetY,0);}
     active=c;
     // settle springs and the look-at, then draw
     for(let i=0;i<90;i++)vrm?.update(1/60);

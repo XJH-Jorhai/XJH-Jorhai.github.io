@@ -1,13 +1,14 @@
 ---
-// 封面标题的一个词：由少数几根连续的粗笔画构成（见 lettering.ts）。有引线的笔画像一条带子从词外进来，
-// 没有引线的在原地写出来（动画在 home.css）。纯装饰（aria-hidden）；可读文字由所在的标题提供。
-// `delay` 是这个词第一笔的起始延迟（秒）。
+// 一个由少数几根连续粗笔画构成的词（见 lettering.ts）：封面的 FIELD / NOTES，以及首页各张海报的巨字。
+// 有引线的笔画像一条带子从词外进来，没有引线的在原地写出来（动画在 home.css）。
+// 图形本身是装饰（aria-hidden）；可读文字由所在的标题或包着它的链接提供。
+// `delay` 是这个词第一笔的起始延迟（秒）；`class` 区分封面（sw）和海报（pw）的排法。
 import { word, CAP, WEIGHT } from '../../lib/lettering';
-interface Props { text: string; id: string; delay?: number }
-const { text, id, delay = 0 } = Astro.props;
+interface Props { text: string; id: string; delay?: number; class?: string }
+const { text, id, delay = 0, class: className = 'sw' } = Astro.props;
 const w = word(text, id);
 ---
-<svg class="sw" viewBox={`0 0 ${w.width} ${CAP}`} style={`aspect-ratio:${w.width} / ${CAP};--w0:${delay}s`} aria-hidden="true" focusable="false">
+<svg class={className} viewBox={`0 0 ${w.width} ${CAP}`} style={`aspect-ratio:${w.width} / ${CAP};--w0:${delay}s;--ratio:${(w.width / CAP).toFixed(4)}`} aria-hidden="true" focusable="false">
   {w.clips.map(clip => <clipPath id={clip.id}><rect x={clip.x} y="0" width={clip.width} height={CAP} /></clipPath>)}
   {w.strokes.map(stroke => <path d={stroke.d} stroke-width={WEIGHT} clip-path={stroke.clip ? `url(#${stroke.clip})` : undefined} style={`--len:${stroke.len};--lead:${stroke.lead};--i:${stroke.order};--dur:${stroke.duration}s`} />)}
 </svg>

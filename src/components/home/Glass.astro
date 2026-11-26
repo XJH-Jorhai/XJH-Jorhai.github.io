@@ -1,0 +1,8 @@
+---
+// A pane of red glass (home.css, "Glass"): one flat layer of red laid over what lies under it by hard
+// light — it stays a bright red, and the strokes of the painted slab and the shape of a giant word come
+// through it — with a little of the portrait's brushwork in the red itself. Its outline comes from the page's CSS. Purely decorative (aria-hidden).
+interface Props { class?: string }
+const { class: className } = Astro.props;
+---
+<span class:list={['glass-pane', className]} aria-hidden="true"><i class="gl"></i></span>

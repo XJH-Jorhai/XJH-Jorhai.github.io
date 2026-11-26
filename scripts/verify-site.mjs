@@ -57,34 +57,35 @@ try {
   await paged.waitForFunction(()=>document.documentElement.dataset.page==='notes');
   await paged.waitForTimeout(900); // keys pressed while the blades are still moving are ignored on purpose
   await paged.keyboard.press('ArrowDown');
-  await paged.waitForFunction(()=>document.documentElement.dataset.page==='about');
+  await paged.waitForFunction(()=>document.documentElement.dataset.page==='persona');
   // The new page is current from the start of the push; wait for the push itself to end.
   await paged.waitForFunction(()=>!document.documentElement.classList.contains('is-flipping'));
-  assert.equal(await paged.locator('#about .hp-figure').isVisible(),true);
-  assert.equal(await paged.locator('#about a[href="/persona/"]').count(),1);
-  assert.equal(await paged.locator('#about-heading').isVisible(),true);
+  assert.equal(await paged.locator('#persona .hp-figure').isVisible(),true);
+  assert.equal(await paged.locator('#persona a[href="/persona/"]').count(),1);
+  assert.equal(await paged.locator('#persona-heading').isVisible(),true);
   // Eye follow: both eyes load on a fine pointer, and the irises turn towards the pointer.
-  await paged.waitForFunction(()=>document.querySelectorAll('#about .hp-eye.is-ready').length===2);
+  await paged.waitForFunction(()=>document.querySelectorAll('#persona .hp-eye.is-ready').length===2);
   await paged.mouse.move(8,400,{steps:4});
-  await paged.waitForFunction(()=>parseFloat(document.querySelector('#about').style.getPropertyValue('--ex'))<-.3,null,{timeout:15000});
+  await paged.waitForFunction(()=>parseFloat(document.querySelector('#persona').style.getPropertyValue('--ex'))<-.3,null,{timeout:15000});
   // Petting: rubbing back and forth over her head makes hearts rise.
   // Hearts are counted as they are created: on a slow runner they may have faded before a check looks.
-  await paged.evaluate(()=>{window.__hearts=0;new MutationObserver(records=>{for(const record of records)window.__hearts+=[...record.addedNodes].filter(node=>node.classList?.contains('hp-heart')).length;}).observe(document.querySelector('#about [data-hp-hearts]'),{childList:true});});
+  await paged.evaluate(()=>{window.__hearts=0;new MutationObserver(records=>{for(const record of records)window.__hearts+=[...record.addedNodes].filter(node=>node.classList?.contains('hp-heart')).length;}).observe(document.querySelector('#persona [data-hp-hearts]'),{childList:true});});
   // Wait for her entrance to finish and for her to settle with the pointer on her head before reading
   // where the head is (she rises into place and shifts towards the pointer), then rub until a heart
   // rises or 40 strokes have gone by.
-  await paged.waitForFunction(()=>document.getAnimations().every(animation=>!(animation.effect?.target instanceof Element&&animation.effect.target.closest('#about'))||animation.playState!=='running'),null,{timeout:10000});
-  let head=await paged.locator('#about [data-hp-head]').boundingBox();
+  await paged.waitForFunction(()=>document.getAnimations().every(animation=>!(animation.effect?.target instanceof Element&&animation.effect.target.closest('#persona'))||animation.playState!=='running'),null,{timeout:10000});
+  let head=await paged.locator('#persona [data-hp-head]').boundingBox();
   await paged.mouse.move(head.x+head.width/2,head.y+head.height/2,{steps:4});
   await paged.waitForTimeout(1500);
-  head=await paged.locator('#about [data-hp-head]').boundingBox();
+  head=await paged.locator('#persona [data-hp-head]').boundingBox();
   for(let i=0;i<40&&!(await paged.evaluate(()=>window.__hearts>0));i++){await paged.mouse.move(head.x+head.width*(i%2?.68:.32),head.y+head.height*.5,{steps:4});await paged.waitForTimeout(60);}
   await paged.waitForFunction(()=>window.__hearts>0,null,{timeout:5000});
   await paged.mouse.move(640,4,{steps:4});
   await paged.waitForTimeout(900);
   await paged.locator('[data-pager] a').last().click();
-  await paged.waitForFunction(()=>document.documentElement.dataset.page==='end');
+  await paged.waitForFunction(()=>document.documentElement.dataset.page==='about');
   assert.equal(await paged.locator('.site-footer').isVisible(),true);
+  assert.equal(await paged.locator('#about-heading').isVisible(),true);
   await paged.waitForTimeout(900);
   await paged.getByRole('link',{name:/Back to top/}).click();
   await paged.waitForFunction(()=>document.documentElement.dataset.page==='cover');

@@ -55,12 +55,12 @@ smiling broadly, open mouth, blushing, sparkles, chibi, childish proportions, bi
 
 1. 挑一张：脸冷静但不凶，服装细节对得上设定图，帽子和双手完整。
 2. 存到 `inputs/source/persona/`（透明或绿底都行），告诉维护者。
-3. 更新 `inputs/persona-recipe.json`（路径、哈希、背景方式；透明图用 `"background": "alpha"`，并按需要调 `alpha.floor`），运行 `npm run persona -- --debug <目录>`，在四种底色上检查边缘（尤其腿边：生成器常留一层很淡的背景雾），首页第 4 屏和 Persona 页会一起换上新图。
-4. 新图的宽高比不同，两处的人物位置要复核：`home.css` 的 `.hp-figure` / `--fig`，`persona.css` 的 `--fig` / `--wl`（大字从人物身后接出去的位置）。
+3. 更新 `inputs/persona-recipe.json`（路径、哈希、背景方式；透明图用 `"background": "alpha"`，并按需要调 `alpha.floor`），运行 `npm run persona -- --debug <目录>`，在四种底色上检查边缘（尤其腿边：生成器常留一层很淡的背景雾），首页 Persona 屏和 Persona 页会一起换上新图。
+4. 新图的宽高比不同，两处的人物位置要复核：`home.css` 的 `--fig`、`.hp-part-a/-b`（PER / SONA 相对人物的位置）和 `.hp-head`（摸头范围），`persona.css` 的 `--fig` / `--wl`（大字从人物身后接出去的位置）。
 
 ## 眼睛跟随鼠标需要的素材（可选，2026-11-24）
 
-首页 Persona 与 About 那一屏现在已经有鼠标透视（各层不同深度、人物微转）。如果还想要「眼睛跟着鼠标看」，需要一张**去掉了瞳孔的同一张图**：网页会把原图里的虹膜和瞳孔剪下来，放在这张「只有眼白」的图上方，随鼠标在眼眶里移动几个像素。只有眼睛那一小块会被用到，其余部分不需要和原图完全一致，但构图、大小必须一样。
+首页 Persona 那一屏有鼠标透视（各层不同深度、人物朝指针平移）。如果还想要「眼睛跟着鼠标看」，需要一张**去掉了瞳孔的同一张图**：网页会把原图里的虹膜和瞳孔剪下来，放在这张「只有眼白」的图上方，随鼠标在眼眶里移动几个像素。只有眼睛那一小块会被用到，其余部分不需要和原图完全一致，但构图、大小必须一样。
 
 用图像编辑（不是重新生成）：把 `key-visual-v2.webp` 作为输入图，只改眼睛。
 

@@ -48,8 +48,9 @@ body:has(.home-mark) main { padding-top: clamp(64px, 7vw, 96px); }
 :is(.h-meta a, .text-link) span { color: var(--mark); }
 .text-link { display: inline-block; border-bottom: 2px solid currentColor; padding-bottom: 4px; font-size: 17px; }
 
-/* Night band: deep blue ground over the painting's cobalt strokes, one slanted navy slab. */
-.night-band { position: relative; overflow: hidden; padding: clamp(80px, 10vw, 150px) 0; background: linear-gradient(rgb(9 15 32 / .9), rgb(9 15 32 / .93)), url('/media/persona/oil-1254.webp') 0% 0% / max(260%, 1800px) auto no-repeat, var(--night); }
+/* Night band: a flat night ground and one slanted navy slab. (The oil painting's brushwork is kept for
+   the home Persona cover alone.) */
+.night-band { position: relative; overflow: hidden; padding: clamp(80px, 10vw, 150px) 0; background: var(--night); }
 .night-band::before { content: ''; position: absolute; right: -8%; top: -30%; width: 40%; height: 160%; background: var(--navy); transform: skewX(-45deg); opacity: .55; pointer-events: none; }
 .night-band > * { position: relative; }
 

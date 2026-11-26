@@ -1,5 +1,5 @@
 ---
-// Persona：以原创角色为视觉中心的一页。人物保持柔和，页面用同一套深蓝 / 红 / 纸色做高对比的碰撞。
+// Persona：以原创角色为视觉中心的一页：主视觉、三视图、表情、配色、服饰细节。
 // 文案在 src/data/persona.ts，素材由 scripts/process-persona.mjs 生成，样式在 src/styles/persona.css，
 // 交互在 src/lib/motion/persona.ts。没有 JS 时所有内容照常可读（三视图并排，六个表情全部列出）。
 import PageShell from '../components/PageShell.astro';
@@ -10,7 +10,7 @@ import '../styles/persona.css';
 const pad = (n: number) => String(n).padStart(2, '0');
 const first = persona.moods[0]!;
 ---
-<PageShell title="Persona" description="Persona：柔和的人物，强烈的表达。原创角色的视觉识别页。" blade={false}>
+<PageShell title="Persona" description="原创角色的人物设定：三视图、六种表情、配色与服饰细节。" blade={false}>
   <div class="persona" data-persona>
     <!-- 0 主视觉：色块碰撞，人物压在大字之上 -->
     <section class="p-hero" data-p-hero aria-labelledby="p-title">
@@ -22,37 +22,20 @@ const first = persona.moods[0]!;
       </div>
       <h1 id="p-title" class="p-word"><span class="visually-hidden">Persona</span>{[...'Persona'].map((char, i) => <span class="p-letter" aria-hidden="true" style={`--i:${i}`}>{char}</span>)}</h1>
       <img class="p-figure" src={persona.figure.src} width={persona.figure.width} height={persona.figure.height} alt={persona.figureAlt} fetchpriority="high" decoding="async" />
-      <p class="p-tag">{persona.concept.map(part => <span>{part}</span>)}</p>
+      <p class="p-tag"><span>Persona</span><span>人物设定</span></p>
       <div class="p-claim">
-        <p class="p-claim-en">{persona.claim.en.map(line => <span>{line}</span>)}</p>
-        <p class="p-claim-zh">{persona.claim.zh}</p>
+        <p class="p-claim-by"><span>Issued by</span>TEISU</p>
         <p class="p-claim-by"><span>Kept by</span>{persona.keeper}</p>
       </div>
-      <a class="p-scroll" href="#p-statement">Scroll <span aria-hidden="true">↓</span></a>
-    </section>
-
-    <!-- 1 设计主张 -->
-    <section class="p-statement" id="p-statement" aria-labelledby="p-statement-h">
-      <div class="page-width p-grid">
-        <p class="p-no" data-reveal>(01)<span>Design statement</span></p>
-        <h2 id="p-statement-h" class="p-statement-h">{persona.statement.map((line, i) => <span class="p-rise" style={`--i:${i}`}><span>{line}</span></span>)}</h2>
-        <p class="p-collide" aria-label={persona.claim.en.join(' ')}>
-          <span class="p-collide-soft" aria-hidden="true">Soft Character,</span>
-          <span class="p-collide-bold" aria-hidden="true">Bold Expression.</span>
-        </p>
-        <div class="p-body">{persona.body.map(text => <p data-reveal>{text}</p>)}</div>
-        <ol class="p-principles">
-          {persona.principles.map((item, i) => <li data-reveal><span class="p-principle-no">{pad(i + 1)}</span><strong>{item.zh}</strong><em>{item.en}</em><p>{item.text}</p></li>)}
-        </ol>
-      </div>
+      <a class="p-scroll" href="#turnaround">Scroll <span aria-hidden="true">↓</span></a>
     </section>
 
     <!-- 2 三视图 -->
-    <section class="p-turn" data-p-turn aria-labelledby="p-turn-h">
+    <section class="p-turn" id="turnaround" data-p-turn aria-labelledby="p-turn-h">
       <p class="p-backdrop" aria-hidden="true">Turnaround</p>
       <div class="page-width">
         <header class="p-head">
-          <p class="p-no">(02)<span>Reference sheet</span></p>
+          <p class="p-no">(01)<span>Reference sheet</span></p>
           <h2 id="p-turn-h">三视图<span>Front / Side / Back</span></h2>
           <p class="p-head-note">原始服装</p>
         </header>
@@ -66,11 +49,11 @@ const first = persona.moods[0]!;
     </section>
 
     <!-- 3 表情：选一个表情，这一屏跟着换一套颜色和排法 -->
-    <section class="p-mood" data-p-mood data-mood={first.id} aria-labelledby="p-mood-h">
+    <section class="p-mood" id="moods" data-p-mood data-mood={first.id} aria-labelledby="p-mood-h">
       <i class="p-mood-wipe" data-mood-wipe aria-hidden="true"></i>
       <div class="page-width">
         <header class="p-head">
-          <p class="p-no">(03)<span>Expressions</span></p>
+          <p class="p-no">(02)<span>Expressions</span></p>
           <h2 id="p-mood-h">表情<span>Six moods</span></h2>
           <p class="p-head-note">表情示例（无帽）</p>
         </header>
@@ -90,12 +73,12 @@ const first = persona.moods[0]!;
       </div>
     </section>
 
-    <!-- 4 配色：人物的颜色是柔的，页面的颜色不是 -->
+    <!-- 3 配色：人物的颜色与页面的颜色 -->
     <section class="p-palette" aria-labelledby="p-palette-h">
       <div class="page-width">
         <header class="p-head">
-          <p class="p-no">(04)<span>Colour</span></p>
-          <h2 id="p-palette-h">配色<span>Soft / Loud</span></h2>
+          <p class="p-no">(03)<span>Colour</span></p>
+          <h2 id="p-palette-h">配色<span>Character / Page</span></h2>
           <p class="p-head-note">色值取样自设定图色卡</p>
         </header>
       </div>
@@ -107,15 +90,14 @@ const first = persona.moods[0]!;
           {persona.loud.map((swatch, i) => <li style={`--c:${swatch.hex};--i:${i}`}><strong>{swatch.name}</strong><code>{swatch.hex}</code></li>)}
         </ul>
       </div>
-      <p class="p-palette-line page-width" data-reveal>{persona.paletteLine}</p>
     </section>
 
     <!-- 5 服饰与细节 -->
-    <section class="p-details" aria-labelledby="p-details-h">
+    <section class="p-details" id="outfit" aria-labelledby="p-details-h">
       <p class="p-backdrop" aria-hidden="true">Details</p>
       <div class="page-width">
         <header class="p-head">
-          <p class="p-no">(05)<span>Outfit</span></p>
+          <p class="p-no">(04)<span>Outfit</span></p>
           <h2 id="p-details-h">服饰与细节<span>Six pieces</span></h2>
         </header>
         <ul class="p-pieces">
@@ -127,11 +109,9 @@ const first = persona.moods[0]!;
       </div>
     </section>
 
-    <!-- 6 收尾 -->
-    <section class="p-closing" aria-labelledby="p-closing-h">
+    <!-- 5 收尾：背影和去别处 -->
+    <section class="p-closing" aria-label="去别处">
       <div class="page-width">
-        <p class="p-no" data-reveal>Design statement</p>
-        <h2 id="p-closing-h">{persona.closing.map((line, i) => <span class="p-rise" style={`--i:${i}`}><span>{line}</span></span>)}</h2>
         <figure class="p-back" data-reveal="fade">
           <div class="p-card"><img src={persona.back.src} width={persona.back.width} height={persona.back.height} alt="人物背面的发型：蜜金色短发的后脑勺。" loading="lazy" decoding="async" /></div>
           <figcaption>Back</figcaption>

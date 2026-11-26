@@ -54,12 +54,13 @@ const DURATION=620;
 /** Fast at once, then settling, like a flick of the scroll wheel. */
 const ease=(t:number)=>1-Math.pow(1-t,4);
 
+export type Point=[number,number];
 export type FlipFrame={
   /** 0…1, eased. */
   progress:number;
-  /** The new page's part of the screen and the old page's, as CSS polygons in screen px. */
-  incoming:(dx:number,dy:number)=>string;
-  outgoing:(dx:number,dy:number)=>string;
+  /** The new page's part of the screen and the old page's, as polygons in screen px. */
+  incoming:Point[];
+  outgoing:Point[];
 };
 
 export function createSweep(canvas:HTMLCanvasElement){
@@ -112,12 +113,8 @@ export function createSweep(canvas:HTMLCanvasElement){
         // the navy stretches with the speed of the seam (the eased curve's slope), closes up as it settles
         const N=base*(1.4+3*Math.pow(1-raw,3)),end=-G*.2,travel=W+H+G*.6+most-end,t=end+travel*(1-p);
         // The seam is the line x+y = t in the forward frame; back is the same mirrored vertically.
-        const incoming=(dx:number,dy:number)=>dir>0
-          ?`polygon(${t-dx}px ${-dy}px,${far}px ${-dy}px,${far}px ${H-dy}px,${t-H-dx}px ${H-dy}px)`
-          :`polygon(${t-H-dx}px ${-dy}px,${far}px ${-dy}px,${far}px ${H-dy}px,${t-dx}px ${H-dy}px)`;
-        const outgoing=(dx:number,dy:number)=>dir>0
-          ?`polygon(${-far}px ${-dy}px,${t-dx}px ${-dy}px,${t-H-dx}px ${H-dy}px,${-far}px ${H-dy}px)`
-          :`polygon(${-far}px ${-dy}px,${t-H-dx}px ${-dy}px,${t-dx}px ${H-dy}px,${-far}px ${H-dy}px)`;
+        const incoming:Point[]=dir>0?[[t,0],[far,0],[far,H],[t-H,H]]:[[t-H,0],[far,0],[far,H],[t,H]];
+        const outgoing:Point[]=dir>0?[[-far,0],[t,0],[t-H,H],[-far,H]]:[[-far,0],[t-H,0],[t,H],[-far,H]];
         step({progress:p,incoming,outgoing});
         if(ctx){
           ctx.setTransform(1,0,0,1,0,0);ctx.clearRect(0,0,canvas.width,canvas.height);

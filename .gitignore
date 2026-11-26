@@ -25,3 +25,7 @@ Thumbs.db
 # Local prototype builds
 lab/**/*.html
 !lab/**/template*.html
+
+# Persona model prototype: build output and the fetched base model
+lab/persona-model/dist/
+lab/persona-model/.cache/

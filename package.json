@@ -18,6 +18,8 @@
     "test:site": "node scripts/verify-site.mjs",
     "test:piston": "node scripts/verify-piston-impact.mjs",
     "lab": "node scripts/astro.mjs build && node lab/opening/build.mjs",
+    "lab:model": "node lab/persona-model/build.mjs",
+    "lab:model:check": "node lab/persona-model/turntable.mjs",
     "persona": "node scripts/process-persona.mjs"
   },
   "dependencies": {
@@ -30,6 +32,7 @@
   },
   "devDependencies": {
     "@astrojs/check": "0.9.12",
+    "@pixiv/three-vrm": "^3.6.0",
     "@playwright/test": "1.64.1",
     "@types/three": "^0.186.0",
     "sharp": "0.35.5",

@@ -79,7 +79,7 @@ try {
   await paged.mouse.move(head.x+head.width/2,head.y+head.height/2,{steps:4});
   await paged.waitForTimeout(1500);
   head=await paged.locator('#persona [data-hp-head]').boundingBox();
-  for(let i=0;i<40&&!(await paged.evaluate(()=>window.__hearts>0));i++){await paged.mouse.move(head.x+head.width*(i%2?.68:.32),head.y+head.height*.5,{steps:4});await paged.waitForTimeout(60);}
+  for(let i=0;i<40&&!(await paged.evaluate(()=>window.__hearts>0));i++){await paged.mouse.move(head.x+head.width*(i%2?.68:.32),head.y+head.height*.5,{steps:4});await paged.waitForTimeout(140);}
   await paged.waitForFunction(()=>window.__hearts>0,null,{timeout:5000});
   await paged.mouse.move(640,4,{steps:4});
   await paged.waitForTimeout(900);

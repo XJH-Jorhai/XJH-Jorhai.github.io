@@ -118,9 +118,15 @@ export function initPersonaStage(){
   page.addEventListener('pointermove',event=>{
     if(!allowed()||event.pointerType!=='mouse')return;
     if(!pointer)page.classList.add('is-tracking');
-    const next={x:event.clientX,y:event.clientY};
-    if(pointer)rub(pointer,next);
-    pointer=next;wake();
+    // When frames are slow the browser folds several moves into one event; read every one of them, so
+    // a quick back-and-forth is still seen as turns.
+    const moves=event.getCoalescedEvents?.() ?? [];
+    for(const move of moves.length?moves:[event]){
+      const next={x:move.clientX,y:move.clientY};
+      if(pointer)rub(pointer,next);
+      pointer=next;
+    }
+    wake();
   });
   page.addEventListener('pointerenter',()=>{box=null;});
   page.addEventListener('pointerleave',()=>{pointer=null;wake();});

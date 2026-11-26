@@ -1,10 +1,13 @@
-import {createSweep} from './sweep';
+import {createSweep,type Point} from './sweep';
+/** How much larger the old page grows on its way out, and the new one starts. */
+const OUT=.1,IN=.12;
 /**
  * Home pager. The home page's sections are full-screen pages: one is shown at a time and a wheel
  * notch, a swipe, an arrow key or an in-page link switches to the next in one continuous push
  * (sweep.ts): a 45° seam with stripes of colour on it crosses the screen from below (going forward)
- * or from above (going back); the new page is already there behind it, playing its entrance, while
- * the old page drifts out in front of it. Both pages are opaque paper while they share the screen.
+ * or from above (going back); the new page is already there behind it, playing its entrance and
+ * settling in, while the old page grows away from the seam in front of it. Both pages are opaque
+ * while they share the screen.
  * The WebGL scenes sit out the push (their posters show instead) and measure again once it is done.
  * Two things drawn outside the pages belong to one of them: the cover's corner blocks and the end
  * page's footer. They are clipped and moved with their page.
@@ -79,22 +82,34 @@ export function initPager(){
       root.classList.add('is-flipping');root.dataset.leaving=from.id;from.classList.add('is-leaving');
       const fromBox=from.getBoundingClientRect(); // read before anything moves
       show(index);to.focus({preventScroll:true});
-      const toBox=to.getBoundingClientRect(),drift=Math.min(innerHeight*.12,110)*dir;
+      const toBox=to.getBoundingClientRect();
       // The corner blocks and the footer go with their page: above the pages for the push, clipped like it.
       const goes=attached(from),comes=attached(to),boxOf=(el:HTMLElement|null)=>el?el.getBoundingClientRect():null;
       for(const el of [goes,comes])if(el)el.style.zIndex='3';
       const goesBox=boxOf(goes),comesBox=boxOf(comes);
+      // Depth instead of a shift: the old page grows away from the corner the seam comes from, the new
+      // one settles towards the opposite corner, so both move along the diagonal with the seam. A page
+      // scaled up about a corner of the screen always covers the whole screen: no edge ever shows (a
+      // shifted page left a strip of background along its edge).
+      const W=innerWidth,H=innerHeight,back=dir<0;
+      const outFrom:Point=[W,back?0:H],inTo:Point=[0,back?H:0];
+      const place=(el:HTMLElement,box:DOMRect,origin:Point,scale:number,region:Point[])=>{
+        const ox=origin[0]-box.left,oy=origin[1]-box.top;
+        el.style.transformOrigin=`${ox}px ${oy}px`;el.style.scale=String(scale);
+        // the region is given on the screen; the clip is drawn in the element's own (scaled) box
+        el.style.clipPath=`polygon(${region.map(([x,y])=>`${ox+(x-origin[0])/scale}px ${oy+(y-origin[1])/scale}px`).join(',')})`;
+      };
       await sweep.flip(dir,({progress,incoming,outgoing})=>{
-        const out=-progress*drift,inn=(1-progress)*drift;
-        from.style.translate=`0 ${out}px`;from.style.clipPath=outgoing(fromBox.left,fromBox.top+out);
-        to.style.translate=`0 ${inn}px`;to.style.clipPath=incoming(toBox.left,toBox.top+inn);
-        if(goes&&goesBox){goes.style.translate=`0 ${out}px`;goes.style.clipPath=outgoing(goesBox.left,goesBox.top+out);}
-        if(comes&&comesBox){comes.style.translate=`0 ${inn}px`;comes.style.clipPath=incoming(comesBox.left,comesBox.top+inn);}
+        const out=1+OUT*progress,inn=1+IN*(1-progress);
+        place(from,fromBox,outFrom,out,outgoing);place(to,toBox,inTo,inn,incoming);
+        if(goes&&goesBox)place(goes,goesBox,outFrom,out,outgoing);
+        if(comes&&comesBox)place(comes,comesBox,inTo,inn,incoming);
       });
     }finally{
-      for(const page of [from,to]){page.style.translate='';page.style.clipPath='';}
+      const reset=(el:HTMLElement)=>{el.style.scale='';el.style.transformOrigin='';el.style.clipPath='';};
+      for(const page of [from,to])reset(page);
       from.classList.remove('is-leaving');delete root.dataset.leaving;
-      for(const el of [gate,footer])if(el){el.style.zIndex='';el.style.translate='';el.style.clipPath='';}
+      for(const el of [gate,footer])if(el){el.style.zIndex='';reset(el);}
       // The scenes measure the new page now; the posters stay up two more frames, until WebGL has
       // drawn at the new positions, so nothing jumps when they hand over.
       remeasure();

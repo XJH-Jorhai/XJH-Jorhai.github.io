@@ -93,6 +93,11 @@ try {
   await paged.waitForTimeout(900);
   await paged.getByRole('link',{name:/Back to top/}).click();
   await paged.waitForFunction(()=>document.documentElement.dataset.page==='cover');
+  // During the push the two pages are scaled about a corner of the screen (clipped to their halves),
+  // so they reach past it for a moment; the screen must never move with them, and once the push is
+  // done nothing may stick out.
+  assert.equal(await paged.evaluate(()=>scrollX),0,'paged home: scrolled sideways during the push');
+  await paged.waitForFunction(()=>!document.documentElement.classList.contains('is-flipping'));
   assert.ok(await paged.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'paged home: overflow');
   await paged.close();
   // Persona: choosing an expression switches the stage.

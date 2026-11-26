@@ -6,6 +6,7 @@ import PistonGolem from '../PistonGolem.astro';
 import Gate from './Gate.astro';
 import Wordmark from './Wordmark.astro';
 import StrokeWord from './StrokeWord.astro';
+import Glass from './Glass.astro';
 import { journal, journalNotes } from '../../data/journal';
 import { persona } from '../../data/persona';
 import { getCollection } from 'astro:content';
@@ -42,7 +43,10 @@ const pad = (n: number) => String(n).padStart(2, '0');
         <span class="pg-word-layer pg-ink"><a href="/work/" aria-label={`全部作品（${pad(workCount)}）`}><StrokeWord text="WORK" id="work-ink" class="pw" /></a></span>
         <span class="pg-word-layer pg-cut" aria-hidden="true"><span><StrokeWord text="WORK" id="work-cut" class="pw" /></span></span>
       </div>
-      <i class="pg-pane glass" aria-hidden="true"></i>
+      <Glass class="pg-glass">
+        <i class="pg-slab"></i>
+        <span class="pg-word"><span class="pg-word-layer pg-ink"><span><StrokeWord text="WORK" id="work-glass-ink" class="pw" /></span></span><span class="pg-word-layer pg-cut"><span><StrokeWord text="WORK" id="work-glass-cut" class="pw" /></span></span></span>
+      </Glass>
       <div class="page-width pg-body">
         <h2 id="work-heading" class="visually-hidden">Selected work 作品</h2>
         <WorkGallery variant="poster" />
@@ -55,7 +59,10 @@ const pad = (n: number) => String(n).padStart(2, '0');
         <span class="pg-word-layer pg-ink"><a href="/notes/" aria-label={`全部笔记（${pad(journalNotes.length)}）`}><StrokeWord text="NOTES" id="notes-ink" class="pw" /></a></span>
         <span class="pg-word-layer pg-cut" aria-hidden="true"><span><StrokeWord text="NOTES" id="notes-cut" class="pw" /></span></span>
       </div>
-      <i class="pg-pane glass" aria-hidden="true"></i>
+      <Glass class="pg-glass">
+        <i class="pg-slab"></i>
+        <span class="pg-word"><span class="pg-word-layer pg-ink"><span><StrokeWord text="NOTES" id="notes-glass-ink" class="pw" /></span></span><span class="pg-word-layer pg-cut"><span><StrokeWord text="NOTES" id="notes-glass-cut" class="pw" /></span></span></span>
+      </Glass>
       <div class="page-width pg-body">
         <h2 id="notes-heading" class="visually-hidden">Notes &amp; observations 笔记</h2>
         <p class="pg-stamp" data-enter style="--k:2"><span>Drafts</span>草稿</p>
@@ -70,7 +77,12 @@ const pad = (n: number) => String(n).padStart(2, '0');
          eyes follow the pointer and rubbing her head makes hearts pop up (persona-stage.ts). -->
     <section class="h-persona page" id="persona" data-page tabindex="-1" aria-labelledby="persona-heading">
       <div class="hp-stage" data-hp-stage>
-        <div class="hp-ground" aria-hidden="true"><i class="hp-slab"></i><i class="hp-blade"></i><i class="hp-slab hp-slab-low"></i><i class="hp-blade hp-blade-low"></i></div>
+        <div class="hp-ground" aria-hidden="true">
+          <i class="hp-slab"></i>
+          <Glass class="hp-glass hp-glass-main"><i class="hp-slab"></i></Glass>
+          <i class="hp-slab hp-slab-low"></i>
+          <Glass class="hp-glass hp-glass-low"><i class="hp-slab hp-slab-low"></i></Glass>
+        </div>
         <div class="hp-word">
           <span class="hp-word-layer hp-ink">
             <a class="hp-part hp-part-a" href="/persona/" aria-label="人物设定"><StrokeWord text="PER" id="per-ink" class="pw" /></a>
@@ -99,7 +111,7 @@ const pad = (n: number) => String(n).padStart(2, '0');
          blocks. -->
     <section class="h-outro page poster" id="about" data-alias="end" data-page tabindex="-1" aria-labelledby="about-heading">
       <div class="pg-ground" aria-hidden="true"><i class="pg-slab"></i></div>
-      <i class="pg-pane glass" aria-hidden="true"></i>
+      <Glass class="pg-glass"><i class="pg-slab"></i></Glass>
       <div class="page-width pg-body">
         <h2 id="about-heading" class="visually-hidden">About 关于</h2>
         <div class="h-outro-row">

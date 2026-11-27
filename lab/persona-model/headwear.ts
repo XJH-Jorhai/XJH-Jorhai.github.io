@@ -25,8 +25,9 @@ export const HEAD = {
   /** …and the cards in front of the ears down to the jaw: centre in front of z, centre further out than |x|, lowest point below y. */
   sideCut: [-.01,.07,1.41] as [number,number,number], fringeUV: [.147,.344] as [number,number],
   hair: '#EDC591', hairShade: '#C99A62',
-  /** The darker hair under the fringe, from this height up (m). */
-  hairUnder: '#C99A62', hairUnderShade: '#9E7449', underFrom: 1.54, // only up under the fringe's root: lower down, the V between the locks shows forehead, as drawn
+  /** The hair under the fringe, from this height up (m). */
+  // the hair's own colour (darker, it showed as an orange patch at the crown, 2026-11-27)
+  hairUnder: '#EDC591', hairUnderShade: '#C99A62', underFrom: 1.54, // only up under the fringe's root: lower down, the V between the locks shows forehead, as drawn
   bow: '#E9A3B1', bowShade: '#B8707F',
   hat: '#F6F0EC', hatShade: '#D8CCD2', stripeBlue: '#9FC3DA', stripePink: '#DF95A6',
 };
@@ -106,7 +107,7 @@ function hat(white:THREE.Material,blue:THREE.Material,pink:THREE.Material){
  * y down, 0…1 of its height), its widest width, and how far it stands off the head (m; later ones lie on top).
  */
 export const FRINGE = {
-  width: .24, top: 1.588, height: .152, // a little lower than first drawn (the user's note): the middle ends between the eyes
+  width: .24, top: 1.578, height: .142, // its roots below the crown's outline (higher, they stood up as two bumps seen from behind) // a little lower than first drawn (the user's note): the middle ends between the eyes
   locks: [
     {p:[[0,0],[-.27,.1],[-.41,.87]],w:.24,out:.005},   // her right side lock
     {p:[[0,0],[.27,.1],[.42,.88]],w:.24,out:.005},     // her left side lock
@@ -454,6 +455,16 @@ export function headwear(vrm:VRM,base:MToonMaterial):Headwear{
           // it in orange patches: on the hair it is a thin line at the very edge only
           for(const x of Array.isArray(m.material)?m.material:[m.material]){x.userData.rim=.45;x.userData.rimPower=14;}});
       }
+    }
+  }
+  // The crown: a smooth cap of hair just inside the outline, so where the strands meet at the top no scalp can
+  // show between them (seen from above, 2026-11-27)
+  {
+    let hairMat:THREE.Material|null=null;vrm.scene.traverse(o=>{const m=o as THREE.Mesh;if(!hairMat&&m.isMesh&&o.name==='Hair')hairMat=(Array.isArray(m.material)?m.material[0]:m.material) as THREE.Material;});
+    if(hairMat){
+      const cap=new THREE.Mesh(new THREE.SphereGeometry(SIL.dome-.005,48,16,0,Math.PI*2,0,.95),hairMat);
+      cap.position.set(H.centre.x,SIL.cy,H.centre.z);cap.updateMatrix();cap.geometry.applyMatrix4(cap.matrix);cap.position.set(0,0,0);
+      cap.renderOrder=0;carry(cap,new THREE.Vector3());
     }
   }
   // Under the fringe, the hair close to the scalp: a darker layer of hair over the top of the forehead,

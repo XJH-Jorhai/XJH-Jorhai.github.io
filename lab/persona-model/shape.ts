@@ -175,7 +175,7 @@ function recolor(tex:THREE.Texture|null,color:THREE.Color){
   let sum=0,n=0;for(let i=0;i<p.length;i+=4)if(p[i+3]!>8){sum+=.3*p[i]!+.59*p[i+1]!+.11*p[i+2]!;n++;}
   const mean=sum/Math.max(1,n)||1;
   for(let i=0;i<p.length;i+=4){
-    const l=(.3*p[i]!+.59*p[i+1]!+.11*p[i+2]!)/mean,s=Math.max(.25,.2+.8*l**1.4); // the strands' own lines, kept strong: with thin outlines they are what tells one strand from the next
+    const l=(.3*p[i]!+.59*p[i+1]!+.11*p[i+2]!)/mean,s=.8+.2*Math.min(1.4,l); // the strands' lines kept faint: strong, every card came out lighter or darker than its neighbours and the crown read as patches (2026-11-27); strands are told apart by their outlines and the darker layers beneath
     p[i]=Math.min(255,color.r*255*s);p[i+1]=Math.min(255,color.g*255*s);p[i+2]=Math.min(255,color.b*255*s);
   }
   x.putImageData(d,0,0);

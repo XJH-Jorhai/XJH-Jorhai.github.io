@@ -213,6 +213,12 @@ const silhouette=(()=>{
   return (y:number)=>y>=ty?Math.sqrt(Math.max(0,R*R-(y-cy)**2)):tx+(xe-tx)*Math.min(1,(ty-y)/(ty-ye));
 })();
 
+/** The big inward curl of the ends (the user's note, 2026-11-27: "a big, sweeping curl" towards the face): from
+ *  eye level down, the outline leaves its straight line along a wide circular arc, turning in by `depth` at the
+ *  ends. Shared with shape.ts, so the base hair, the fill and the curtain bend as one. */
+export const ARC = {from:1.5,ends:1.335,depth:.065};
+export const arcIn=(y:number)=>{const d=Math.min(ARC.from-ARC.ends,Math.max(0,ARC.from-y)),L=ARC.from-ARC.ends,R=(L*L+ARC.depth*ARC.depth)/(2*ARC.depth);return R-Math.sqrt(R*R-d*d);};
+
 export const CURTAIN = {
   from: 46, to: 104, step: 6, r0: .118, swell: .03, back: 0, end: 1.335, endBack: .025, top: 1.598,
   // layers 7 mm apart, and every strand a little off its neighbours (strands at one depth z-fought into a checkerboard)
@@ -332,7 +338,11 @@ export function headwear(vrm:VRM,base:MToonMaterial):Headwear{
         // inside the crown's measured surface, blending down into the bob's profile
         // its front edge hangs straight (curled in, its underside showed from the front as dark steps at the jaw)
         const prof={top:CURTAIN.top,curl:(ang:number)=>{const d=Math.abs(THREE.MathUtils.radToDeg(ang));return .45+.55*Math.min(1,Math.max(0,(d-60)/30));},at:(ang:number,y:number)=>{const deg=Math.abs(THREE.MathUtils.radToDeg(ang)),u=Math.min(1,Math.max(0,(1.5-y)/.17));
-            void u;const bob=silhouette(y)+CURTAIN.back*Math.max(0,deg-60)/60;
+            void u;
+            // the ends turn in towards the face (the user's note, 2026-11-27): the top stays, below `bendFrom` the
+            // outline curves in, most at the front locks beside the cheek, less towards the back
+            const bendK=1-.6*Math.min(1,Math.max(0,(deg-55)/45));
+            const bob=silhouette(y)+CURTAIN.back*Math.max(0,deg-60)/60-arcIn(y)*bendK;
             const k0=Math.min(1,Math.max(0,(y-1.5)/.08)),k=k0*k0*(3-2*k0),crown=Math.sqrt(Math.max(0,1-((y-H.centre.y)/.152)**2))*(H.radii.x+.006); // up top it lies over the crown hair (6 mm, so it stays inside the hat) (on the head's measured ellipsoid plus the hair's thickness; the measurement is clamped there and made the tops stand up like ears), covering the straight lower edge of its cards (under it, that edge showed as a ledge)
             return bob+(crown-bob)*k;},
           end:(ang:number)=>{const deg=Math.abs(THREE.MathUtils.radToDeg(ang));return CURTAIN.end-CURTAIN.endBack*Math.max(0,deg-55)/55;}};

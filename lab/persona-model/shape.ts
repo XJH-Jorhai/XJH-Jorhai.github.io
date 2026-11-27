@@ -10,6 +10,7 @@
  */
 import * as THREE from 'three';
 import {MToonMaterial, type VRM} from '@pixiv/three-vrm';
+import {arcIn} from './headwear';
 
 export const SHAPE = {
   /** Shin length (knee to ankle) as a factor: 0.875 brings the knees from 0.38 C to 0.35 C. */
@@ -154,6 +155,13 @@ function bob(mesh:THREE.Mesh,s:typeof SHAPE,centre:THREE.Vector3){
     const fy=Math.min(1.58,Math.max(1.44,y)),face=.078-1.9*(fy-1.5)**2-(fy>1.5?(fy-1.5)*.35:0);
     const front=face+.007+.004*(1-across/s.fringeHalf);
     pos.setXYZ(i,x,y,z+(Math.max(z,front)-z)*Math.min(1,k*2.5));
+  }
+  // the big curl of the ends towards the face (shared with headwear.ts): the sides and the front bend in along
+  // one wide arc, the back less
+  for(let i=0;i<pos.count;i++){
+    const x=pos.getX(i),y=pos.getY(i),z=pos.getZ(i),inn=arcIn(y);if(!inn)continue;
+    const dx=x-centre.x,dz=z-centre.z,r=Math.hypot(dx,dz)||1,w=(1-.6*smooth(.3,.75,back(x,z)))*(1-smooth(-.02,.03,z)) /* not the cards over the face: drawn in, they crossed the eyes */,nr=Math.max(.05,r-inn*w);
+    pos.setXYZ(i,centre.x+dx*nr/r,y,centre.z+dz*nr/r);
   }
   pos.needsUpdate=true;g.computeVertexNormals();g.computeBoundingSphere();
 }

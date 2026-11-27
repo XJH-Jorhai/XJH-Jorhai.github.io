@@ -60,6 +60,29 @@ function fringeGeometry(){
   return g;
 }
 /** Strand lines for the fringe (greyscale, tinted by the material). */
+/** The locks' own texture (the user's note, 2026-11-27: "the reference's fluffiness"): on the sheet every lock is
+ *  drawn, a flat colour with a thin darker line along each edge and one or two fainter lines inside, so the hair
+ *  reads as many separate locks lying over each other. The base model's hair texture has highlight bands and
+ *  soft patches, which made the outer strands read as one smudged mass. Grey (the material's colour tints it);
+ *  `LOCK.columns` variants side by side, v from the root (0) to the tip (1). */
+export const LOCK = {columns:4, edge:.66, edgeWidth:.045, inner:.85};
+function lockTexture(){
+  const W=64*LOCK.columns,Hh=512,c=document.createElement('canvas');c.width=W;c.height=Hh;const x=c.getContext('2d')!;
+  x.fillStyle='#ffffff';x.fillRect(0,0,W,Hh);
+  const grey=(v:number)=>{const k=Math.round(v*255);return `rgb(${k},${k},${k})`;};
+  for(let col=0;col<LOCK.columns;col++){
+    const x0=col*64,ew=Math.max(1.5,64*LOCK.edgeWidth);
+    // edges: dark at the very edge, fading in
+    for(const [a,b] of [[x0,x0+ew],[x0+64,x0+64-ew]] as [number,number][]){const g=x.createLinearGradient(a,0,b,0);g.addColorStop(0,grey(LOCK.edge));g.addColorStop(1,grey(1));x.fillStyle=g;x.fillRect(Math.min(a,b),0,Math.abs(b-a),Hh);}
+    // one or two fainter lines inside, drawn from the root and fading out before the tip
+    x.lineWidth=1.6;
+    const lines=col%2?[.38,.66]:[.55];
+    for(const [k,u] of lines.entries()){const g=x.createLinearGradient(0,0,0,Hh);g.addColorStop(0,grey(LOCK.inner));g.addColorStop(.75,grey(LOCK.inner+.05));g.addColorStop(1,grey(1));x.strokeStyle=g;
+      x.beginPath();x.moveTo(x0+64*u,0);x.quadraticCurveTo(x0+64*(u+(k?-.04:.05)),Hh*.5,x0+64*(.5+(u-.5)*.4),Hh*.92);x.stroke();}
+  }
+  const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;t.flipY=false;return t;
+}
+
 function strandTexture(){
   const c=document.createElement('canvas');c.width=64;c.height=128;const x=c.getContext('2d')!;
   const grad=x.createLinearGradient(0,0,64,0);grad.addColorStop(0,'#d8d8d8');grad.addColorStop(.5,'#ffffff');grad.addColorStop(1,'#d0d0d0');x.fillStyle=grad;x.fillRect(0,0,64,128);
@@ -235,7 +258,10 @@ export const CURTAIN = {
   // sheet), the inner layers wide and darker, closing every gap beneath
   // the darker layers start lower: between the outer strands near the top one sees the crown hair, not dark
   // flame-shaped tops (seen from above, 2026-11-27)
-  layers: [{inset:.0,w:.026},{inset:.007,w:.04,drop:.045},{inset:.014,w:.054,drop:.065}],
+  // the outer locks wide ribbons (the sheet's locks are each about a sixth of the hair's width; .026 drawn with edge lines
+  // read as a straight curtain of thin lines, 2026-11-27), their tips at staggered heights (`stagger`, m) so the inner layer
+  // shows between them, as on the sheet
+  layers: [{inset:.0,w:.046,stagger:.045},{inset:.007,w:.04,drop:.045},{inset:.014,w:.054,drop:.065}],
   loose: {r:.012,a:.09,bow:.006,w:.6} as Loose,
   /** Round the back, how far the strands' tips turn towards the middle (rad). */
   converge: .14,
@@ -273,7 +299,7 @@ function measureHair(hair:THREE.Mesh){
  *  paper): each strand stands off by its own amount (radial, m, growing down its length), drifts sideways by its
  *  own angle (rad, at its tip), bows out in the middle, varies in width, and tapers from half way. */
 type Loose={r:number,a:number,bow:number,w:number};
-function fillGeometry(ang:number,layer:{inset:number,w:number,drop?:number},hair:{at:(a:number,y:number)=>number,end:(a:number)=>number,top?:number,curl?:(a:number)=>number,loose?:Loose,sweep?:(a:number)=>number},uv:[number,number],seed:number){
+function fillGeometry(ang:number,layer:{inset:number,w:number,drop?:number,stagger?:number},hair:{at:(a:number,y:number)=>number,end:(a:number)=>number,top?:number,curl?:(a:number)=>number,loose?:Loose,sweep?:(a:number)=>number},uv:[number,number]|'lock',seed:number){
   const rnd=(k:number)=>((Math.sin(seed*12.9898+k*78.233)*43758.5453)%1+1)%1,L=hair.loose;
   // round the back the strands come out of the hair just under the hat's brim, where one sees them from behind:
   // there they start together and lie flat until lower down (staggered, their tops showed under the brim)
@@ -281,9 +307,10 @@ function fillGeometry(ang:number,layer:{inset:number,w:number,drop?:number},hair
   const twist=L?(rnd(5)-.5)*.9:0,off=L?(rnd(1)-.35)*L.r:0,drift=L?(rnd(2)-.5)*2*L.a:0,bow=L?rnd(3)*L.bow:0,wk=L?1-L.w/2+rnd(4)*L.w:1;
   // each strand takes a different strand region of the hair texture: with one region for all, neighbours were
   // identical and the curtain read as one smooth sheet
-  const STRIPS:[number,number][]=[uv,[.344,.541],[.0,.243],[.243,.485],[.026,.275],[.275,.523]],su=STRIPS[seed%STRIPS.length]!;
+  const STRIPS:[number,number][]=[uv==='lock'?[0,1]:uv,[.344,.541],[.0,.243],[.243,.485],[.026,.275],[.275,.523]],
+    su:[number,number]=uv==='lock'?[(seed%LOCK.columns)/LOCK.columns,(seed%LOCK.columns+1)/LOCK.columns]:STRIPS[seed%STRIPS.length]!; // the locks' texture: one of its columns
   const c=H.centre,N=26,Aw=3,P:number[]=[],U:number[]=[],I:number[]=[];
-  const yEnd=hair.end(ang)+.004+.024*((Math.sin(seed*12.9898)*43758.5453%1+1)%1),yTop=(hair.top??FILL.top)-(L?rnd(6)*.032*(1-bk):0)-(layer.drop??0); // uneven tips, not one straight cut; loose strands also start at different heights, coming out of the hair one by one (all from one line, their tops merged into a smooth cap)
+  const yEnd=hair.end(ang)+.004+(layer.stagger??.024)*((Math.sin(seed*12.9898)*43758.5453%1+1)%1),yTop=(hair.top??FILL.top)-(L?rnd(6)*.032*(1-bk):0)-(layer.drop??0); // uneven tips, not one straight cut; loose strands also start at different heights, coming out of the hair one by one (all from one line, their tops merged into a smooth cap)
   for(let i=0;i<=N;i++){
     const t=i/N,y=yTop+(yEnd-yTop)*t;
     for(let a=0;a<=Aw;a++){
@@ -348,6 +375,9 @@ export function headwear(vrm:VRM,base:MToonMaterial):Headwear{
         const lg=lockGeometry(lock,H.fringeUV);mats.forEach((_,k)=>lg.addGroup(0,lg.index!.count,k));
         const m=new THREE.Mesh(lg,mats);m.renderOrder=1;carry(m,new THREE.Vector3());
       }
+      // the locks' material (the base hair's, with the drawn-lock texture), with and without a stronger outline
+      const lockTex=lockTexture(),lockMat=(outline:number)=>mats.map((m,k)=>{const c=m.clone() as MToonMaterial;c.map=lockTex;c.shadeMultiplyTexture=lockTex;if(k)c.outlineWidthFactor*=outline;c.needsUpdate=true;return c;});
+      const locks=lockMat(1),locksOuter=lockMat(CURTAIN.outline);
       // thickness: two layers of thin strands along the shaped hair's own surface, both sides and the back
       const measured=measureHair(hm);
       // One shell all round (the user's note, 2026-11-27: from behind the hair read as three bands, the top of the
@@ -384,8 +414,8 @@ export function headwear(vrm:VRM,base:MToonMaterial):Headwear{
           // where no hair hangs any more (the cards in front of the ears were removed) the curtain (below) is
           // there; a strand there would end above its start and turn into a flat spike
           if(measured.end(THREE.MathUtils.degToRad(deg*sign))>FILL.top-.06){seed++;continue;}
-          const fg=fillGeometry(THREE.MathUtils.degToRad(deg*sign),layer,{...measured,loose:FILL.loose},H.fringeUV,seed++);fg.addGroup(0,fg.index!.count,0);
-          const m=new THREE.Mesh(fg,[mats[0]!]); // inner strands, no outline: theirs showed through gaps as dark rectangles
+          const fg=fillGeometry(THREE.MathUtils.degToRad(deg*sign),layer,{...measured,loose:FILL.loose},'lock',seed++);fg.addGroup(0,fg.index!.count,0);
+          const m=new THREE.Mesh(fg,[locks[0]!]); // inner strands, no outline: theirs showed through gaps as dark rectangles
           m.renderOrder=1;carry(m,new THREE.Vector3());
         }
       }
@@ -401,21 +431,20 @@ export function headwear(vrm:VRM,base:MToonMaterial):Headwear{
         {
           const capProf={top:CURTAIN.top,curl:()=>0,at:(ang:number,y:number)=>silhouetteTo(y,CURTAIN.end)+.0015*Math.cos(ang*3),end:()=>CURTAIN.capEnd};
           let cs=800;
-          for(let deg=-48;deg<=48;deg+=8){const fg=fillGeometry(THREE.MathUtils.degToRad(deg),{inset:0,w:.05},capProf,H.fringeUV,cs++);fg.addGroup(0,fg.index!.count,0);
-            const m=new THREE.Mesh(fg,[mats[0]!]);m.renderOrder=1;carry(m,new THREE.Vector3());}
+          for(let deg=-48;deg<=48;deg+=8){const fg=fillGeometry(THREE.MathUtils.degToRad(deg),{inset:0,w:.05},capProf,'lock',cs++);fg.addGroup(0,fg.index!.count,0);
+            const m=new THREE.Mesh(fg,[locks[0]!]);m.renderOrder=1;carry(m,new THREE.Vector3());}
         }
         // Combed out (the user's note, 2026-11-27: it read as one sheet of paper): the outer strands are outlined
         // more strongly than the base hair; the inner layers are darker, so between the outer strands one sees
         // depth, as in a drawing of hair, not more of the same surface.
         const [hm0,ho0]=mats as [MToonMaterial,MToonMaterial];
-        const outer=[hm0,ho0.clone() as MToonMaterial];outer[1]!.outlineWidthFactor=ho0.outlineWidthFactor*CURTAIN.outline;
-        const inner=(k:number)=>{const m=hm0.clone() as MToonMaterial;m.color.copy(hm0.color).lerp(new THREE.Color(H.hairShade),k);m.shadeColorFactor.copy(hm0.shadeColorFactor).multiplyScalar(1-.25*k);return m;};
-        const layerMats=[outer,[inner(.45)],[inner(.8)]];
+        const inner=(k:number)=>{const m=locks[0]!.clone() as MToonMaterial;m.color.copy(hm0.color).lerp(new THREE.Color(H.hairShade),k);m.shadeColorFactor.copy(hm0.shadeColorFactor).multiplyScalar(1-.25*k);return m;};
+        const layerMats=[locksOuter,[inner(.22)],[inner(.42)]]; // the inner layers only a little darker: darker, they showed between the outer strands as brown patches (2026-11-27)
         let seed=500;
         for(const [li,layer] of CURTAIN.layers.entries())for(let deg=CURTAIN.from+li*CURTAIN.step/3;deg<=CURTAIN.to;deg+=CURTAIN.step)for(const sign of [-1,1]){
           const ang=THREE.MathUtils.degToRad(deg*sign);
           if(deg>=180&&sign<0)continue;
-          const lm=layerMats[li]!,fg=fillGeometry(ang,layer,prof,H.fringeUV,seed++);lm.forEach((_,k)=>fg.addGroup(0,fg.index!.count,k));
+          const lm=layerMats[li]!,fg=fillGeometry(ang,layer,prof,'lock',seed++);lm.forEach((_,k)=>fg.addGroup(0,fg.index!.count,k));
           const m=new THREE.Mesh(fg,lm);m.renderOrder=1;carry(m,new THREE.Vector3());
         }
       }
@@ -427,13 +456,13 @@ export function headwear(vrm:VRM,base:MToonMaterial):Headwear{
           end:(ang:number)=>TEMPLE.end-TEMPLE.endBack*Math.max(0,Math.abs(THREE.MathUtils.radToDeg(ang))-TEMPLE.from)/(TEMPLE.to-TEMPLE.from)};
         let seed=900;
         for(const [li,layer] of TEMPLE.layers.entries())for(let deg=TEMPLE.from+li*TEMPLE.step/2;deg<=TEMPLE.to;deg+=TEMPLE.step)for(const sign of [-1,1]){
-          const fg=fillGeometry(THREE.MathUtils.degToRad(deg*sign),layer,prof,H.fringeUV,seed++);mats.forEach((_,k)=>fg.addGroup(0,fg.index!.count,k));
-          const m=new THREE.Mesh(fg,mats);m.renderOrder=1;carry(m,new THREE.Vector3());
+          const fg=fillGeometry(THREE.MathUtils.degToRad(deg*sign),layer,prof,'lock',seed++);locks.forEach((_,k)=>fg.addGroup(0,fg.index!.count,k));
+          const m=new THREE.Mesh(fg,locks);m.renderOrder=1;carry(m,new THREE.Vector3());
         }
       }
       for(const sign of [-1,1])for(const lock of SIDELOCKS){
-        const lg=sideLockGeometry(lock,sign,H.fringeUV);mats.forEach((_,k)=>lg.addGroup(0,lg.index!.count,k));
-        const m=new THREE.Mesh(lg,mats);m.renderOrder=1;carry(m,new THREE.Vector3());
+        const col=SIDELOCKS.indexOf(lock)%LOCK.columns,lg=sideLockGeometry(lock,sign,[col/LOCK.columns,(col+1)/LOCK.columns]);locks.forEach((_,k)=>lg.addGroup(0,lg.index!.count,k));
+        const m=new THREE.Mesh(lg,locks);m.renderOrder=1;carry(m,new THREE.Vector3());
       }
       // Light and shade (the user's note, 2026-11-27): every card and strand had its own normals, so neighbours at
       // slightly different angles were lit differently and the top of the head showed patches and jagged edges of
@@ -459,7 +488,7 @@ export function headwear(vrm:VRM,base:MToonMaterial):Headwear{
           // it in orange patches: on the hair it is a thin line at the very edge only
           // its shade only a little darker and less navy: from behind (away from the light) the head turnaround's hair
           // is lit evenly, the strands drawn in a slightly darker line; a navy shade made the back a brown block (2026-11-27)
-          for(const x of Array.isArray(m.material)?m.material:[m.material]){x.userData.rim=.45;x.userData.rimPower=14;x.userData.navy=.2;}});
+          for(const x of Array.isArray(m.material)?m.material:[m.material]){x.userData.rim=.45;x.userData.rimPower=14;x.userData.navy=.1;}});
       }
     }
   }

@@ -39,7 +39,7 @@ export const SHAPE = {
   /** Fringe: front strands between these heights (m) and within this half-width (m) are combed towards the middle by up to `fringeComb`, and shifted towards her right (−x) by up to `fringeSweep` (m). */
   fringeTop: 1.585, fringeBottom: 1.45, fringeHalf: .115, fringeComb: .18, fringeSweep: 0, fringeClose: 0, fringeUnslant: 0, // straightening by shearing left a ragged edge (2026-11-27); the fringe needs its own cards // the sheet's fringe falls almost straight down from near the centre (a stronger comb read as a side sweep)
   /** Honey blonde (persona palette "hair"), and the colour of its shaded side before the site's navy. */
-  hair: '#EDC591', hairShade: '#DCAB6E', brow: '#B8875A', // hairShade was #C99A62: the sheet's shade is a light one
+  hair: '#EDC591', hairShade: '#F2C084', brow: '#B8875A', // hairShade was #C99A62: on the sheet the back of the head (away from the light) is nearly the lit colour
 };
 
 type Bone=Parameters<VRM['humanoid']['getRawBoneNode']>[0];
@@ -175,7 +175,7 @@ function recolor(tex:THREE.Texture|null,color:THREE.Color){
   let sum=0,n=0;for(let i=0;i<p.length;i+=4)if(p[i+3]!>8){sum+=.3*p[i]!+.59*p[i+1]!+.11*p[i+2]!;n++;}
   const mean=sum/Math.max(1,n)||1;
   for(let i=0;i<p.length;i+=4){
-    const l=(.3*p[i]!+.59*p[i+1]!+.11*p[i+2]!)/mean,s=.8+.2*Math.min(1.4,l); // the strands' lines kept faint: strong, every card came out lighter or darker than its neighbours and the crown read as patches (2026-11-27); strands are told apart by their outlines and the darker layers beneath
+    const l=(.3*p[i]!+.59*p[i+1]!+.11*p[i+2]!)/mean,s=.9+.1*Math.min(1.1,l); /* flatter still (2026-11-27): its highlight streaks showed between the drawn locks as orange flames */ // the strands' lines kept faint: strong, every card came out lighter or darker than its neighbours and the crown read as patches (2026-11-27); strands are told apart by their outlines and the darker layers beneath
     p[i]=Math.min(255,color.r*255*s);p[i+1]=Math.min(255,color.g*255*s);p[i+2]=Math.min(255,color.b*255*s);
   }
   x.putImageData(d,0,0);
@@ -196,6 +196,9 @@ export function shape(vrm:VRM,s=SHAPE){
         m.outlineWidthFactor*=.22; // every card is outlined: wide, the strands read as thick stacked plates
         const t=recolor(m.map,new THREE.Color(1,1,1));if(t){m.map=t;m.shadeMultiplyTexture=t;}
         m.color.copy(hair);m.shadeColorFactor.copy(hairShade);
+        // the base model paints its hair's highlight (an angel ring) as an orange emissive texture; on the strands
+        // laid over it, it came out as orange flames, and the sheet has no such highlight (2026-11-27)
+        m.emissive.set(0,0,0);m.emissiveMap=null;m.needsUpdate=true;
       }else if(m.name.startsWith('FaceBrow')){m.color.copy(brow);}
     }
   });

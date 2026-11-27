@@ -180,6 +180,70 @@ function sideLockGeometry(lock:typeof SIDELOCKS[number],sign:number,uv:[number,n
   return g;
 }
 
+/**
+ * Thickness (the user's note, 2026-11-27: tucked in, the hair looked thin and see-through beside the face):
+ * thin strands laid in two layers along the hair's own outer surface, round both sides and the back. The
+ * surface is measured from the shaped hair (outer radius per angle and height), so the strands follow the
+ * bob exactly, end where it ends, and curl in under at their tips.
+ */
+export const FILL = {
+  /** Angles from straight ahead (degrees), each side; strands per side = their count, per layer. */
+  from: 48, to: 180, step: 8,
+  /** The layers: how far inside the measured surface (m), and the strands' width (m). */
+  // both under the outer hair (on it, they poked through in patches): they fill the gaps from beneath and
+  // show as an inner layer at the ends
+  layers: [{inset:.014,w:.044},{inset:.006,w:.036}],
+  top: 1.47, curl: .035,
+};
+
+/** The curtain beside the face: angles (degrees from ahead), radius from the hair's centre at the top (m), how much
+ *  it swells beside the cheek and further out towards the back (m), where it ends (m, and how much lower round
+ *  the back), its layers. */
+export const CURTAIN = {
+  from: 46, to: 112, step: 6, r0: .118, swell: .03, back: .012, end: 1.335, endBack: .025, top: 1.585,
+  // layers 7 mm apart, and every strand a little off its neighbours (strands at one depth z-fought into a checkerboard)
+  layers: [{inset:.0,w:.05},{inset:.007,w:.046},{inset:.014,w:.042}],
+};
+
+function measureHair(hair:THREE.Mesh){
+  const pos=hair.geometry.attributes.position as THREE.BufferAttribute,idx=hair.geometry.index!,c=H.centre;
+  const A=90,Y=40,y0=1.2,dy=.01,outer=new Float32Array(A*Y),low=new Float32Array(A).fill(9);
+  const used=new Uint8Array(pos.count);for(let t=0;t<idx.count;t++)used[idx.getX(t)]=1;
+  for(let i=0;i<pos.count;i++){
+    if(!used[i])continue;
+    const dx=pos.getX(i)-c.x,dz=pos.getZ(i)-c.z,y=pos.getY(i),a=Math.floor(((Math.atan2(dx,dz)+Math.PI)/(2*Math.PI))*A)%A,yi=Math.floor((y-y0)/dy);
+    if(yi<0||yi>=Y)continue;
+    outer[a*Y+yi]=Math.max(outer[a*Y+yi]!,Math.hypot(dx,dz));low[a]=Math.min(low[a]!,y);
+  }
+  // fill holes from the neighbours above
+  for(let a=0;a<A;a++)for(let yi=Y-2;yi>=0;yi--)if(!outer[a*Y+yi])outer[a*Y+yi]=outer[a*Y+yi+1]!;
+  // (clamped: a few stray vertices far out made spikes)
+  const at=(ang:number,y:number)=>{const a=((Math.floor(((ang+Math.PI)/(2*Math.PI))*A)%A)+A)%A,yi=Math.min(Y-1,Math.max(0,Math.floor((y-y0)/dy)));return Math.min(.175,Math.max(.085,outer[a*Y+yi]!));};
+  const end=(ang:number)=>{const a=((Math.floor(((ang+Math.PI)/(2*Math.PI))*A)%A)+A)%A;let m=9;for(const k of [a-1,a,a+1])m=Math.min(m,low[(k+A)%A]!);return m;};
+  return {at,end};
+}
+
+function fillGeometry(ang:number,layer:{inset:number,w:number},hair:{at:(a:number,y:number)=>number,end:(a:number)=>number,top?:number,curl?:(a:number)=>number},uv:[number,number],seed:number){
+  const c=H.centre,N=26,Aw=3,P:number[]=[],U:number[]=[],I:number[]=[];
+  const yEnd=hair.end(ang)+.004+.012*((Math.sin(seed*12.9898)*43758.5453%1+1)%1),yTop=hair.top??FILL.top;
+  for(let i=0;i<=N;i++){
+    const t=i/N,y=yTop+(yEnd-yTop)*t;
+    for(let a=0;a<=Aw;a++){
+      const s=a/Aw*2-1,w=layer.w*.5*(t<.15?.6+t/.15*.4:1)*(1-.85*Math.max(0,(t-.75)/.25)**1.3),aa=ang+s*w/Math.max(.05,hair.at(ang,y));
+      let r=hair.at(aa,Math.max(y,yEnd+.012))-layer.inset+.0016*(seed%3);
+      const k=Math.max(0,(y-(yEnd+FILL.curl))/-FILL.curl); // 0 → 1 over the last few cm: curl in under
+      const ck=hair.curl?hair.curl(ang):1;r-=.02*k*k*ck;const yy=y+.006*k*k*ck;
+      P.push(c.x+Math.sin(aa)*r,yy,c.z+Math.cos(aa)*r);U.push(uv[0]+(s+1)/2*(uv[1]-uv[0]),t);
+      if(i&&a)I.push((i-1)*(Aw+1)+a-1,i*(Aw+1)+a-1,(i-1)*(Aw+1)+a,i*(Aw+1)+a-1,i*(Aw+1)+a,(i-1)*(Aw+1)+a);
+    }
+  }
+  const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(P,3));g.setAttribute('uv',new THREE.Float32BufferAttribute(U,2));g.setIndex(I);g.computeVertexNormals();
+  // lit side out: if the first normal points in, turn the winding
+  const n=g.attributes.normal!,p0=new THREE.Vector3(P[0]!-c.x,0,P[2]!-c.z);
+  if(n.getX(0)*p0.x+n.getZ(0)*p0.z<0){for(let k=0;k<I.length;k+=3){const tmp=I[k+1]!;I[k+1]=I[k+2]!;I[k+2]=tmp;}g.setIndex(I);g.computeVertexNormals();}
+  return g;
+}
+
 export type Headwear={setHat(on:boolean):void};
 
 export function headwear(vrm:VRM,base:MToonMaterial):Headwear{
@@ -220,6 +284,39 @@ export function headwear(vrm:VRM,base:MToonMaterial):Headwear{
         const lg=lockGeometry(lock,H.fringeUV);mats.forEach((_,k)=>lg.addGroup(0,lg.index!.count,k));
         const m=new THREE.Mesh(lg,mats);m.renderOrder=1;carry(m,new THREE.Vector3());
       }
+      // thickness: two layers of thin strands along the shaped hair's own surface, both sides and the back
+      const measured=measureHair(hm);
+      {
+        let seed=1;
+        for(const [li,layer] of FILL.layers.entries())for(let deg=FILL.from+(li?FILL.step/2:0);deg<=FILL.to;deg+=FILL.step)for(const sign of [-1,1]){
+          if(deg>=180&&sign<0)continue;
+          // where no hair hangs any more (the cards in front of the ears were removed) the curtain (below) is
+          // there; a strand there would end above its start and turn into a flat spike
+          if(measured.end(THREE.MathUtils.degToRad(deg*sign))>FILL.top-.06){seed++;continue;}
+          const fg=fillGeometry(THREE.MathUtils.degToRad(deg*sign),layer,measured,H.fringeUV,seed++);mats.forEach((_,k)=>fg.addGroup(0,fg.index!.count,k));
+          const m=new THREE.Mesh(fg,mats);m.renderOrder=1;carry(m,new THREE.Vector3());
+        }
+      }
+      // the curtain beside the face: in front of the ear and over it, where the base cards were removed, a
+      // dense hang of strands on a bob's profile (fullest beside the cheek, tucked in towards the jaw), three
+      // layers deep. It covers the ear and the undersides of the curled back hair seen from the front.
+      {
+        // it grows from under the crown hair (starting at mid-head it read as a pair of earmuffs): at the top just
+        // inside the crown's measured surface, blending down into the bob's profile
+        // its front edge hangs straight (curled in, its underside showed from the front as dark steps at the jaw)
+        const prof={top:CURTAIN.top,curl:(ang:number)=>{const d=Math.abs(THREE.MathUtils.radToDeg(ang));return Math.min(1,Math.max(0,(d-62)/30));},at:(ang:number,y:number)=>{const deg=Math.abs(THREE.MathUtils.radToDeg(ang)),u=Math.min(1,Math.max(0,(1.5-y)/.17));
+            const bob=CURTAIN.r0+CURTAIN.swell*Math.sin(Math.PI*Math.min(1,u/.85))**.8+CURTAIN.back*Math.max(0,deg-60)/60;
+            const k=Math.min(1,Math.max(0,(y-1.5)/.06)),crown=measured.at(ang,Math.max(y,1.575))-.01;
+            return bob+(Math.min(bob,crown)-bob)*k;},
+          end:(ang:number)=>{const deg=Math.abs(THREE.MathUtils.radToDeg(ang));return CURTAIN.end-CURTAIN.endBack*Math.max(0,deg-55)/55;}};
+        let seed=500;
+        for(const [li,layer] of CURTAIN.layers.entries())for(let deg=CURTAIN.from+li*CURTAIN.step/3;deg<=CURTAIN.to;deg+=CURTAIN.step)for(const sign of [-1,1]){
+          const ang=THREE.MathUtils.degToRad(deg*sign);
+          if(measured.end(ang)<=FILL.top-.06&&deg>CURTAIN.to-1)continue;
+          const fg=fillGeometry(ang,layer,prof,H.fringeUV,seed++);mats.forEach((_,k)=>fg.addGroup(0,fg.index!.count,k));
+          const m=new THREE.Mesh(fg,mats);m.renderOrder=1;carry(m,new THREE.Vector3());
+        }
+      }
       for(const sign of [-1,1])for(const lock of SIDELOCKS){
         const lg=sideLockGeometry(lock,sign,H.fringeUV);mats.forEach((_,k)=>lg.addGroup(0,lg.index!.count,k));
         const m=new THREE.Mesh(lg,mats);m.renderOrder=1;carry(m,new THREE.Vector3());
@@ -241,7 +338,7 @@ export function headwear(vrm:VRM,base:MToonMaterial):Headwear{
   }
   // the bow above her right ear (her right is -x), facing out and a little forward
   const b=bow(mat(H.bow,H.bowShade));
-  carry(b,onHair(THREE.MathUtils.degToRad(-64),1.49,.024),new THREE.Quaternion().setFromEuler(new THREE.Euler(0,THREE.MathUtils.degToRad(-58),0)));
+  carry(b,onHair(THREE.MathUtils.degToRad(-64),1.49,.04),new THREE.Quaternion().setFromEuler(new THREE.Euler(0,THREE.MathUtils.degToRad(-58),0)));
   // the hat: its crown's base a little above the brows, tipped back slightly
   const h=hat(mat(H.hat,H.hatShade),mat(H.stripeBlue,'#7da2bb'),mat(H.stripePink,'#b87283'));
   carry(h,new THREE.Vector3(0,1.535,H.centre.z+.006),new THREE.Quaternion().setFromEuler(new THREE.Euler(-.1,0,0)));

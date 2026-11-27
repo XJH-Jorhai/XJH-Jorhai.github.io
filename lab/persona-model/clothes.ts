@@ -73,7 +73,7 @@ const plaid=()=>pattern(256,(x,s)=>{
 });
 
 /** A copy of an MToon material (and its outline twin) with a new colour, shade and texture. */
-function dress(base:MToonMaterial,outline:MToonMaterial|undefined,color:string,shade:string,map:THREE.Texture|null){
+export function dress(base:MToonMaterial,outline:MToonMaterial|undefined,color:string,shade:string,map:THREE.Texture|null){
   const m=base.clone() as MToonMaterial,o=outline?.clone() as MToonMaterial|undefined;
   for(const x of [m,o]){if(!x)continue;x.color.set(color);x.shadeColorFactor.set(shade);x.map=map;x.shadeMultiplyTexture=map;x.side=THREE.DoubleSide;x.needsUpdate=true;}
   if(o)o.side=THREE.BackSide;
@@ -84,7 +84,7 @@ function dress(base:MToonMaterial,outline:MToonMaterial|undefined,color:string,s
  * Grows a garment out of part of a mesh: the vertices `keep` selects (triangles wholly inside), pushed out
  * along their normals by `thickness`, with new UVs; skin weights copied, so it moves exactly like the body.
  */
-function grow(src:THREE.SkinnedMesh,g:THREE.BufferGeometry,keep:(i:number,p:THREE.Vector3)=>boolean,thickness:(i:number,p:THREE.Vector3,n:THREE.Vector3)=>number,uv:(p:THREE.Vector3)=>[number,number],mats:THREE.Material[],
+export function grow(src:THREE.SkinnedMesh,g:THREE.BufferGeometry,keep:(i:number,p:THREE.Vector3)=>boolean,thickness:(i:number,p:THREE.Vector3,n:THREE.Vector3)=>number,uv:(p:THREE.Vector3)=>[number,number],mats:THREE.Material[],
   /** With `snap`, a triangle stays if any of its vertices is kept, and the others are moved onto the edge by it (a clean cut line). */
   snap?:(p:THREE.Vector3)=>void,
   /** Vertices whose triangles go entirely, kept or not. */

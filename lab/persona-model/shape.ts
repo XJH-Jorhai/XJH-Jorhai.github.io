@@ -20,7 +20,7 @@ export const SHAPE = {
   ragged: .016, locks: 11,
   /** Volume (the head turnaround's round bob): from the crown down the hair stands out from the head, up to
    *  this factor; a little more at the back of the head; strands differ by `fluff` (a share of it). */
-  volume: 1.17, volumeFrom: 1.53, backVolume: .06, fluff: .5, // from just under the hat's rim: above it the hat must still fit
+  volume: 1.17, volumeFrom: 1.53, backVolume: .06, fluff: .18, // from just under the hat's rim: above it the hat must still fit
   /** How much shorter the back is than the front (m). */
   backLift: .03,
   /** Curl: the last `curlLength` of each strand bends in under, round a circle of radius `curlRadius` (m). */
@@ -29,6 +29,8 @@ export const SHAPE = {
   tip: .018,
   /** Layers: some strands end shorter than their neighbours (m). */
   layer: .022,
+  /** Fringe: front strands between these heights (m) and within this half-width (m) are combed towards the middle by up to `fringeComb`, and shifted towards her right (−x) by up to `fringeSweep` (m). */
+  fringeTop: 1.585, fringeBottom: 1.45, fringeHalf: .115, fringeComb: .55, fringeSweep: -.008, fringeClose: 0,
   /** Honey blonde (persona palette "hair"), and the colour of its shaded side before the site's navy. */
   hair: '#EDC591', hairShade: '#C99A62', brow: '#B8875A',
 };
@@ -104,6 +106,24 @@ function bob(mesh:THREE.Mesh,s:typeof SHAPE,centre:THREE.Vector3){
     x=centre.x+ux*R;z=centre.z+uz*R;
     pos.setXYZ(i,x,y,z);
   }
+  // The fringe, from the base hair's own front strands (one hairstyle, not two): over the forehead they
+  // are combed towards the middle, closing the centre parting, and the lower they hang the more, so they
+  // fall across the forehead to the brows with a few between the eyes; a little towards her right.
+  for(let i=0;i<pos.count;i++){
+    let x=pos.getX(i);const y=pos.getY(i),z=pos.getZ(i);
+    if(z<centre.z+.06||y>s.fringeTop||y<s.fringeBottom-.03)continue;
+    const across=Math.abs(x-centre.x);if(across>s.fringeHalf)continue;
+    const k=Math.min(1,(s.fringeTop-y)/(s.fringeTop-s.fringeBottom))*(1-across/s.fringeHalf)**.6;
+    x=centre.x+(x-centre.x)*(1-s.fringeComb*k)+s.fringeSweep*k;
+    // the base hair parts in the middle (two big cards with a gap between them, which combing only narrows):
+    // the group on the −x side is slid across over the parting, so the fringe closes like the sheet's
+    if(pos.getX(i)<centre.x)x+=s.fringeClose*k;
+    // combed in, a strand must lie in front of the forehead (else the face covers it: the 'parting' seen
+    // through the fringe was hair behind the skin). The face's front, measured off the face mesh.
+    const fy=Math.min(1.58,Math.max(1.44,y)),face=.078-1.9*(fy-1.5)**2-(fy>1.5?(fy-1.5)*.35:0);
+    const front=face+.007+.004*(1-across/s.fringeHalf);
+    pos.setXYZ(i,x,y,z+(Math.max(z,front)-z)*Math.min(1,k*2.5));
+  }
   pos.needsUpdate=true;g.computeVertexNormals();g.computeBoundingSphere();
 }
 
@@ -134,7 +154,7 @@ export function shape(vrm:VRM,s=SHAPE){
     if(mats.some(m=>m.name.startsWith('Hair_')))bob(mesh,s,head);
     for(const m of mats){
       if(/^Hair(Back)?_/.test(m.name)){
-        m.outlineWidthFactor*=.5; // every card is outlined: at full width the strands read as stacked plates
+        m.outlineWidthFactor*=.22; // every card is outlined: wide, the strands read as thick stacked plates
         const t=recolor(m.map,new THREE.Color(1,1,1));if(t){m.map=t;m.shadeMultiplyTexture=t;}
         m.color.copy(hair);m.shadeColorFactor.copy(hairShade);
       }else if(m.name.startsWith('FaceBrow')){m.color.copy(brow);}

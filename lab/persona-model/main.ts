@@ -141,7 +141,7 @@ function frame(){
 requestAnimationFrame(frame);
 
 // Headless turntable: pose still, eyes ahead, the camera at a given angle (orthographic for the 3 views).
-if(shot)Object.assign(window,{__model:{
+if(shot)Object.assign(window,{__three:THREE,__camera:()=>active,__model:{
   get ready(){return ready;},
   get vrm(){return vrm;},
   setHat(on:boolean){wear?.setHat(on);},

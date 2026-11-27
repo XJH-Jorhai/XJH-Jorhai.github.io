@@ -12,14 +12,17 @@
  */
 import * as THREE from 'three';
 import {MToonMaterial, type VRM} from '@pixiv/three-vrm';
+import {grow, dress} from './clothes';
 
 export const HEAD = {
   /** The hair's outer surface, measured: centre and radii (x, y, z). Front of the bangs at 1.50 m: z 0.091; back -0.155; widest |x| 0.118; top 1.615. */
   centre: new THREE.Vector3(0,1.47,-.032), radii: new THREE.Vector3(.12,.146,.124),
   /** Fringe: strands across the front (azimuth, degrees, 0 = straight ahead; negative = her right), where each ends (m above the soles), sweep. */
   fringe: [[-80,1.39],[-66,1.41],[-52,1.43],[-40,1.455],[-29,1.468],[-18,1.476],[-8,1.462],[0,1.452],[8,1.46],[18,1.474],[29,1.466],[40,1.452],[52,1.43],[66,1.41],[80,1.39]] as [number,number][],
-  sweep: -7, rootY: 1.585, strandWidth: .03,
+  sweep: -7, rootY: 1.585, strandWidth: .03, extraFringe: false,
   hair: '#EDC591', hairShade: '#C99A62',
+  /** The darker hair under the fringe, from this height up (m). */
+  hairUnder: '#C99A62', hairUnderShade: '#9E7449', underFrom: 1.497,
   bow: '#E9A3B1', bowShade: '#B8707F',
   hat: '#F6F0EC', hatShade: '#D8CCD2', stripeBlue: '#9FC3DA', stripePink: '#DF95A6',
 };
@@ -105,8 +108,22 @@ export function headwear(vrm:VRM,base:MToonMaterial):Headwear{
     const m=base.clone() as MToonMaterial;m.color.set(color);m.shadeColorFactor.set(shade);m.map=map;m.shadeMultiplyTexture=map;m.side=side;m.needsUpdate=true;return m;
   };
   // the fringe (vertices already in rest space: the mesh sits at the origin of that space)
-  const fringe=new THREE.Mesh(fringeGeometry(),mat(H.hair,H.hairShade,strandTexture()));
-  carry(fringe,new THREE.Vector3());
+  // (no separate fringe: laid over the base hair it read as a second hairstyle on top of the first,
+  // 2026-11-27. shape.ts combs the base hair's own front strands into the fringe instead.)
+  if(H.extraFringe){const fringe=new THREE.Mesh(fringeGeometry(),mat(H.hair,H.hairShade,strandTexture()));carry(fringe,new THREE.Vector3());}
+  // Under the fringe, the hair close to the scalp: a darker layer of hair over the top of the forehead,
+  // grown from the face (so it moves with her head). Where the fringe's strands part, it shows hair, as
+  // in a drawing, not the forehead. It stops above the brows, where the sheet shows a little forehead.
+  {
+    let face:THREE.SkinnedMesh|null=null;
+    vrm.scene.traverse(o=>{const m=(o as THREE.SkinnedMesh);if(m.isSkinnedMesh&&(Array.isArray(m.material)?m.material[0]:m.material)?.name==='Face_00_SKIN')face=m;});
+    if(face){
+      const f=face as THREE.SkinnedMesh;
+      // its lower edge in points, like strand tips (a straight edge read as a cut line across the forehead)
+      const edge=(x:number)=>H.underFrom+.012*Math.abs(Math.sin(x*95))-.004;
+      grow(f,f.geometry,(_,p)=>p.y>edge(p.x)&&p.z>-.01,(_,p)=>.003+.004*Math.min(1,(p.y-H.underFrom)/.03),()=>[0,0],dress(base,undefined,H.hairUnder,H.hairUnderShade,null));
+    }
+  }
   // the bow above her right ear (her right is -x), facing out and a little forward
   const b=bow(mat(H.bow,H.bowShade));
   carry(b,onHair(THREE.MathUtils.degToRad(-64),1.49,.024),new THREE.Quaternion().setFromEuler(new THREE.Euler(0,THREE.MathUtils.degToRad(-58),0)));

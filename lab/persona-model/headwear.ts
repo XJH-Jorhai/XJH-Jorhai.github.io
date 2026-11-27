@@ -205,6 +205,14 @@ export const CURTAIN = {
   layers: [{inset:.0,w:.05},{inset:.007,w:.046},{inset:.014,w:.042}],
 };
 
+/** The temples (the user's note, 2026-11-27: seen from below, the fringe's side lock and the curtain did not
+ *  join; one more layer of hair was needed there): two layers of strands from under the crown hair, between
+ *  the fringe and the curtain, down past the outer corner of the eye, lying just off the head. */
+export const TEMPLE = {
+  from: 30, to: 54, step: 4, top: 1.57, end: 1.478, endBack: .055, // ends above the outer corner of the eye; longer towards the curtain
+  layers: [{inset:.0,w:.046},{inset:.006,w:.04}],
+};
+
 function measureHair(hair:THREE.Mesh){
   const pos=hair.geometry.attributes.position as THREE.BufferAttribute,idx=hair.geometry.index!,c=H.centre;
   const A=90,Y=40,y0=1.2,dy=.01,outer=new Float32Array(A*Y),low=new Float32Array(A).fill(9);
@@ -314,6 +322,17 @@ export function headwear(vrm:VRM,base:MToonMaterial):Headwear{
           const ang=THREE.MathUtils.degToRad(deg*sign);
           if(measured.end(ang)<=FILL.top-.06&&deg>CURTAIN.to-1)continue;
           const fg=fillGeometry(ang,layer,prof,H.fringeUV,seed++);mats.forEach((_,k)=>fg.addGroup(0,fg.index!.count,k));
+          const m=new THREE.Mesh(fg,mats);m.renderOrder=1;carry(m,new THREE.Vector3());
+        }
+      }
+      {
+        const prof={top:TEMPLE.top,curl:()=>0,
+          at:(ang:number,y:number)=>{const crown=measured.at(ang,Math.max(y,1.575))-.008,low=crown+.006; // hugging the head (further out it hung in front of the eye)
+           const k=Math.min(1,Math.max(0,(1.565-y)/.07));return crown+(Math.max(crown,low)-crown)*k;},
+          end:(ang:number)=>TEMPLE.end-TEMPLE.endBack*Math.max(0,Math.abs(THREE.MathUtils.radToDeg(ang))-TEMPLE.from)/(TEMPLE.to-TEMPLE.from)};
+        let seed=900;
+        for(const [li,layer] of TEMPLE.layers.entries())for(let deg=TEMPLE.from+li*TEMPLE.step/2;deg<=TEMPLE.to;deg+=TEMPLE.step)for(const sign of [-1,1]){
+          const fg=fillGeometry(THREE.MathUtils.degToRad(deg*sign),layer,prof,H.fringeUV,seed++);mats.forEach((_,k)=>fg.addGroup(0,fg.index!.count,k));
           const m=new THREE.Mesh(fg,mats);m.renderOrder=1;carry(m,new THREE.Vector3());
         }
       }

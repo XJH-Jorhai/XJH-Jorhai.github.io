@@ -199,8 +199,22 @@ export const FILL = {
 /** The curtain beside the face: angles (degrees from ahead), radius from the hair's centre at the top (m), how much
  *  it swells beside the cheek and further out towards the back (m), where it ends (m, and how much lower round
  *  the back), its layers. */
+/** The hair's outline from the front (the user's note, 2026-11-27: the sheet's head of hair is a convex triangle,
+ *  its edge one continuous line; pinched at the temples and full at the cheeks it read as a pear): the radius
+ *  beside the head, from just under the hat's rim (where it fits inside the hat) straight down and out to the ends. */
+// A round dome on top (radius `dome` about height `cy`, inside the hat), and below it the tangent from the dome
+// straight down and out to the ends: one continuous line, no corner (a straight start at the hat's rim made
+// a shoulder there).
+export const SIL = {dome:.134,cy:1.478,ends:1.34,atEnds:.164};
+const silhouette=(()=>{
+  const {dome:R,cy,ends:ye,atEnds:xe}=SIL,dx=xe,dy=ye-cy,d2=dx*dx+dy*dy,l=Math.sqrt(d2-R*R);
+  // the tangent point on the circle, on the outer side
+  const a=Math.atan2(dy,dx)+Math.acos(R/Math.sqrt(d2)),tx=R*Math.cos(a),ty=cy+R*Math.sin(a);void l;
+  return (y:number)=>y>=ty?Math.sqrt(Math.max(0,R*R-(y-cy)**2)):tx+(xe-tx)*Math.min(1,(ty-y)/(ty-ye));
+})();
+
 export const CURTAIN = {
-  from: 46, to: 112, step: 6, r0: .118, swell: .03, back: .012, end: 1.335, endBack: .025, top: 1.585,
+  from: 46, to: 104, step: 6, r0: .118, swell: .03, back: 0, end: 1.335, endBack: .025, top: 1.585,
   // layers 7 mm apart, and every strand a little off its neighbours (strands at one depth z-fought into a checkerboard)
   layers: [{inset:.0,w:.05},{inset:.007,w:.046},{inset:.014,w:.042}],
 };
@@ -232,8 +246,11 @@ function measureHair(hair:THREE.Mesh){
 }
 
 function fillGeometry(ang:number,layer:{inset:number,w:number},hair:{at:(a:number,y:number)=>number,end:(a:number)=>number,top?:number,curl?:(a:number)=>number},uv:[number,number],seed:number){
+  // each strand takes a different strand region of the hair texture: with one region for all, neighbours were
+  // identical and the curtain read as one smooth sheet
+  const STRIPS:[number,number][]=[uv,[.344,.541],[.0,.243],[.243,.485],[.026,.275],[.275,.523]],su=STRIPS[seed%STRIPS.length]!;
   const c=H.centre,N=26,Aw=3,P:number[]=[],U:number[]=[],I:number[]=[];
-  const yEnd=hair.end(ang)+.004+.012*((Math.sin(seed*12.9898)*43758.5453%1+1)%1),yTop=hair.top??FILL.top;
+  const yEnd=hair.end(ang)+.004+.024*((Math.sin(seed*12.9898)*43758.5453%1+1)%1),yTop=hair.top??FILL.top; // uneven tips, not one straight cut
   for(let i=0;i<=N;i++){
     const t=i/N,y=yTop+(yEnd-yTop)*t;
     for(let a=0;a<=Aw;a++){
@@ -241,7 +258,7 @@ function fillGeometry(ang:number,layer:{inset:number,w:number},hair:{at:(a:numbe
       let r=hair.at(aa,Math.max(y,yEnd+.012))-layer.inset+.0016*(seed%3);
       const k=Math.max(0,(y-(yEnd+FILL.curl))/-FILL.curl); // 0 → 1 over the last few cm: curl in under
       const ck=hair.curl?hair.curl(ang):1;r-=.02*k*k*ck;const yy=y+.006*k*k*ck;
-      P.push(c.x+Math.sin(aa)*r,yy,c.z+Math.cos(aa)*r);U.push(uv[0]+(s+1)/2*(uv[1]-uv[0]),t);
+      P.push(c.x+Math.sin(aa)*r,yy,c.z+Math.cos(aa)*r);U.push(su[0]+(s+1)/2*(su[1]-su[0]),t);
       if(i&&a)I.push((i-1)*(Aw+1)+a-1,i*(Aw+1)+a-1,(i-1)*(Aw+1)+a,i*(Aw+1)+a-1,i*(Aw+1)+a,(i-1)*(Aw+1)+a);
     }
   }
@@ -312,9 +329,9 @@ export function headwear(vrm:VRM,base:MToonMaterial):Headwear{
         // it grows from under the crown hair (starting at mid-head it read as a pair of earmuffs): at the top just
         // inside the crown's measured surface, blending down into the bob's profile
         // its front edge hangs straight (curled in, its underside showed from the front as dark steps at the jaw)
-        const prof={top:CURTAIN.top,curl:(ang:number)=>{const d=Math.abs(THREE.MathUtils.radToDeg(ang));return Math.min(1,Math.max(0,(d-62)/30));},at:(ang:number,y:number)=>{const deg=Math.abs(THREE.MathUtils.radToDeg(ang)),u=Math.min(1,Math.max(0,(1.5-y)/.17));
-            const bob=CURTAIN.r0+CURTAIN.swell*Math.sin(Math.PI*Math.min(1,u/.85))**.8+CURTAIN.back*Math.max(0,deg-60)/60;
-            const k=Math.min(1,Math.max(0,(y-1.5)/.06)),crown=measured.at(ang,Math.max(y,1.575))-.01;
+        const prof={top:CURTAIN.top,curl:(ang:number)=>{const d=Math.abs(THREE.MathUtils.radToDeg(ang));return .45+.55*Math.min(1,Math.max(0,(d-60)/30));},at:(ang:number,y:number)=>{const deg=Math.abs(THREE.MathUtils.radToDeg(ang)),u=Math.min(1,Math.max(0,(1.5-y)/.17));
+            void u;const bob=silhouette(y)+CURTAIN.back*Math.max(0,deg-60)/60;
+            const k0=Math.min(1,Math.max(0,(y-1.525)/.06)),k=k0*k0*(3-2*k0),crown=measured.at(ang,Math.max(y,1.575))-.01; // a long, smooth blend: a short one left a ledge
             return bob+(Math.min(bob,crown)-bob)*k;},
           end:(ang:number)=>{const deg=Math.abs(THREE.MathUtils.radToDeg(ang));return CURTAIN.end-CURTAIN.endBack*Math.max(0,deg-55)/55;}};
         let seed=500;

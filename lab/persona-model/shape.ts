@@ -113,7 +113,9 @@ function bob(mesh:THREE.Mesh,s:typeof SHAPE,centre:THREE.Vector3){
     // volume
     const t=Math.min(1,(s.volumeFrom-Math.max(y,end))/(s.volumeFrom-end));
     // fullest at the cheeks, then back in towards the ends (a round bob, not a bell)
-    const swell=smooth(0,.4,t)*(1-.5*smooth(.55,1,t))*(1+s.fluff*(tier(find(i))-.5));
+    // widening all the way down to the ends (only the curl turns them in): a convex triangle as on the sheet; a
+    // swell that peaked at the cheeks and came back in read as a pear (2026-11-27)
+    const swell=Math.pow(smooth(0,1,t),.85)*(1+s.fluff*(tier(find(i))-.5));
     let R=r*(1+(s.volume-1+s.backVolume*back(x,z))*swell);
     // curl: past yc the strand runs round a circle, turning in under
     if(y<yc){

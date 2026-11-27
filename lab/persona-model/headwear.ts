@@ -244,7 +244,7 @@ export const CURTAIN = {
  *  join; one more layer of hair was needed there): two layers of strands from under the crown hair, between
  *  the fringe and the curtain, down past the outer corner of the eye, lying just off the head. */
 export const TEMPLE = {
-  from: 30, to: 54, step: 4, top: 1.57, end: 1.478, endBack: .055, // ends above the outer corner of the eye; longer towards the curtain
+  from: 22, to: 54, step: 4, top: 1.6, end: 1.478, endBack: .055, // ends above the outer corner of the eye; longer towards the curtain
   layers: [{inset:.0,w:.046},{inset:.006,w:.04}],
 };
 
@@ -287,7 +287,7 @@ function fillGeometry(ang:number,layer:{inset:number,w:number,drop?:number},hair
       const taper=L?(1-.9*Math.max(0,(t-.45)/.55)**1.2):(1-.85*Math.max(0,(t-.75)/.25)**1.3);
       const s=a/Aw*2-1,w=layer.w*wk*.5*(t<.15?.6+t/.15*.4:1)*taper,ac=ang+drift*t**1.4,aa=ac+s*w/Math.max(.05,hair.at(ac,y));
       // its root sinks into the hair (tops showing out of the crown read as flat patches)
-      let r=hair.at(aa,Math.max(y,yEnd+.012))-layer.inset+.0016*(seed%3)-(L?.03:.016)*(1-Math.min(1,t/(L?.32:.2)))**2+(off*Math.min(1,t/.35)+bow*Math.sin(Math.PI*t)+(L?.0012*(1-s*s)+twist*s*w:0))*Math.min(1,Math.max(0,(looseFrom-y)/.05)); // loose only below the hat's rim: above it, it poked through the hat // twist: one edge out, the other in, so strands catch the light differently
+      let r=hair.at(aa,Math.max(y,yEnd+.012))-layer.inset+.0016*(seed%3)-(L?.006:.016)*(1-Math.min(1,t/(L?.15:.2)))**2+ /* loose (outer) strands lie on the crown from the top: sunk under it, where they came out made a jagged line (2026-11-27) */ (off*Math.min(1,t/.35)+bow*Math.sin(Math.PI*t)+(L?.0012*(1-s*s)+twist*s*w:0))*Math.min(1,Math.max(0,(looseFrom-y)/.05)); // loose only below the hat's rim: above it, it poked through the hat // twist: one edge out, the other in, so strands catch the light differently
       const k=Math.max(0,(y-(yEnd+FILL.curl))/-FILL.curl); // 0 → 1 over the last few cm: curl in under
       const ck=hair.curl?hair.curl(ang):1;r-=.02*k*k*ck;const yy=y+.006*k*k*ck;
       P.push(c.x+Math.sin(aa)*r,yy,c.z+Math.cos(aa)*r);U.push(su[0]+(s+1)/2*(su[1]-su[0]),t);
@@ -300,6 +300,10 @@ function fillGeometry(ang:number,layer:{inset:number,w:number,drop?:number},hair
   if(n.getX(0)*p0.x+n.getZ(0)*p0.z<0){for(let k=0;k<I.length;k+=3){const tmp=I[k+1]!;I[k+1]=I[k+2]!;I[k+2]=tmp;}g.setIndex(I);g.computeVertexNormals();}
   return g;
 }
+
+/** The smooth shape the hair is shaded as (centre and radii, m): a little below the head's centre, so the light
+ *  side is the top and the shade falls under the curl. `fringeKeep`: how much of their own normals the fringe locks keep. */
+export const HAIRNORMAL = {c:new THREE.Vector3(0,1.44,-.03),r:new THREE.Vector3(.16,.2,.16),fringeKeep:.35};
 
 export type Headwear={setHat(on:boolean):void};
 
@@ -412,8 +416,9 @@ export function headwear(vrm:VRM,base:MToonMaterial):Headwear{
       }
       {
         const prof={top:TEMPLE.top,curl:()=>0,
-          at:(ang:number,y:number)=>{const crown=measured.at(ang,Math.max(y,1.575))-.008,low=crown+.006; // hugging the head (further out it hung in front of the eye)
-           const k=Math.min(1,Math.max(0,(1.565-y)/.07));return crown+(Math.max(crown,low)-crown)*k;},
+          // on the shell's dome, so from the front the outline runs on round from the crown down past the temples
+          // (hugging the head it left the top of the head too narrow, 2026-11-27); it ends above the eye
+          at:(ang:number,y:number)=>silhouetteTo(y,SIL.atEnds,SIL.ends)-.002,
           end:(ang:number)=>TEMPLE.end-TEMPLE.endBack*Math.max(0,Math.abs(THREE.MathUtils.radToDeg(ang))-TEMPLE.from)/(TEMPLE.to-TEMPLE.from)};
         let seed=900;
         for(const [li,layer] of TEMPLE.layers.entries())for(let deg=TEMPLE.from+li*TEMPLE.step/2;deg<=TEMPLE.to;deg+=TEMPLE.step)for(const sign of [-1,1]){
@@ -424,6 +429,30 @@ export function headwear(vrm:VRM,base:MToonMaterial):Headwear{
       for(const sign of [-1,1])for(const lock of SIDELOCKS){
         const lg=sideLockGeometry(lock,sign,H.fringeUV);mats.forEach((_,k)=>lg.addGroup(0,lg.index!.count,k));
         const m=new THREE.Mesh(lg,mats);m.renderOrder=1;carry(m,new THREE.Vector3());
+      }
+      // Light and shade (the user's note, 2026-11-27): every card and strand had its own normals, so neighbours at
+      // slightly different angles were lit differently and the top of the head showed patches and jagged edges of
+      // light. All the hair now takes its normals from one smooth head-of-hair shape (an ellipsoid round the head),
+      // as anime hair is shaded: one light side, one shade side, continuous across every layer. The fringe keeps a
+      // little of its own, so its locks still read.
+      {
+        const E=HAIRNORMAL,n=new THREE.Vector3(),p=new THREE.Vector3(),own=new THREE.Vector3();
+        const unify=(mesh:THREE.Mesh,keep:number)=>{const g=mesh.geometry,pos=g.attributes.position as THREE.BufferAttribute,nor=g.attributes.normal as THREE.BufferAttribute;if(!nor)return;
+          for(let i=0;i<pos.count;i++){p.fromBufferAttribute(pos,i);n.set((p.x-E.c.x)/E.r.x**2,(p.y-E.c.y)/E.r.y**2,(p.z-E.c.z)/E.r.z**2).normalize();
+            if(keep){own.fromBufferAttribute(nor,i);if(own.dot(n)<0)own.negate();n.lerp(own,keep).normalize();}nor.setXYZ(i,n.x,n.y,n.z);}
+          nor.needsUpdate=true;
+          // the winding has to agree with the new normals (else a double-sided card shows its back face, unlit: the
+          // fringe went black)
+          const idx=g.index;if(!idx)return;const a=new THREE.Vector3(),b=new THREE.Vector3(),c=new THREE.Vector3(),fn=new THREE.Vector3(),vn=new THREE.Vector3();
+          for(let t=0;t<idx.count;t+=3){const i0=idx.getX(t),i1=idx.getX(t+1),i2=idx.getX(t+2);a.fromBufferAttribute(pos,i0);b.fromBufferAttribute(pos,i1);c.fromBufferAttribute(pos,i2);
+            fn.subVectors(b,a).cross(c.clone().sub(a));vn.fromBufferAttribute(nor,i0).add(own.fromBufferAttribute(nor,i1)).add(own.fromBufferAttribute(nor,i2));
+            if(fn.dot(vn)<0){idx.setX(t+1,i2);idx.setX(t+2,i1);}}
+          idx.needsUpdate=true;};
+        vrm.scene.traverse(o=>{const m=o as THREE.Mesh;if(!m.isMesh)return;const mat=(Array.isArray(m.material)?m.material[0]:m.material) as MToonMaterial|undefined;
+          if(!mat||!/^Hair(Back)?_/.test(mat.name??''))return;unify(m,m.userData.fringe?E.fringeKeep:0);
+          // with the smooth normals the whole side of the hair faces sideways from the front, so the red rim lit
+          // it in orange patches: on the hair it is a thin line at the very edge only
+          for(const x of Array.isArray(m.material)?m.material:[m.material]){x.userData.rim=.45;x.userData.rimPower=14;}});
       }
     }
   }

@@ -17,11 +17,15 @@ export const SHAPE = {
   /** Chin-length bob: the hair ends this far above the soles (m, base model scale; her chin is at 1.352). */
   hairEnd: 1.335,
   /** How far the ends turn in towards the head, 0…1 (a bob curls in at the ends). */
-  tuck: .18,
+  tuck: .3,
   /** Layered ends: how much the cut length varies from strand to strand (m), and how many locks around the head. */
   ragged: .016, locks: 11,
   /** Volume: the hair between the eyes and the ends stands this much further out from the head (factor). */
-  volume: 1.1, volumeFrom: 1.47,
+  volume: 1.1, volumeFrom: 1.52,
+  /** Extra fullness at the back of the head (factor, added to volume there), and how much shorter the back is than the front (m). */
+  backVolume: .08, backLift: .03,
+  /** Each strand comes to a point: its middle runs this much further down than its edges (m). */
+  tip: .018,
   /** Honey blonde (persona palette "hair"), and the colour of its shaded side before the site's navy. */
   hair: '#EDC591', hairShade: '#C99A62', brow: '#B8875A',
 };
@@ -46,10 +50,22 @@ function legs(vrm:VRM,k:number){
 function bob(mesh:THREE.Mesh,s:typeof SHAPE,centre:THREE.Vector3){
   const {tuck}=s;
   // the cut line, a little uneven from lock to lock (layered ends), by the angle around the head
-  const endAt=(x:number,z:number)=>{const a=Math.atan2(x-centre.x,z-centre.z);return s.hairEnd+s.ragged*(Math.sin(a*s.locks)*.6+Math.sin(a*s.locks*2.3+1.3)*.4);};
+  const back=(x:number,z:number)=>(1-Math.cos(Math.atan2(x-centre.x,z-centre.z)))/2; // 0 at the front, 1 at the back
+  const endAt=(x:number,z:number)=>{const a=Math.atan2(x-centre.x,z-centre.z);return s.hairEnd+s.backLift*back(x,z)**2+s.ragged*(Math.sin(a*s.locks)*.6+Math.sin(a*s.locks*2.3+1.3)*.4);};
   const g=mesh.geometry,pos=g.attributes.position as THREE.BufferAttribute,index=g.index;
   if(!index)return;
-  const below=(i:number)=>pos.getY(i)<endAt(pos.getX(i),pos.getZ(i))-.002;
+  // Each strand (a connected card of the mesh) ends in a point, not a straight cut: how near a vertex is to
+  // the middle of its strand's width (0 at the edges, 1 down the middle), from the card's own texture
+  // coordinates across it.
+  const uv=g.attributes.uv as THREE.BufferAttribute,parent=new Int32Array(pos.count).map((_,i)=>i);
+  const find=(i:number):number=>{while(parent[i]!==i){parent[i]=parent[parent[i]!]!;i=parent[i]!;}return i;};
+  for(let t=0;t<index.count;t+=3){const a=find(index.getX(t)),b=find(index.getX(t+1)),c=find(index.getX(t+2));parent[b]=a;parent[c]=a;}
+  const lo=new Map<number,number>(),hi=new Map<number,number>();
+  for(let i=0;i<pos.count;i++){const r=find(i),u=uv.getX(i);lo.set(r,Math.min(lo.get(r)??u,u));hi.set(r,Math.max(hi.get(r)??u,u));}
+  const middle=new Float32Array(pos.count);
+  for(let i=0;i<pos.count;i++){const r=find(i),w=hi.get(r)!-lo.get(r)!;middle[i]=w>1e-4?1-Math.abs(2*(uv.getX(i)-lo.get(r)!)/w-1):1;}
+  const endOf=(i:number)=>endAt(pos.getX(i),pos.getZ(i))-s.tip*middle[i]!;
+  const below=(i:number)=>pos.getY(i)<endOf(i)-.002;
   // drop the triangles wholly below the cut, group by group (the outline draws the same triangles again)
   const groups=g.groups.length?g.groups:[{start:0,count:index.count,materialIndex:0}];
   const kept:number[]=[],next:{start:number,count:number,materialIndex?:number}[]=[];
@@ -65,10 +81,12 @@ function bob(mesh:THREE.Mesh,s:typeof SHAPE,centre:THREE.Vector3){
   g.setIndex(kept);g.clearGroups();for(const grp of next)g.addGroup(grp.start,grp.count,grp.materialIndex);
   // lift what hangs below to the cut and draw it in
   for(let i=0;i<pos.count;i++){
-    let x=pos.getX(i),y=pos.getY(i),z=pos.getZ(i);const end=endAt(x,z);
-    // volume: from the eyes down the hair stands out from the head, most at the ends
-    if(y<s.volumeFrom){const v=1+(s.volume-1)*Math.min(1,(s.volumeFrom-Math.max(y,end))/(s.volumeFrom-s.hairEnd));x=centre.x+(x-centre.x)*v;z=centre.z+(z-centre.z)*v;}
-    if(y<end){const depth=Math.min(1,(end-y)/.12),pull=tuck*depth;x+=(centre.x-x)*pull;z+=(centre.z-z)*pull;y=end-.004*depth;}
+    const end=endOf(i);let x=pos.getX(i),y=pos.getY(i),z=pos.getZ(i);
+    // volume: from the eyes down the hair rounds out from the head, fullest at the cheeks, and the
+    // ends turn back in (the tuck below): a round bob, not a straight curtain
+    // (a swell that peaks part-way down and is gone again at the ends, fuller at the back of the head)
+    if(y<s.volumeFrom){const k=Math.min(1,(s.volumeFrom-Math.max(y,end))/(s.volumeFrom-end)),v=1+(s.volume-1+s.backVolume*back(x,z))*Math.sin(k*Math.PI)**.7;x=centre.x+(x-centre.x)*v;z=centre.z+(z-centre.z)*v;}
+    if(y<end){const depth=Math.min(1,(end-y)/.08),pull=tuck*depth;x+=(centre.x-x)*pull;z+=(centre.z-z)*pull;y=end-.004*depth;}
     pos.setXYZ(i,x,y,z);
   }
   pos.needsUpdate=true;g.computeVertexNormals();g.computeBoundingSphere();
@@ -101,6 +119,7 @@ export function shape(vrm:VRM,s=SHAPE){
     if(mats.some(m=>m.name.startsWith('Hair_')))bob(mesh,s,head);
     for(const m of mats){
       if(/^Hair(Back)?_/.test(m.name)){
+        m.outlineWidthFactor*=.5; // every card is outlined: at full width the strands read as stacked plates
         const t=recolor(m.map,new THREE.Color(1,1,1));if(t){m.map=t;m.shadeMultiplyTexture=t;}
         m.color.copy(hair);m.shadeColorFactor.copy(hairShade);
       }else if(m.name.startsWith('FaceBrow')){m.color.copy(brow);}

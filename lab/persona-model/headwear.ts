@@ -60,7 +60,7 @@ function strandTexture(){
 }
 
 /** The bow: two loops, a knot, two tails, in its own frame (x along the loops, y up, z out of the bow). */
-function bow(mat:THREE.Material){
+export function bow(mat:THREE.Material){
   const g=new THREE.Group();
   for(const side of [-1,1]){
     // a loop: a full, rounded wing of ribbon, wider at its outer end

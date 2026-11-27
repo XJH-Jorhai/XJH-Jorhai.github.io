@@ -2,7 +2,7 @@
 // orthographic camera next to the reference turnaround at the same height. One view that looks right
 // proves nothing (a model fitted to one picture can be a flat shape from anywhere else).
 // Usage: node lab/persona-model/turntable.mjs [out-dir]   (build first: npm run lab:model)
-// Writes turntable.png and three-view.png (default: reports/evidence/persona-model/, git-ignored).
+// Writes turntable.png, three-view.png and close-ups (default: reports/evidence/persona-model/, git-ignored).
 import {createServer} from 'node:http';
 import {readFile, mkdir} from 'node:fs/promises';
 import {extname} from 'node:path';
@@ -38,5 +38,23 @@ await sheet.setViewportSize({width: 3 * 480, height: 2 * 720});
 await sheet.setContent(`<body style="margin:0;background:#F3EDE2;display:grid;grid-template-columns:repeat(3,480px)">${views.map(b => `<img src="data:image/png;base64,${b}" width="480" height="720">`).join('')}${['view-front', 'view-side', 'view-back'].map(n => `<div style="height:720px;display:grid;place-items:center"><img src="${base}/ref/${n}.webp" style="height:690px"></div>`).join('')}</body>`);
 await sheet.waitForLoadState('networkidle');
 await sheet.screenshot({path: `${out}/three-view.png`});
+// Close-ups, because a gap shows at a few centimetres, not from across the room: the upper body from
+// twelve directions at two heights, and the legs from eight, with the hat on and off. Every tile must be
+// whole: no slit between garments, no inside showing, nothing floating.
+const closeups = async (file, list, hat = true) => {
+  await page.setViewportSize({width: 360, height: 360});
+  await page.evaluate(on => window.__model.setHat(on), hat);
+  const tiles = [];
+  for (const [deg, dist, eyeY, targetY] of list) { await page.evaluate(a => window.__model.view(...a), [deg, false, dist, eyeY, targetY]); tiles.push([deg, (await page.locator('canvas').screenshot()).toString('base64')]); }
+  const cols = 6, rows = Math.ceil(tiles.length / cols);
+  await sheet.setViewportSize({width: cols * 360, height: rows * 360});
+  await sheet.setContent(`<body style="margin:0;background:#F3EDE2;font:13px monospace;color:#083366;display:grid;grid-template-columns:repeat(${cols},360px)">${tiles.map(([d, b]) => `<figure style="margin:0;position:relative"><img src="data:image/png;base64,${b}" width="360" height="360"><figcaption style="position:absolute;left:8px;top:6px">${d}°</figcaption></figure>`).join('')}</body>`);
+  await sheet.screenshot({path: `${out}/${file}`});
+  await page.evaluate(() => window.__model.setHat(true));
+};
+const around = (n, dist, eyeY, targetY) => Array.from({length: n}, (_, i) => [i * 360 / n - 180, dist, eyeY, targetY]);
+await closeups('closeup-upper.png', [...around(12, 1.15, 1.32, 1.22), ...around(12, 1.0, 1.55, 1.3)]);
+await closeups('closeup-head.png', [...around(12, .75, 1.5, 1.45)], false);
+await closeups('closeup-lower.png', [...around(6, 1.6, .45, .32), ...around(6, 1.3, .12, .5)]);
 await browser.close(); server.close();
-console.log(`${out}/turntable.png\n${out}/three-view.png`);
+console.log(`${out}/turntable.png\n${out}/three-view.png\n${out}/closeup-upper.png\n${out}/closeup-head.png\n${out}/closeup-lower.png`);

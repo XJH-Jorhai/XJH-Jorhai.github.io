@@ -84,7 +84,7 @@ export function bow(mat:THREE.Material){
 /** The bucket hat: crown (a domed frustum), two stripes round its base, a sloping brim. Origin at the crown's base. */
 function hat(white:THREE.Material,blue:THREE.Material,pink:THREE.Material){
   // sizes from the sheet: brim about 1.15× the hair's width, crown top 0.6× the brim, crown 0.33× the brim tall
-  const g=new THREE.Group(),base=.127,top=.098,height=.098;
+  const g=new THREE.Group(),base=.137,top=.105,height=.1; // a little larger since the hair under it is fuller (the shell, step 21)
   const crown:THREE.Vector2[]=[];
   for(let k=0;k<=12;k++){const t=k/12;crown.push(new THREE.Vector2(base+(top-base)*t,height*t));}
   for(let k=1;k<=8;k++){const a=k/8*Math.PI/2;crown.push(new THREE.Vector2(top*Math.cos(a),height+.018*Math.sin(a)));}
@@ -206,7 +206,14 @@ export const FILL = {
 // A round dome on top (radius `dome` about height `cy`, inside the hat), and below it the tangent from the dome
 // straight down and out to the ends: one continuous line, no corner (a straight start at the hat's rim made
 // a shoulder there).
-export const SIL = {dome:.134,cy:1.478,ends:1.34,atEnds:.164};
+export const SIL = {dome:.134,cy:1.478,ends:1.34,atEnds:.164,atEndsBack:.17};
+/** The outline to given ends (radius xe at height ye): the dome on top, then the tangent from it to the ends. */
+const silhouetteTo=(y:number,xe:number,ye:number)=>{
+  const R=SIL.dome,cy=SIL.cy,dx=xe,dy=ye-cy,d2=dx*dx+dy*dy,a=Math.atan2(dy,dx)+Math.acos(Math.min(1,R/Math.sqrt(d2))),tx=R*Math.cos(a),ty=cy+R*Math.sin(a);
+  return y>=ty?Math.sqrt(Math.max(0,R*R-(y-cy)**2)):tx+(xe-tx)*Math.min(1,(ty-y)/(ty-ye));
+};
+/** The inward curl from ARC.from down to ends at ye (a wide circular arc, ARC.depth at the ends). */
+const arcTo=(y:number,ye:number)=>{const L=Math.max(.05,ARC.from-ye),d=Math.min(L,Math.max(0,ARC.from-y)),D=ARC.depth*Math.min(1.3,L/(ARC.from-ARC.ends)),R=(L*L+D*D)/(2*D);return R-Math.sqrt(Math.max(0,R*R-d*d));};
 const silhouette=(()=>{
   const {dome:R,cy,ends:ye,atEnds:xe}=SIL,dx=xe,dy=ye-cy,d2=dx*dx+dy*dy,l=Math.sqrt(d2-R*R);
   // the tangent point on the circle, on the outer side
@@ -221,7 +228,7 @@ export const ARC = {from:1.5,ends:1.335,depth:.065};
 export const arcIn=(y:number)=>{const d=Math.min(ARC.from-ARC.ends,Math.max(0,ARC.from-y)),L=ARC.from-ARC.ends,R=(L*L+ARC.depth*ARC.depth)/(2*ARC.depth);return R-Math.sqrt(R*R-d*d);};
 
 export const CURTAIN = {
-  from: 46, to: 180, step: 6, r0: .118, swell: .03, back: 0, end: 1.335, endBack: .025, top: 1.598,
+  from: 46, to: 180, step: 6, r0: .118, swell: .03, back: 0, end: 1.335, endBack: .025, top: 1.611, under: .006, capEnd: 1.578,
   // layers 7 mm apart, and every strand a little off its neighbours (strands at one depth z-fought into a checkerboard)
   // the outer strands narrow (each about 10° wide, 6° apart: wider, they overlapped three deep and read as one
   // sheet), the inner layers wide and darker, closing every gap beneath
@@ -336,6 +343,31 @@ export function headwear(vrm:VRM,base:MToonMaterial):Headwear{
       }
       // thickness: two layers of thin strands along the shaped hair's own surface, both sides and the back
       const measured=measureHair(hm);
+      // One shell all round (the user's note, 2026-11-27: from behind the hair read as three bands, the top of the
+      // head looked too narrow and had a bare patch): the outer strands start at the crown's top and follow one
+      // outline at every angle, the dome on top and below it the tangent out to the ends, curling in. Round the
+      // back the ends are lower (the back hangs to the shoulders). The base hair is then drawn inside this shell,
+      // so nothing of it stands out as a ledge.
+      const backness=(deg:number)=>{const k=Math.min(1,Math.max(0,(deg-92)/38));return k*k*(3-2*k);};
+      const endAt=(ang:number)=>{const deg=Math.abs(THREE.MathUtils.radToDeg(ang)),e=CURTAIN.end-CURTAIN.endBack*Math.min(1,Math.max(0,deg-55)/55),kb=backness(deg);return e+(measured.end(ang)+.006-e)*kb;};
+      const shell=(ang:number,y:number)=>{
+        const deg=Math.abs(THREE.MathUtils.radToDeg(ang)),kb=backness(deg),ye=endAt(ang),xe=SIL.atEnds+(SIL.atEndsBack-SIL.atEnds)*kb;
+        const bendK=1-.4*Math.min(1,Math.max(0,(deg-90)/30));
+        return silhouetteTo(y,xe,ye)-arcTo(y,ye)*bendK;
+      };
+      const prof={loose:CURTAIN.loose,top:CURTAIN.top,curl:(ang:number)=>{const d=Math.abs(THREE.MathUtils.radToDeg(ang));return .45+.55*Math.min(1,Math.max(0,(d-60)/30));},
+        at:shell,end:endAt};
+      // the base hair inside the shell (by a little), so the shell is the outline everywhere
+      {
+        const conform=(mesh:THREE.Mesh)=>{const pos=mesh.geometry.attributes.position as THREE.BufferAttribute,c=H.centre;
+          for(let i=0;i<pos.count;i++){const x=pos.getX(i),y=pos.getY(i),z=pos.getZ(i);if(y<1.2)continue;const dx=x-c.x,dz=z-c.z,r=Math.hypot(dx,dz);if(r<.02)continue;
+            const ang=Math.atan2(dx,dz);if(Math.abs(THREE.MathUtils.radToDeg(ang))<40&&z>c.z+.05)continue; // not the fringe and the face side of the front
+            const lim=shell(ang,Math.max(y,endAt(ang)+.01))-CURTAIN.under;if(r>lim){pos.setX(i,c.x+dx*lim/r);pos.setZ(i,c.z+dz*lim/r);}}
+          pos.needsUpdate=true;mesh.geometry.computeVertexNormals();};
+        vrm.scene.traverse(o=>{const m=o as THREE.Mesh;if(!m.isMesh)return;const n=(Array.isArray(m.material)?m.material[0]:m.material)?.name??'';if(/^Hair(Back)?_/.test(n)&&m.renderOrder===0)conform(m);});
+      }
+      // measured again: the fill strands lie on the conformed hair
+      Object.assign(measured,measureHair(hm));
       {
         let seed=1;
         for(const [li,layer] of FILL.layers.entries())for(let deg=FILL.from+(li?FILL.step/2:0);deg<=FILL.to;deg+=FILL.step)for(const sign of [-1,1]){
@@ -355,23 +387,14 @@ export function headwear(vrm:VRM,base:MToonMaterial):Headwear{
         // it grows from under the crown hair (starting at mid-head it read as a pair of earmuffs): at the top just
         // inside the crown's measured surface, blending down into the bob's profile
         // its front edge hangs straight (curled in, its underside showed from the front as dark steps at the jaw)
-        const prof={loose:CURTAIN.loose,top:CURTAIN.top,curl:(ang:number)=>{const d=Math.abs(THREE.MathUtils.radToDeg(ang));return .45+.55*Math.min(1,Math.max(0,(d-60)/30));},at:(ang:number,y:number)=>{const deg=Math.abs(THREE.MathUtils.radToDeg(ang)),u=Math.min(1,Math.max(0,(1.5-y)/.17));
-            void u;
-            // the ends turn in towards the face (the user's note, 2026-11-27): the top stays, below `bendFrom` the
-            // outline curves in, most at the front locks beside the cheek, less towards the back
-            const bendK=1-.4*Math.min(1,Math.max(0,(deg-90)/30));
-            const bob=silhouette(y)+CURTAIN.back*Math.max(0,deg-60)/60-arcIn(y)*bendK;
-            const k0=Math.min(1,Math.max(0,(y-1.5)/.08)),k=k0*k0*(3-2*k0),kc0=Math.min(1,Math.max(0,(y-1.53)/.05)),crown=Math.sqrt(Math.max(0,1-((y-H.centre.y)/.152)**2))*(H.radii.x+.006-.012*kc0*kc0*(3-2*kc0)); /* near the top just inside the crown hair, so the strands come out of it below and their tops don't show from above */ // up top it lies over the crown hair (6 mm, so it stays inside the hat) (on the head's measured ellipsoid plus the hair's thickness; the measurement is clamped there and made the tops stand up like ears), covering the straight lower edge of its cards (under it, that edge showed as a ledge)
-            const side=bob+(crown-bob)*k;
-            // round the back it lies on the back hair (measured), so side and back are one layer of strands:
-            // before, the combed side hair stopped at 104° and the back was a different, clumpy mass
-            const kb=Math.min(1,Math.max(0,(deg-92)/38)),kbs=kb*kb*(3-2*kb);
-            if(!kbs)return side;
-            // up under the brim just inside the back hair (on it, bits showed between the brim and the hair), out on it lower down
-            const kin=Math.min(1,Math.max(0,(y-1.40)/.05)),backR=measured.at(ang,Math.max(y,measured.end(ang)+.02))+.004-.008*kin;
-            const res=side+(Math.max(backR,crown*.98)-side)*kbs*(1-k*.6);
-            return y>1.515?Math.min(res,crown+.004):res;}, // never wider than the crown up under the hat (it showed through the hat's back)
-          end:(ang:number)=>{const deg=Math.abs(THREE.MathUtils.radToDeg(ang)),e=CURTAIN.end-CURTAIN.endBack*Math.min(1,Math.max(0,deg-55)/55),kb=Math.min(1,Math.max(0,(deg-92)/38));return e+(measured.end(ang)+.006-e)*kb*kb*(3-2*kb);}};
+        // the top of the head in front, behind the fringe's roots: short strands from the crown's top to the
+        // fringe (here the base cards were removed for the fringe, leaving a bare patch seen from above)
+        {
+          const capProf={top:CURTAIN.top,curl:()=>0,at:(ang:number,y:number)=>silhouetteTo(y,SIL.atEnds,SIL.ends)+.0015*Math.cos(ang*3),end:()=>CURTAIN.capEnd};
+          let cs=800;
+          for(let deg=-48;deg<=48;deg+=8){const fg=fillGeometry(THREE.MathUtils.degToRad(deg),{inset:0,w:.05},capProf,H.fringeUV,cs++);fg.addGroup(0,fg.index!.count,0);
+            const m=new THREE.Mesh(fg,[mats[0]!]);m.renderOrder=1;carry(m,new THREE.Vector3());}
+        }
         // Combed out (the user's note, 2026-11-27: it read as one sheet of paper): the outer strands are outlined
         // more strongly than the base hair; the inner layers are darker, so between the outer strands one sees
         // depth, as in a drawing of hair, not more of the same surface.
@@ -419,7 +442,9 @@ export function headwear(vrm:VRM,base:MToonMaterial):Headwear{
   }
   // the bow above her right ear (her right is -x), facing out and a little forward
   const b=bow(mat(H.bow,H.bowShade));
-  carry(b,onHair(THREE.MathUtils.degToRad(-64),1.49,.04),new THREE.Quaternion().setFromEuler(new THREE.Euler(0,THREE.MathUtils.degToRad(-58),0)));
+  // on the hair's outline (the shell), a little proud of it: placed on the head's ellipsoid it floated off the hair (2026-11-27)
+  {const a=THREE.MathUtils.degToRad(-64),y=1.49,r=silhouetteTo(y,SIL.atEnds,SIL.ends)+.02;b.userData.at=new THREE.Vector3(H.centre.x+Math.sin(a)*r,y,H.centre.z+Math.cos(a)*r);}
+  carry(b,b.userData.at as THREE.Vector3,new THREE.Quaternion().setFromEuler(new THREE.Euler(0,THREE.MathUtils.degToRad(-58),0)));
   // the hat: its crown's base a little above the brows, tipped back slightly
   const h=hat(mat(H.hat,H.hatShade),mat(H.stripeBlue,'#7da2bb'),mat(H.stripePink,'#b87283'));
   carry(h,new THREE.Vector3(0,1.535,H.centre.z+.006),new THREE.Quaternion().setFromEuler(new THREE.Euler(-.1,0,0)));

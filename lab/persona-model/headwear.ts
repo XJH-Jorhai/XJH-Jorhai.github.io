@@ -104,14 +104,14 @@ function hat(white:THREE.Material,blue:THREE.Material,pink:THREE.Material){
  * y down, 0…1 of its height), its widest width, and how far it stands off the head (m; later ones lie on top).
  */
 export const FRINGE = {
-  width: .24, top: 1.588, height: .141,
+  width: .24, top: 1.588, height: .152, // a little lower than first drawn (the user's note): the middle ends between the eyes
   locks: [
     {p:[[0,0],[-.27,.1],[-.41,.87]],w:.24,out:.005},   // her right side lock
     {p:[[0,0],[.27,.1],[.42,.88]],w:.24,out:.005},     // her left side lock
     {p:[[0,0],[-.1,.45],[-.07,.96]],w:.17,out:.008},   // middle, left
     {p:[[.01,0],[.17,.5],[.08,.99]],w:.15,out:.008},   // middle, right
-    {p:[[.02,.02],[.15,.6],[-.1,.99]],w:.1,out:.011},  // crossing over to the left
-    {p:[[.03,.3],[.12,.7],[0,.98]],w:.04,out:.012},    // a fine tip
+    {p:[[.02,.02],[.15,.6],[-.08,.99]],w:.07,out:.011}, // crossing over to the left (smaller, sharper: the user's note)
+    {p:[[.03,.3],[.12,.7],[.01,.97]],w:.025,out:.012}, // a fine tip
   ] as {p:[number,number][],w:number,out:number}[],
 };
 
@@ -131,7 +131,7 @@ function lockGeometry(lock:typeof FRINGE.locks[number],uv:[number,number]){
   };
   for(let i=0;i<=N;i++){
     const t=i/N,c=at(t),d=at(Math.min(1,t+.01)),e=at(Math.max(0,t-.01)),tx=d[0]-e[0],ty=d[1]-e[1],len=Math.hypot(tx,ty)||1,nx=-ty/len,ny=tx/len;
-    const w=lock.w*Math.pow(Math.max(0,4*t*(1-t)),.55)*.5+(t<.5?.004:0);
+    const w=lock.w*Math.pow(Math.max(0,4*t*(1-t)),.55)*.5*(1-.45*Math.max(0,(t-.6)/.4)**1.5)+(t<.5?.004:0); // tips drawn out finer
     for(let a=0;a<=A;a++){
       const s=a/A*2-1,bulge=.0025*(1-s*s);
       // at the root the lock lies in the hair (no ridge where the locks part), standing off only further down
@@ -140,6 +140,38 @@ function lockGeometry(lock:typeof FRINGE.locks[number],uv:[number,number]){
       if(i&&a)I.push((i-1)*(A+1)+a-1,i*(A+1)+a-1,(i-1)*(A+1)+a,i*(A+1)+a-1,i*(A+1)+a,(i-1)*(A+1)+a);
     }
   }
+  const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(P,3));g.setAttribute('uv',new THREE.Float32BufferAttribute(U,2));g.setIndex(I);g.computeVertexNormals();
+  return g;
+}
+
+/**
+ * The locks beside the face (the user's note, 2026-11-27): on each side two locks fall from the temple,
+ * past the front of the ear (half over it), to the jaw, turning in a little towards the cheek at the end;
+ * the front one a little shorter and further in. A quadratic curve in head space (her left side; mirrored
+ * for her right), its widest width (m, across the lock, front to back) and how far its middle bulges out.
+ */
+export const SIDELOCKS = [
+  // they start inside the hair (hidden under it) and come out around the ear
+  {p:[[.086,1.545,.0],[.146,1.45,.006],[.108,1.33,.034]],w:.056,bulge:.005},
+  {p:[[.083,1.535,.03],[.14,1.44,.036],[.098,1.352,.054]],w:.036,bulge:.005},
+] as {p:[number,number,number][],w:number,bulge:number}[];
+
+function sideLockGeometry(lock:typeof SIDELOCKS[number],sign:number,uv:[number,number]){
+  const N=28,A=4,P:number[]=[],U:number[]=[],I:number[]=[];
+  const q=lock.p.map(([x,y,z])=>new THREE.Vector3(x*sign,y,z)) as [THREE.Vector3,THREE.Vector3,THREE.Vector3];
+  const at=(t:number)=>q[0].clone().multiplyScalar((1-t)**2).addScaledVector(q[1],2*(1-t)*t).addScaledVector(q[2],t*t);
+  const out=new THREE.Vector3(sign,0,0);
+  for(let i=0;i<=N;i++){
+    const t=i/N,c=at(t),tan=at(Math.min(1,t+.01)).sub(at(Math.max(0,t-.01))).normalize(),across=new THREE.Vector3().crossVectors(tan,out).normalize();
+    const w=lock.w*.5*Math.pow(Math.max(0,4*t*(1-t)),.5)*(t<.5?1:1)+(t<.4?.006*(1-t/.4):0);
+    for(let a=0;a<=A;a++){
+      const s=a/A*2-1,p=c.clone().addScaledVector(across,s*w).addScaledVector(out,lock.bulge*(1-s*s));
+      P.push(p.x,p.y,p.z);U.push(uv[0]+(s+1)/2*(uv[1]-uv[0]),t);
+      if(i&&a)I.push((i-1)*(A+1)+a-1,i*(A+1)+a-1,(i-1)*(A+1)+a,i*(A+1)+a-1,i*(A+1)+a,(i-1)*(A+1)+a);
+    }
+  }
+  // mirrored, the winding turns over: turn it back, so the lit side faces out
+  if(sign<0)for(let k=0;k<I.length;k+=3){const t=I[k+1]!;I[k+1]=I[k+2]!;I[k+2]=t;}
   const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(P,3));g.setAttribute('uv',new THREE.Float32BufferAttribute(U,2));g.setIndex(I);g.computeVertexNormals();
   return g;
 }
@@ -179,6 +211,10 @@ export function headwear(vrm:VRM,base:MToonMaterial):Headwear{
       const mats=hm.material as THREE.Material[];
       for(const lock of FRINGE.locks){
         const lg=lockGeometry(lock,H.fringeUV);mats.forEach((_,k)=>lg.addGroup(0,lg.index!.count,k));
+        const m=new THREE.Mesh(lg,mats);m.renderOrder=1;carry(m,new THREE.Vector3());
+      }
+      for(const sign of [-1,1])for(const lock of SIDELOCKS){
+        const lg=sideLockGeometry(lock,sign,H.fringeUV);mats.forEach((_,k)=>lg.addGroup(0,lg.index!.count,k));
         const m=new THREE.Mesh(lg,mats);m.renderOrder=1;carry(m,new THREE.Vector3());
       }
     }

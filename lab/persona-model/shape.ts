@@ -15,22 +15,26 @@ export const SHAPE = {
   /** Shin length (knee to ankle) as a factor: 0.875 brings the knees from 0.38 C to 0.35 C. */
   shin: .875,
   /** Chin-length bob: the hair ends this far above the soles (m, base model scale; her chin is at 1.352). */
-  hairEnd: 1.335,
+  hairEnd: 1.345,
   /** Layered ends: how much the cut length varies from strand to strand (m), and how many locks around the head. */
   ragged: .016, locks: 11,
   /** Volume (the head turnaround's round bob): from the crown down the hair stands out from the head, up to
    *  this factor; a little more at the back of the head; strands differ by `fluff` (a share of it). */
-  volume: 1.17, volumeFrom: 1.53, backVolume: .06, fluff: .18, // from just under the hat's rim: above it the hat must still fit
-  /** How much shorter the back is than the front (m). */
-  backLift: .03,
+  volume: 1.17, volumeFrom: 1.53, backVolume: .14, fluff: .18, // from just under the hat's rim: above it the hat must still fit
+  /** Shoulder length at the back (the setting): the back hangs this much lower than the front (m), so the
+   *  cheek locks end at the jaw and the back touches the shoulders. */
+  backDrop: .075,
+  /** Two layers: strands of the outer layer end this much shorter than the inner ones (m), so the inner shows
+   *  below the outer as a second tier and the bob keeps its volume. */
+  outerShort: .045,
   /** Curl: the last `curlLength` of each strand bends in under, round a circle of radius `curlRadius` (m). */
-  curlLength: .055, curlRadius: .045,
+  curlLength: .07, curlRadius: .045,
   /** Each strand comes to a point: its middle runs this much further down than its edges (m). */
   tip: .018,
   /** Layers: some strands end shorter than their neighbours (m). */
   layer: .022,
   /** Face-side locks: raised this much at their ends (m), and turned in towards the chin by this share. */
-  sideLift: .018, sideTuck: .12,
+  sideLift: .028, sideTuck: .22,
   /** Fringe: front strands between these heights (m) and within this half-width (m) are combed towards the middle by up to `fringeComb`, and shifted towards her right (−x) by up to `fringeSweep` (m). */
   fringeTop: 1.585, fringeBottom: 1.45, fringeHalf: .115, fringeComb: .18, fringeSweep: 0, fringeClose: 0, fringeUnslant: 0, // straightening by shearing left a ragged edge (2026-11-27); the fringe needs its own cards // the sheet's fringe falls almost straight down from near the centre (a stronger comb read as a side sweep)
   /** Honey blonde (persona palette "hair"), and the colour of its shaded side before the site's navy. */
@@ -55,9 +59,10 @@ function legs(vrm:VRM,k:number){
  * vertices below it are lifted to it and drawn in towards the head, so the ends curl in a little.
  */
 function bob(mesh:THREE.Mesh,s:typeof SHAPE,centre:THREE.Vector3){
+  const smooth=(a:number,b:number,x:number)=>{const k=Math.min(1,Math.max(0,(x-a)/(b-a)));return k*k*(3-2*k);};
   // the cut line, a little uneven from lock to lock (layered ends), by the angle around the head
   const back=(x:number,z:number)=>(1-Math.cos(Math.atan2(x-centre.x,z-centre.z)))/2; // 0 at the front, 1 at the back
-  const endAt=(x:number,z:number)=>{const a=Math.atan2(x-centre.x,z-centre.z);return s.hairEnd+s.backLift*back(x,z)**2+s.ragged*(Math.sin(a*s.locks)*.6+Math.sin(a*s.locks*2.3+1.3)*.4);};
+  const endAt=(x:number,z:number)=>{const a=Math.atan2(x-centre.x,z-centre.z);return s.hairEnd-s.backDrop*smooth(.3,.9,back(x,z))+s.ragged*(Math.sin(a*s.locks)*.6+Math.sin(a*s.locks*2.3+1.3)*.4);};
   const g=mesh.geometry,pos=g.attributes.position as THREE.BufferAttribute,index=g.index;
   if(!index)return;
   // Each strand (a connected card of the mesh) ends in a point, not a straight cut: how near a vertex is to
@@ -73,7 +78,18 @@ function bob(mesh:THREE.Mesh,s:typeof SHAPE,centre:THREE.Vector3){
   // layers: every strand gets its own length (a hash of the strand), so the ends sit in uneven tiers
   const layerOf=new Map<number,number>();
   const tier=(r:number)=>{let v=layerOf.get(r);if(v===undefined){v=((Math.sin(r*12.9898)*43758.5453)%1+1)%1;layerOf.set(r,v);}return v;};
-  const endOf=(i:number)=>endAt(pos.getX(i),pos.getZ(i))-s.tip*middle[i]!+s.layer*(tier(find(i))>.6?1:tier(find(i))>.3?.45:0);
+  // which layer a strand is in: how far it lies out from the head, compared with the strands round it (the
+  // cards at the same angle, between the ears and the ends)
+  const outerness=new Map<number,number>();
+  {
+    const acc=new Map<number,{r:number,n:number,a:number}>();
+    for(let i=0;i<pos.count;i++){const y=pos.getY(i);if(y>1.48||y<1.36)continue;const dx=pos.getX(i)-centre.x,dz=pos.getZ(i)-centre.z,r0=find(i),v=acc.get(r0)??{r:0,n:0,a:0};v.r+=Math.hypot(dx,dz);v.a+=Math.atan2(dx,dz);v.n++;acc.set(r0,v);}
+    const B=16,buckets:number[][]=Array.from({length:B},()=>[]),bucketOf=(a:number)=>Math.min(B-1,Math.floor((a+Math.PI)/(2*Math.PI)*B));
+    for(const v of acc.values())buckets[bucketOf(v.a/v.n)]!.push(v.r/v.n);
+    const median=buckets.map(b=>{const c=[...b].sort((p,q)=>p-q);return c[Math.floor(c.length/2)]??0;});
+    for(const [r0,v] of acc)outerness.set(r0,v.r/v.n>median[bucketOf(v.a/v.n)]!+.002?1:0);
+  }
+  const endOf=(i:number)=>endAt(pos.getX(i),pos.getZ(i))-s.tip*middle[i]!+s.outerShort*(outerness.get(find(i))??0)*(1-smooth(.6,.85,back(pos.getX(i),pos.getZ(i))))+ /* the middle of the back has no inner layer under it: shortened, it opened a gap */ s.layer*.3*tier(find(i));
   const below=(i:number)=>pos.getY(i)<endOf(i)-.002;
   // drop the triangles wholly below the cut, group by group (the outline draws the same triangles again)
   const groups=g.groups.length?g.groups:[{start:0,count:index.count,materialIndex:0}];
@@ -90,7 +106,6 @@ function bob(mesh:THREE.Mesh,s:typeof SHAPE,centre:THREE.Vector3){
   g.setIndex(kept);g.clearGroups();for(const grp of next)g.addGroup(grp.start,grp.count,grp.materialIndex);
   // Shape every strand like the sheet's bob: it swells out from the crown, fullest from the cheeks down,
   // and its last few centimetres curl in under, towards the neck (a C, not a straight curtain).
-  const smooth=(a:number,b:number,x:number)=>{const k=Math.min(1,Math.max(0,(x-a)/(b-a)));return k*k*(3-2*k);};
   for(let i=0;i<pos.count;i++){
     const end=endOf(i),yc=end+s.curlLength;let x=pos.getX(i),y=pos.getY(i),z=pos.getZ(i);
     if(y>=s.volumeFrom)continue;

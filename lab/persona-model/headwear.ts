@@ -237,7 +237,9 @@ export const FILL = {
  *  1.557 .084 · 1.517 .104 · 1.458 .126 · 1.419 .133 · 1.38 .117 · 1.36 .101 (sheet, less the strands' own depth). */
 export const SIL = {top:1.612,yw:1.425,w:.133,wBack:.137,we:.05,weBack:.06,p:1.8,q:2,
   /** The ellipsoid under the crown strands (fills the top of the head): radii as shares of the outline's. */
-  cap:.86};
+  cap:.95, capLocks:28, capLift:.006,
+  /** How far down the cap reaches (rad from the top): .95 left the top of the back of the head bare from behind. */
+  capDown:1.15, capBack:1.08};
 /** The outline at height y for hair ending at ye; k: 0 at the sides, 1 at the back. */
 const silhouetteTo=(y:number,ye:number,k=0)=>{
   const {top,yw,p,q}=SIL,W=SIL.w+(SIL.wBack-SIL.w)*k,we=SIL.we+(SIL.weBack-SIL.we)*k;
@@ -252,7 +254,7 @@ export const ARC = {from:1.5,ends:1.335,depth:.065};
 export const arcIn=(y:number)=>{const d=Math.min(ARC.from-ARC.ends,Math.max(0,ARC.from-y)),L=ARC.from-ARC.ends,R=(L*L+ARC.depth*ARC.depth)/(2*ARC.depth);return R-Math.sqrt(R*R-d*d);};
 
 export const CURTAIN = {
-  from: 46, to: 180, step: 6, r0: .118, swell: .03, back: 0, end: 1.335, endBack: .025, top: 1.611, under: .006, capEnd: 1.578,
+  from: 46, to: 180, step: 6, r0: .118, swell: .03, back: 0, end: 1.335, endBack: .025, top: 1.611, under: .006, underCrown: .009, capEnd: 1.578, // underCrown: on the crown the base hair a little deeper still, under the drawn cap (it showed over it from behind)
   // layers 7 mm apart, and every strand a little off its neighbours (strands at one depth z-fought into a checkerboard)
   // the outer strands narrow (each about 10° wide, 6° apart: wider, they overlapped three deep and read as one
   // sheet), the inner layers wide and darker, closing every gap beneath
@@ -265,6 +267,8 @@ export const CURTAIN = {
   loose: {r:.012,a:.09,bow:.006,w:.6} as Loose,
   /** Round the back, how far the strands' tips turn towards the middle (rad). */
   converge: .14,
+  /** Beside the face (46°–110°), how far the tips bend forward towards it (rad). */
+  forward: .15,
   /** Outer strands' outline, times the base hair's (which is thin: every base card is outlined). */
   outline: 2.6,
 };
@@ -394,14 +398,15 @@ export function headwear(vrm:VRM,base:MToonMaterial):Headwear{
       const prof={loose:CURTAIN.loose,top:CURTAIN.top,curl:(ang:number)=>{const d=Math.abs(THREE.MathUtils.radToDeg(ang));return .45+.55*Math.min(1,Math.max(0,(d-60)/30));},
         // round the back the strands run together towards the middle at their tips (the head turnaround's back:
         // they fall from the crown and meet in a soft U at the nape, not in one straight row)
-        sweep:(ang:number)=>{const d=Math.abs(THREE.MathUtils.radToDeg(ang));return Math.sign(ang)*CURTAIN.converge*Math.sin(Math.PI*Math.min(1,Math.max(0,(d-100)/80)));},
+        // and beside the face they bend forward towards it (the sheet's three-quarter view: each lock an arc, not a plumb line)
+        sweep:(ang:number)=>{const d=Math.abs(THREE.MathUtils.radToDeg(ang));return Math.sign(ang)*(CURTAIN.converge*Math.sin(Math.PI*Math.min(1,Math.max(0,(d-100)/80)))-CURTAIN.forward*Math.sin(Math.PI*Math.min(1,Math.max(0,(d-46)/64))));},
         at:shell,end:endAt};
       // the base hair inside the shell (by a little), so the shell is the outline everywhere
       {
         const conform=(mesh:THREE.Mesh)=>{const pos=mesh.geometry.attributes.position as THREE.BufferAttribute,c=H.centre;
           for(let i=0;i<pos.count;i++){const x=pos.getX(i),y=pos.getY(i),z=pos.getZ(i);if(y<1.2)continue;const dx=x-c.x,dz=z-c.z,r=Math.hypot(dx,dz);if(r<.02)continue;
             const ang=Math.atan2(dx,dz);if(Math.abs(THREE.MathUtils.radToDeg(ang))<40&&z>c.z+.05)continue; // not the fringe and the face side of the front
-            const lim=shell(ang,Math.max(y,endAt(ang)+.01))-CURTAIN.under;if(r>lim){pos.setX(i,c.x+dx*lim/r);pos.setZ(i,c.z+dz*lim/r);}}
+            const lim=shell(ang,Math.max(y,endAt(ang)+.01))-CURTAIN.under-CURTAIN.underCrown*Math.min(1,Math.max(0,(y-1.45)/.03));if(r>lim){pos.setX(i,c.x+dx*lim/r);pos.setZ(i,c.z+dz*lim/r);}}
           pos.needsUpdate=true;mesh.geometry.computeVertexNormals();};
         vrm.scene.traverse(o=>{const m=o as THREE.Mesh;if(!m.isMesh)return;const n=(Array.isArray(m.material)?m.material[0]:m.material)?.name??'';if(/^Hair(Back)?_/.test(n)&&m.renderOrder===0)conform(m);});
       }
@@ -498,8 +503,17 @@ export function headwear(vrm:VRM,base:MToonMaterial):Headwear{
     let hairMat:THREE.Material|null=null;vrm.scene.traverse(o=>{const m=o as THREE.Mesh;if(!hairMat&&m.isMesh&&o.name==='Hair')hairMat=(Array.isArray(m.material)?m.material[0]:m.material) as THREE.Material;});
     if(hairMat){
       // an ellipsoid under the outline's dome (from the widest point to the top), its upper part only
-      const cap=new THREE.Mesh(new THREE.SphereGeometry(1,48,16,0,Math.PI*2,0,.95),hairMat);
-      cap.scale.set(SIL.w*SIL.cap,SIL.top-SIL.yw-.005,SIL.w*SIL.cap);cap.position.set(H.centre.x,SIL.yw,H.centre.z);cap.updateMatrix();cap.geometry.applyMatrix4(cap.matrix);cap.position.set(0,0,0);
+      // drawn as locks running from the top of the head outwards (the lock texture along its meridians, repeated
+      // round it): from above, the crown was a smooth bare patch, where the sheet's locks fan out from the whorl
+      const cg=new THREE.SphereGeometry(1,96,20,0,Math.PI*2,0,SIL.capDown),cuv=cg.attributes.uv as THREE.BufferAttribute;
+      for(let i=0;i<cuv.count;i++)cuv.setXY(i,cuv.getX(i)*SIL.capLocks/LOCK.columns,(1-cuv.getY(i))*.85); // v runs 1 → 0 from the top down whatever the cap's extent
+      // fuller behind, as the outline is (the back of the head; there the base hair stood over a round cap)
+      {const cp=cg.attributes.position as THREE.BufferAttribute;for(let i=0;i<cp.count;i++)if(cp.getZ(i)<0)cp.setZ(i,cp.getZ(i)*SIL.capBack);cg.computeVertexNormals();}
+      const tex=lockTexture();tex.wrapS=THREE.RepeatWrapping;
+      const capMat=(hairMat as MToonMaterial).clone();capMat.map=tex;capMat.shadeMultiplyTexture=tex;capMat.needsUpdate=true;
+      const cap=new THREE.Mesh(cg,capMat);
+      // just over the base hair's own crown, which otherwise showed there as a smooth patch
+      cap.scale.set(SIL.w*SIL.cap,SIL.top-SIL.yw+SIL.capLift,SIL.w*SIL.cap);cap.position.set(H.centre.x,SIL.yw,H.centre.z);cap.updateMatrix();cap.geometry.applyMatrix4(cap.matrix);cap.position.set(0,0,0);cap.scale.set(1,1,1);
       cap.renderOrder=0;carry(cap,new THREE.Vector3());
     }
   }

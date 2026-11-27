@@ -24,7 +24,7 @@ export const SHAPE = {
   volume: 1.17, volumeFrom: 1.53, backVolume: .14, fluff: .18, // from just under the hat's rim: above it the hat must still fit
   /** Shoulder length at the back (the setting): the back hangs this much lower than the front (m), so the
    *  cheek locks end at the jaw and the back touches the shoulders. */
-  backDrop: .03, // was .075 (to the shoulders); the head turnaround's back ends just above the collar (2026-11-27)
+  backDrop: .015, // was .075 (to the shoulders); the head turnaround's back ends at the top of the collar (2026-11-27; the user: shorten it as you see fit)
   /** Two layers: strands of the outer layer end this much shorter than the inner ones (m), so the inner shows
    *  below the outer as a second tier and the bob keeps its volume. */
   outerShort: .045,

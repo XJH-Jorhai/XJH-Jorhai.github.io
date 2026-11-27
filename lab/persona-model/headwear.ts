@@ -111,8 +111,8 @@ export const FRINGE = {
   locks: [
     {p:[[0,0],[-.27,.1],[-.41,.87]],w:.24,out:.005},   // her right side lock
     {p:[[0,0],[.27,.1],[.42,.88]],w:.24,out:.005},     // her left side lock
-    {p:[[0,0],[-.1,.45],[-.07,.96]],w:.17,out:.008},   // middle, left
-    {p:[[.01,0],[.17,.5],[.08,.99]],w:.15,out:.008},   // middle, right
+    {p:[[0,0],[-.07,.45],[-.045,.96]],w:.12,out:.008}, // middle, left (narrower: between the eyes, not over one, as on the sheet)
+    {p:[[.01,0],[.12,.5],[.055,.99]],w:.11,out:.008},  // middle, right
     {p:[[.02,.02],[.15,.6],[-.08,.99]],w:.07,out:.011}, // crossing over to the left (smaller, sharper: the user's note)
     {p:[[.03,.3],[.12,.7],[.01,.97]],w:.025,out:.012}, // a fine tip
   ] as {p:[number,number][],w:number,out:number}[],

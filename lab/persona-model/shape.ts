@@ -26,6 +26,8 @@ export const SHAPE = {
   backVolume: .08, backLift: .03,
   /** Each strand comes to a point: its middle runs this much further down than its edges (m). */
   tip: .018,
+  /** Layers: some strands end shorter than their neighbours (m), and the ends of all strands flick out a little (m). */
+  layer: .022, flick: .012,
   /** Honey blonde (persona palette "hair"), and the colour of its shaded side before the site's navy. */
   hair: '#EDC591', hairShade: '#C99A62', brow: '#B8875A',
 };
@@ -64,7 +66,10 @@ function bob(mesh:THREE.Mesh,s:typeof SHAPE,centre:THREE.Vector3){
   for(let i=0;i<pos.count;i++){const r=find(i),u=uv.getX(i);lo.set(r,Math.min(lo.get(r)??u,u));hi.set(r,Math.max(hi.get(r)??u,u));}
   const middle=new Float32Array(pos.count);
   for(let i=0;i<pos.count;i++){const r=find(i),w=hi.get(r)!-lo.get(r)!;middle[i]=w>1e-4?1-Math.abs(2*(uv.getX(i)-lo.get(r)!)/w-1):1;}
-  const endOf=(i:number)=>endAt(pos.getX(i),pos.getZ(i))-s.tip*middle[i]!;
+  // layers: every strand gets its own length (a hash of the strand), so the ends sit in uneven tiers
+  const layerOf=new Map<number,number>();
+  const tier=(r:number)=>{let v=layerOf.get(r);if(v===undefined){v=((Math.sin(r*12.9898)*43758.5453)%1+1)%1;layerOf.set(r,v);}return v;};
+  const endOf=(i:number)=>endAt(pos.getX(i),pos.getZ(i))-s.tip*middle[i]!+s.layer*(tier(find(i))>.6?1:tier(find(i))>.3?.45:0);
   const below=(i:number)=>pos.getY(i)<endOf(i)-.002;
   // drop the triangles wholly below the cut, group by group (the outline draws the same triangles again)
   const groups=g.groups.length?g.groups:[{start:0,count:index.count,materialIndex:0}];
@@ -87,6 +92,8 @@ function bob(mesh:THREE.Mesh,s:typeof SHAPE,centre:THREE.Vector3){
     // (a swell that peaks part-way down and is gone again at the ends, fuller at the back of the head)
     if(y<s.volumeFrom){const k=Math.min(1,(s.volumeFrom-Math.max(y,end))/(s.volumeFrom-end)),v=1+(s.volume-1+s.backVolume*back(x,z))*Math.sin(k*Math.PI)**.7;x=centre.x+(x-centre.x)*v;z=centre.z+(z-centre.z)*v;}
     if(y<end){const depth=Math.min(1,(end-y)/.08),pull=tuck*depth;x+=(centre.x-x)*pull;z+=(centre.z-z)*pull;y=end-.004*depth;}
+    // the last few centimetres of each strand lift and flick outwards, like the sheet's tips
+    else if(y<end+.035){const k=1-(y-end)/.035,r=Math.hypot(x-centre.x,z-centre.z)||1,out=s.flick*k*k*(tier(find(i))>.5?1:.4);x+=(x-centre.x)/r*out;z+=(z-centre.z)/r*out;y+=out*.4;}
     pos.setXYZ(i,x,y,z);
   }
   pos.needsUpdate=true;g.computeVertexNormals();g.computeBoundingSphere();

@@ -23,7 +23,13 @@ export const CLOTHES = {
   shirt: '#F7F4EE', shirtShade: '#C9C3CF',
   plaidBase: '#6F6A80', plaidLight: '#D9D4E2', plaidPink: '#E9ACA9', plaidDark: '#4A4660',
   sock: '#F5F2EC', sockShade: '#C8C3CC',
-  loafer: '#5E3F31',
+  loafer: '#6E4A3A', loaferSole: '#3A2620', strap: '#4E3328',
+  /** Sole: below this (m). Saddle strap across the instep at this depth (m, forward). */
+  soleTop: .022, strapZ: .055,
+  /** Mesh parts with fewer vertices than this are lace loops. */
+  laceParts: 24,
+  /** The strap runs where the shoe is higher than this (m), i.e. across the top of the instep. */
+  strapFrom: .06,
   ribbon: '#E39AA0', ribbonShade: '#B86F7C',
   /** Cardigan hem (sheet: 0.627 C above the soles). */
   hem: .871,
@@ -35,6 +41,8 @@ export const CLOTHES = {
   sockTop: .226,
   /** Where the sleeves meet the cardigan: this far out from the shoulder joint (m). */
   seam: .035,
+  /** Ribbing: the hem band's height, the placket's width, the pockets (|x| range, height range) and their ribbed tops (m). */
+  ribHem: .03, ribPlacket: .017, pocketX: [.045,.115] as [number,number], pocketY: [.893,.955] as [number,number], ribPocket: .012,
   /** Everything of the T-shirt within this distance of the arm's axis, beyond the seam, is sleeve (m). */
   armhole: .088,
   /** The T-shirt's neckline is cut here (m); the collar covers from here up. */
@@ -262,16 +270,90 @@ export function clothes(vrm:VRM){
   {const cn=coat.geometry.attributes.normal as THREE.BufferAttribute,n=new THREE.Vector3();
    for(const [i,w,radial] of drawn){n.fromBufferAttribute(cn,i).lerp(radial,w).normalize();cn.setXYZ(i,n.x,n.y,n.z);}cn.needsUpdate=true;}
 
+  // --- the cardigan's ribbing (as on the no-hat sheet): a ribbed band round the hem, a ribbed placket up
+  // the front and round the V, and two pockets on the front with ribbed tops, raised a little off the knit
+  {
+    const g=coat.geometry,pos=g.attributes.position as THREE.BufferAttribute,nor=g.attributes.normal as THREE.BufferAttribute,idx=g.index!;
+    const inPocket=(x:number,y:number,z:number)=>z>centreZ&&Math.abs(x)>C.pocketX[0]&&Math.abs(x)<C.pocketX[1]&&y>C.pocketY[0]&&y<C.pocketY[1];
+    for(let i=0;i<pos.count;i++)if(inPocket(pos.getX(i),pos.getY(i),pos.getZ(i)))pos.setXYZ(i,pos.getX(i)+nor.getX(i)*.0025,pos.getY(i)+nor.getY(i)*.0025,pos.getZ(i)+nor.getZ(i)*.0025);
+    pos.needsUpdate=true;
+    const ribbed=(x:number,y:number,z:number)=>{
+      if(y<C.hem+C.ribHem)return true;                                                   // hem band
+      if(z>centreZ){
+        const edge=y>C.vBottom?Math.abs(x)-vHalf(y):Math.abs(x);                          // placket: along the V's edge, then down the front
+        if(edge>-.001&&edge<C.ribPlacket&&y<C.vTop+.004)return true;
+        if(Math.abs(x)>C.pocketX[0]&&Math.abs(x)<C.pocketX[1]&&y>C.pocketY[1]-C.ribPocket&&y<C.pocketY[1])return true; // pocket tops
+      }
+      return false;
+    };
+    const count=g.groups[0]!.count,plain:number[]=[],banded:number[]=[];
+    for(let t=0;t<count;t+=3){
+      const a=idx.getX(t),b=idx.getX(t+1),c=idx.getX(t+2);
+      const x=(pos.getX(a)+pos.getX(b)+pos.getX(c))/3,y=(pos.getY(a)+pos.getY(b)+pos.getY(c))/3,z=(pos.getZ(a)+pos.getZ(b)+pos.getZ(c))/3;
+      (ribbed(x,y,z)?banded:plain).push(a,b,c);
+    }
+    g.setIndex([...plain,...banded]);g.clearGroups();
+    g.addGroup(0,plain.length,0);g.addGroup(plain.length,banded.length,2);g.addGroup(0,plain.length+banded.length,1);
+    const ribMat=dress(baseMat!,undefined,C.cuff,C.coatShade,rib())[0]!;ribMat.side=THREE.FrontSide;
+    coat.material=[...(coat.material as THREE.Material[]),ribMat];
+  }
+
   // --- skirt
   skirt(body,vrm,dress(baseMat!,baseOutline,'#ffffff','#9a94ad',plaid()));
 
   // --- socks, from the shins and ankles
-  const legBones=boneSet('LowerLeg');
-  grow(body,body.geometry,(i,p)=>legBones.has(dominant(body.geometry,i))&&p.y<C.sockTop&&p.y>.07,(_,p)=>p.y>C.sockTop-.035?.009:.005,
+  // inside the shoe: a brown lining over the foot, so the gaps between the shoe's panels show shoe, not sock
+  {const feet=boneSet('Bip_L_Foot','Bip_R_Foot','ToeBase');
+   grow(body,body.geometry,(i,p)=>feet.has(dominant(body.geometry,i))&&p.y<.095,()=>.0006,()=>[0,0],dress(baseMat!,undefined,C.loaferSole,'#22140f',null));}
+  // the shins and the ankle (foot-weighted skin above the toes): down into the shoe, so no skin shows between
+  const legBones=boneSet('LowerLeg','Bip_L_Foot','Bip_R_Foot'),footBones=boneSet('Bip_L_Foot','Bip_R_Foot');
+  grow(body,body.geometry,(i,p)=>legBones.has(dominant(body.geometry,i))&&p.y<C.sockTop&&p.y>(footBones.has(dominant(body.geometry,i))?(p.z>.015?.09:.05):.045)&&p.z<.06, // on the foot, only above the shoe's collar: high over the instep (where the tongue has gaps), low at the heel and the sides
+    (i,p)=>p.y>C.sockTop-.035?.009:footBones.has(dominant(body.geometry,i))?.0008:.005, // thin where the shoe covers it, or it shows through
     p=>[Math.atan2(p.x-Math.sign(p.x)*.077,p.z)/(Math.PI*2)*4,p.y*8],dress(baseMat!,baseOutline,C.sock,C.sockShade,rib()));
 
   // --- loafers: the shoes, brown
-  for(const m of shoes.material as MToonMaterial[]){m.color.set(C.loafer);m.shadeColorFactor.set('#2e1d16');m.map=null;m.shadeMultiplyTexture=null;m.needsUpdate=true;}
+  // loafers from the base model's sneakers: the laces (small separate parts of the mesh) go, the upper
+  // is one flat brown and the sole (the lowest 2 cm) a darker one; a saddle strap crosses the instep
+  {
+    const g=shoes.geometry,pos=g.attributes.position as THREE.BufferAttribute,idx=g.index!,parent=new Int32Array(pos.count).map((_,i)=>i);
+    const find=(i:number):number=>{while(parent[i]!==i){parent[i]=parent[parent[i]!]!;i=parent[i]!;}return i;};
+    const count=g.groups[0]?.count??idx.count;
+    for(let t=0;t<count;t+=3){const a=find(idx.getX(t)),b=find(idx.getX(t+1)),c=find(idx.getX(t+2));parent[b]=a;parent[c]=a;}
+    const size=new Map<number,number>();for(let i=0;i<pos.count;i++){const r=find(i);size.set(r,(size.get(r)??0)+1);}
+    const upper:number[]=[],sole:number[]=[];
+    for(let t=0;t<count;t+=3){
+      const tri=[idx.getX(t),idx.getX(t+1),idx.getX(t+2)];if(size.get(find(tri[0]!))!<C.laceParts)continue; // the laces: thin loose loops (the tongue and eyelet panels stay, or the shoe has holes)
+      (tri.every(i=>pos.getY(i)<C.soleTop)?sole:upper).push(...tri);
+    }
+    g.setIndex([...upper,...sole]);g.clearGroups();g.addGroup(0,upper.length,0);g.addGroup(upper.length,sole.length,2);g.addGroup(0,upper.length+sole.length,1);
+    const [m0,o0]=shoes.material as MToonMaterial[];
+    const flatShoe=(c:string,sh:string)=>{const m=m0!.clone() as MToonMaterial;m.color.set(c);m.shadeColorFactor.set(sh);m.map=null;m.shadeMultiplyTexture=null;m.needsUpdate=true;return m;};
+    shoes.material=[flatShoe(C.loafer,'#45291f'),o0!,flatShoe(C.loaferSole,'#22140f')];
+    // the strap: a band over the instep, following the shoe's surface (the highest point across it)
+    const strapMat=flatShoe(C.strap,'#2c1a13');
+    for(const sign of [-1,1]){
+      const P:number[]=[],I:number[]=[],xs:number[]=[];
+      for(let i=0;i<pos.count;i++)if(Math.sign(pos.getX(i))===sign)xs.push(pos.getX(i));
+      const xmin=Math.min(...xs),xmax=Math.max(...xs),zc=C.strapZ,N=16,tops:[number,number][]=[];
+      for(let k=0;k<=N;k++){
+        const x=xmin+(xmax-xmin)*k/N;let top=0;
+        for(let i=0;i<pos.count;i++)if(Math.abs(pos.getX(i)-x)<.008&&Math.abs(pos.getZ(i)-zc)<.012&&size.get(find(i))!>=60)top=Math.max(top,pos.getY(i));
+        if(top>C.strapFrom)tops.push([x,top]); // over the instep only: not down the shoe's sides
+      }
+      // a smooth arch over the instep (the raw tops step where the eyelet panels are)
+      tops.splice(0,2);tops.splice(-2,2); // its ends tuck under the sides, not out past them
+      for(let k=0;k<tops.length;k++){const w=tops.slice(Math.max(0,k-3),k+4),y=Math.max(...w.map(v=>v[1]));P.push(tops[k]![0],y+.003,zc-.009,tops[k]![0],y+.003,zc+.009);}
+      for(let k=1;k<P.length/6;k++)I.push(2*k-2,2*k-1,2*k,2*k-1,2*k+1,2*k);
+      // skinned to the foot, like the shoe itself
+      const sg=new THREE.BufferGeometry(),n=P.length/3,fb=boneIndex(sign>0?'leftFoot':'rightFoot');
+      sg.setAttribute('position',new THREE.Float32BufferAttribute(P,3));sg.setIndex(I);sg.computeVertexNormals();
+      sg.setAttribute('skinIndex',new THREE.Uint16BufferAttribute(Array.from({length:n*4},(_,k)=>k%4?0:fb),4));
+      sg.setAttribute('skinWeight',new THREE.Float32BufferAttribute(Array.from({length:n*4},(_,k)=>k%4?0:1),4));
+      const m=strapMat.clone() as MToonMaterial;m.side=THREE.DoubleSide;sg.addGroup(0,I.length,0);
+      attach(shoes,sg,[m]);
+    }
+  }
+
 
   // the base model's T-shirt and shorts are replaced
   tops.visible=false;bottoms.visible=false;

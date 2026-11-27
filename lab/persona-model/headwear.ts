@@ -341,7 +341,7 @@ export function headwear(vrm:VRM,base:MToonMaterial):Headwear{
             void u;
             // the ends turn in towards the face (the user's note, 2026-11-27): the top stays, below `bendFrom` the
             // outline curves in, most at the front locks beside the cheek, less towards the back
-            const bendK=1-.6*Math.min(1,Math.max(0,(deg-55)/45));
+            const bendK=1-.4*Math.min(1,Math.max(0,(deg-90)/30));
             const bob=silhouette(y)+CURTAIN.back*Math.max(0,deg-60)/60-arcIn(y)*bendK;
             const k0=Math.min(1,Math.max(0,(y-1.5)/.08)),k=k0*k0*(3-2*k0),crown=Math.sqrt(Math.max(0,1-((y-H.centre.y)/.152)**2))*(H.radii.x+.006); // up top it lies over the crown hair (6 mm, so it stays inside the hat) (on the head's measured ellipsoid plus the hair's thickness; the measurement is clamped there and made the tops stand up like ears), covering the straight lower edge of its cards (under it, that edge showed as a ledge)
             return bob+(crown-bob)*k;},

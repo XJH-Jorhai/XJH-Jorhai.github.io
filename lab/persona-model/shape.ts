@@ -160,7 +160,7 @@ function bob(mesh:THREE.Mesh,s:typeof SHAPE,centre:THREE.Vector3){
   // one wide arc, the back less
   for(let i=0;i<pos.count;i++){
     const x=pos.getX(i),y=pos.getY(i),z=pos.getZ(i),inn=arcIn(y);if(!inn)continue;
-    const dx=x-centre.x,dz=z-centre.z,r=Math.hypot(dx,dz)||1,w=(1-.6*smooth(.3,.75,back(x,z)))*(1-smooth(-.02,.03,z)) /* not the cards over the face: drawn in, they crossed the eyes */,nr=Math.max(.05,r-inn*w);
+    const dx=x-centre.x,dz=z-centre.z,r=Math.hypot(dx,dz)||1,w=(1-.55*smooth(.6,.95,back(x,z)))* /* the sides curl as much as the front (the layer behind the face-side hair flared out below it: 2026-11-27) */(1-smooth(-.02,.03,z)) /* not the cards over the face: drawn in, they crossed the eyes */,nr=Math.max(.05,r-inn*w);
     pos.setXYZ(i,centre.x+dx*nr/r,y,centre.z+dz*nr/r);
   }
   pos.needsUpdate=true;g.computeVertexNormals();g.computeBoundingSphere();

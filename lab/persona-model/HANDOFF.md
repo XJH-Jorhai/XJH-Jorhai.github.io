@@ -28,7 +28,7 @@ npm run check             # 提交前必须 0 errors 0 warnings
 | `main.ts` | 场景、相机、三渲二配色（`teisu()`：阴影偏深蓝、细红轮廓光、深蓝描边）、A 字站姿、呼吸眨眼、视线跟随、按钮 |
 | `shape.ts` | 身材比例（小腿缩短）、头发：剪成波波头、每缕发梢收尖、C 形鼓起再内卷、前额发束梳成刘海、发色、发片描边宽度 |
 | `clothes.ts` | 开衫（由基础模型的 T 恤细分改成，V 领、纽扣、袖子收成气球袖再接袖管）、衬衫和领子、蝴蝶结和飘带、格纹百褶裙、袜子、鞋的颜色 |
-| `headwear.ts` | 刘海下面那层深色底发、发结、渔夫帽（可摘）；另外铺的发束刘海已停用（`extraFringe`，会像两种头发叠在一起） |
+| `headwear.ts` | 照用户画稿做的刘海（`FRINGE`：每缕一条二次曲线，用基础头发自己的材质；基础模型的额前发片被去掉）、根部的深色底发、发结、渔夫帽（可摘） |
 | `turntable.mjs` | 验收渲染：八角度、三视图对照、上半身 / 头 / 腿近景 |
 | `build.mjs`、`template.html` | 构建 |
 
@@ -37,7 +37,7 @@ npm run check             # 提交前必须 0 errors 0 warnings
 ## 参考图
 
 - 公开的：`public/media/persona/view-front.webp`、`view-side.webp`、`view-back.webp`（戴帽子的三视图，`turntable.mjs` 拿它对照）。
-- 私有的（不在仓库里，`inputs/source/` 被 git 忽略）：`inputs/source/persona/model/head-turnaround.webp`（头部五个角度，不戴帽子）、`hat-turnaround.webp`（帽子）、`body-turnaround-nohat.webp`（不戴帽子的全身三视图）。需要的话向用户要，放到同样的路径；**不要提交它们**。
+- 私有的（不在仓库里，`inputs/source/` 被 git 忽略）：`inputs/source/persona/model/fringe-front.webp`（用户画的刘海正面）、`inputs/source/persona/model/head-turnaround.webp`（头部五个角度，不戴帽子）、`hat-turnaround.webp`（帽子）、`body-turnaround-nohat.webp`（不戴帽子的全身三视图）。需要的话向用户要，放到同样的路径；**不要提交它们**。
 
 ## 必须遵守
 

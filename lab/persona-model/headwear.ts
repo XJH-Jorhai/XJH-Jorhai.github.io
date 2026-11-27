@@ -20,9 +20,11 @@ export const HEAD = {
   /** Fringe: strands across the front (azimuth, degrees, 0 = straight ahead; negative = her right), where each ends (m above the soles), sweep. */
   fringe: [[-80,1.39],[-66,1.41],[-52,1.43],[-40,1.455],[-29,1.468],[-18,1.476],[-8,1.462],[0,1.452],[8,1.46],[18,1.474],[29,1.466],[40,1.452],[52,1.43],[66,1.41],[80,1.39]] as [number,number][],
   sweep: -7, rootY: 1.585, strandWidth: .03, extraFringe: false,
+  /** The base hair's front cards that the drawn fringe replaces: centre in front of z (m), lowest point above y (m). A strip of the hair texture for the new locks (u range). */
+  fringeCut: [.03,1.38] as [number,number], fringeUV: [.147,.344] as [number,number],
   hair: '#EDC591', hairShade: '#C99A62',
   /** The darker hair under the fringe, from this height up (m). */
-  hairUnder: '#C99A62', hairUnderShade: '#9E7449', underFrom: 1.497,
+  hairUnder: '#C99A62', hairUnderShade: '#9E7449', underFrom: 1.54, // only up under the fringe's root: lower down, the V between the locks shows forehead, as drawn
   bow: '#E9A3B1', bowShade: '#B8707F',
   hat: '#F6F0EC', hatShade: '#D8CCD2', stripeBlue: '#9FC3DA', stripePink: '#DF95A6',
 };
@@ -93,6 +95,55 @@ function hat(white:THREE.Material,blue:THREE.Material,pink:THREE.Material){
   return g;
 }
 
+/**
+ * The fringe of the user's drawing (inputs/source/persona/model/fringe-front.webp, 2026-11-27): from one
+ * point at the top of the forehead, a wide lock each side sweeping out and down to above the outer corner
+ * of each eye, and a group in the middle falling straight down between the eyes, one lock crossing over to
+ * the left and ending in fine points. Between the side locks and the middle, a V of forehead.
+ * Each lock: a quadratic curve in the drawing's own frame (x across, -0.5…0.5 of the fringe's width;
+ * y down, 0…1 of its height), its widest width, and how far it stands off the head (m; later ones lie on top).
+ */
+export const FRINGE = {
+  width: .24, top: 1.588, height: .141,
+  locks: [
+    {p:[[0,0],[-.27,.1],[-.41,.87]],w:.24,out:.005},   // her right side lock
+    {p:[[0,0],[.27,.1],[.42,.88]],w:.24,out:.005},     // her left side lock
+    {p:[[0,0],[-.1,.45],[-.07,.96]],w:.17,out:.008},   // middle, left
+    {p:[[.01,0],[.17,.5],[.08,.99]],w:.15,out:.008},   // middle, right
+    {p:[[.02,.02],[.15,.6],[-.1,.99]],w:.1,out:.011},  // crossing over to the left
+    {p:[[.03,.3],[.12,.7],[0,.98]],w:.04,out:.012},    // a fine tip
+  ] as {p:[number,number][],w:number,out:number}[],
+};
+
+/** One lock as a strip lying on the head (the hair's measured ellipsoid, and never inside the forehead). */
+function lockGeometry(lock:typeof FRINGE.locks[number],uv:[number,number]){
+  const F=FRINGE,N=28,A=4,P:number[]=[],U:number[]=[],I:number[]=[];
+  const [p0,p1,p2]=lock.p as [[number,number],[number,number],[number,number]];
+  const at=(t:number)=>[(1-t)**2*p0[0]+2*(1-t)*t*p1[0]+t*t*p2[0],(1-t)**2*p0[1]+2*(1-t)*t*p1[1]+t*t*p2[1]] as [number,number];
+  const toHead=(dx:number,dy:number,out:number)=>{
+    const x=dx*F.width,y=F.top-dy*F.height,c=H.centre,r=H.radii;
+    const xs=Math.max(-.97*r.x,Math.min(.97*r.x,x));
+    const k=Math.max(.02,1-(xs/r.x)**2-((y-c.y)/r.y)**2);
+    let z=c.z+r.z*Math.sqrt(k);
+    const fy=Math.min(1.58,Math.max(1.44,y)),face=.078-1.9*(fy-1.5)**2-(fy>1.5?(fy-1.5)*.35:0)-9*x*x; // the forehead's front, measured (it curves away fast: at the temples it is near z 0)
+    z=Math.max(z,face+.004)+out;
+    return [x,y,z];
+  };
+  for(let i=0;i<=N;i++){
+    const t=i/N,c=at(t),d=at(Math.min(1,t+.01)),e=at(Math.max(0,t-.01)),tx=d[0]-e[0],ty=d[1]-e[1],len=Math.hypot(tx,ty)||1,nx=-ty/len,ny=tx/len;
+    const w=lock.w*Math.pow(Math.max(0,4*t*(1-t)),.55)*.5+(t<.5?.004:0);
+    for(let a=0;a<=A;a++){
+      const s=a/A*2-1,bulge=.0025*(1-s*s);
+      // at the root the lock lies in the hair (no ridge where the locks part), standing off only further down
+      P.push(...toHead(c[0]+nx*s*w,c[1]+ny*s*w*(F.width/F.height),(lock.out+bulge)*(.25+.75*Math.min(1,t/.18))-.004*(1-Math.min(1,t/.12))));
+      U.push(uv[0]+(s+1)/2*(uv[1]-uv[0]),t);
+      if(i&&a)I.push((i-1)*(A+1)+a-1,i*(A+1)+a-1,(i-1)*(A+1)+a,i*(A+1)+a-1,i*(A+1)+a,(i-1)*(A+1)+a);
+    }
+  }
+  const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(P,3));g.setAttribute('uv',new THREE.Float32BufferAttribute(U,2));g.setIndex(I);g.computeVertexNormals();
+  return g;
+}
+
 export type Headwear={setHat(on:boolean):void};
 
 export function headwear(vrm:VRM,base:MToonMaterial):Headwear{
@@ -111,6 +162,27 @@ export function headwear(vrm:VRM,base:MToonMaterial):Headwear{
   // (no separate fringe: laid over the base hair it read as a second hairstyle on top of the first,
   // 2026-11-27. shape.ts combs the base hair's own front strands into the fringe instead.)
   if(H.extraFringe){const fringe=new THREE.Mesh(fringeGeometry(),mat(H.hair,H.hairShade,strandTexture()));carry(fringe,new THREE.Vector3());}
+  // The drawn fringe. The base hair's own front cards (in front of the face, above the cheek) go; the new
+  // locks use the base hair's very materials and a strip of its texture (one hairstyle, not two).
+  {
+    let hair:THREE.Mesh|null=null;vrm.scene.traverse(o=>{if((o as THREE.Mesh).isMesh&&o.name==='Hair')hair=o as THREE.Mesh;});
+    if(hair){
+      const hm=hair as THREE.Mesh,g=hm.geometry,pos=g.attributes.position as THREE.BufferAttribute,idx=g.index!;
+      const par=new Int32Array(pos.count).map((_,i)=>i),find=(i:number):number=>{while(par[i]!==i){par[i]=par[par[i]!]!;i=par[i]!;}return i;};
+      for(let t=0;t<idx.count;t+=3){const a=find(idx.getX(t)),b=find(idx.getX(t+1)),c=find(idx.getX(t+2));par[b]=a;par[c]=a;}
+      const st=new Map<number,{n:number,z:number,ymin:number}>();
+      for(let t=0;t<idx.count;t++){const i=idx.getX(t),r=find(i),v=st.get(r)??{n:0,z:0,ymin:9};v.n++;v.z+=pos.getZ(i);v.ymin=Math.min(v.ymin,pos.getY(i));st.set(r,v);}
+      const front=(i:number)=>{const v=st.get(find(i))!;return v.z/v.n>H.fringeCut[0]&&v.ymin>H.fringeCut[1];};
+      const keep:number[]=[],groups:{start:number,count:number,materialIndex?:number}[]=[];
+      for(const grp of g.groups){const start=keep.length;for(let t=grp.start;t<grp.start+grp.count;t+=3){const a=idx.getX(t);if(front(a))continue;keep.push(a,idx.getX(t+1),idx.getX(t+2));}groups.push({start,count:keep.length-start,materialIndex:grp.materialIndex});}
+      g.setIndex(keep);g.clearGroups();for(const grp of groups)g.addGroup(grp.start,grp.count,grp.materialIndex);
+      const mats=hm.material as THREE.Material[];
+      for(const lock of FRINGE.locks){
+        const lg=lockGeometry(lock,H.fringeUV);mats.forEach((_,k)=>lg.addGroup(0,lg.index!.count,k));
+        const m=new THREE.Mesh(lg,mats);m.renderOrder=1;carry(m,new THREE.Vector3());
+      }
+    }
+  }
   // Under the fringe, the hair close to the scalp: a darker layer of hair over the top of the forehead,
   // grown from the face (so it moves with her head). Where the fringe's strands part, it shows hair, as
   // in a drawing, not the forehead. It stops above the brows, where the sheet shows a little forehead.

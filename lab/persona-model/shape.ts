@@ -29,8 +29,10 @@ export const SHAPE = {
   tip: .018,
   /** Layers: some strands end shorter than their neighbours (m). */
   layer: .022,
+  /** Face-side locks: raised this much at their ends (m), and turned in towards the chin by this share. */
+  sideLift: .018, sideTuck: .12,
   /** Fringe: front strands between these heights (m) and within this half-width (m) are combed towards the middle by up to `fringeComb`, and shifted towards her right (−x) by up to `fringeSweep` (m). */
-  fringeTop: 1.585, fringeBottom: 1.45, fringeHalf: .115, fringeComb: .55, fringeSweep: -.008, fringeClose: 0,
+  fringeTop: 1.585, fringeBottom: 1.45, fringeHalf: .115, fringeComb: .18, fringeSweep: 0, fringeClose: 0, fringeUnslant: 0, // straightening by shearing left a ragged edge (2026-11-27); the fringe needs its own cards // the sheet's fringe falls almost straight down from near the centre (a stronger comb read as a side sweep)
   /** Honey blonde (persona palette "hair"), and the colour of its shaded side before the site's navy. */
   hair: '#EDC591', hairShade: '#C99A62', brow: '#B8875A',
 };
@@ -100,10 +102,19 @@ function bob(mesh:THREE.Mesh,s:typeof SHAPE,centre:THREE.Vector3){
     // curl: past yc the strand runs round a circle, turning in under
     if(y<yc){
       // the locks beside the face fall almost straight and only turn in a little; the curl is fullest at the back
-      const k=.3+.7*smooth(.15,.6,back(x,z)),along=Math.min(yc-y,s.curlLength+.01),a=along/s.curlRadius*k;
-      R-=s.curlRadius*(1-Math.cos(a));y=yc-s.curlRadius*Math.sin(a);
+      // k scales the curl: the strand bends round a circle of radius curlRadius/k, so with k → 0 it hangs
+      // straight (with the radius fixed, a small k squashed everything below yc to one height: crumpled ends)
+      const k=Math.max(1e-3,(.3+.7*smooth(.15,.6,back(x,z)))*(1-smooth(-.015,.04,pos.getZ(i)))),rho=s.curlRadius/k;
+      const along=Math.min(yc-y,s.curlLength+.01),a=along/rho;
+      R-=rho*(1-Math.cos(a));y=yc-rho*Math.sin(a);
     }
-    x=centre.x+ux*R;z=centre.z+uz*R;
+    // in front of the head's centre (the locks beside the face) the hair spreads only sideways: pushed
+    // out along the radius it went forward past the cheek, and the curl folded it; in profile the sheet's
+    // side locks fall straight, behind the line of the face
+    const front=smooth(-.015,.04,pos.getZ(i)); // in front of the ears (by depth, not by the angle from the head's centre, which is behind them)
+    x=centre.x+ux*R;z=centre.z+uz*(r+(R-r)*(1-front));
+    // the face-side locks end a little higher (just below the chin) and turn in towards it at their ends
+    if(front>0){const lift=s.sideLift*front;if(y<end+.05)y+=lift*smooth(end+.05,end-.01,y);x=centre.x+(x-centre.x)*(1-s.sideTuck*front*smooth(end+.05,end-.01,y));}
     pos.setXYZ(i,x,y,z);
   }
   // The fringe, from the base hair's own front strands (one hairstyle, not two): over the forehead they
@@ -115,6 +126,8 @@ function bob(mesh:THREE.Mesh,s:typeof SHAPE,centre:THREE.Vector3){
     const across=Math.abs(x-centre.x);if(across>s.fringeHalf)continue;
     const k=Math.min(1,(s.fringeTop-y)/(s.fringeTop-s.fringeBottom))*(1-across/s.fringeHalf)**.6;
     x=centre.x+(x-centre.x)*(1-s.fringeComb*k)+s.fringeSweep*k;
+    // the base hair's fringe slopes down across her left brow; the sheet's falls straight: un-slant that side
+    if(pos.getX(i)>centre.x-.01)x-=s.fringeUnslant*(s.fringeTop-y)*Math.min(1,(1-across/s.fringeHalf)*2);
     // the base hair parts in the middle (two big cards with a gap between them, which combing only narrows):
     // the group on the −x side is slid across over the parting, so the fringe closes like the sheet's
     if(pos.getX(i)<centre.x)x+=s.fringeClose*k;
@@ -136,7 +149,7 @@ function recolor(tex:THREE.Texture|null,color:THREE.Color){
   let sum=0,n=0;for(let i=0;i<p.length;i+=4)if(p[i+3]!>8){sum+=.3*p[i]!+.59*p[i+1]!+.11*p[i+2]!;n++;}
   const mean=sum/Math.max(1,n)||1;
   for(let i=0;i<p.length;i+=4){
-    const l=(.3*p[i]!+.59*p[i+1]!+.11*p[i+2]!)/mean,s=.55+.45*l; // keep the strands' light and shade, softened
+    const l=(.3*p[i]!+.59*p[i+1]!+.11*p[i+2]!)/mean,s=Math.max(.25,.2+.8*l**1.4); // the strands' own lines, kept strong: with thin outlines they are what tells one strand from the next
     p[i]=Math.min(255,color.r*255*s);p[i+1]=Math.min(255,color.g*255*s);p[i+2]=Math.min(255,color.b*255*s);
   }
   x.putImageData(d,0,0);

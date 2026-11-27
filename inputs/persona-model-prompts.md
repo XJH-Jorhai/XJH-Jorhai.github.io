@@ -43,6 +43,36 @@ Neutral calm face, eyes open looking straight ahead in each view, mouth closed. 
 A prop turnaround sheet of the white bucket hat from the attached character reference, the hat alone with no head inside it, five views in one row on one wide canvas: front, right side, back, top-down view, and a three-quarter view from slightly above. Orthographic projection, all views the same scale. Keep it exactly as in the reference: white bucket hat with a short soft downward brim, one pale-blue and one dusty-pink stripe around the crown. Flat even lighting, no shadow, clean line art with flat colours, plain flat white background, no text, no labels.
 ```
 
+## 4. 脸部贴图（改画，不是重新生成）
+
+模型的脸是三张展开的贴图，位置和形状都对应着 3D 脸上的固定位置，所以**只能在原图上改画，图的尺寸、每个部件的位置和形状、背景颜色都不能动**。用图像编辑：把下面的原图作为输入图，参考图（头部转面 `head-turnaround.webp`、刘海正面 `fringe-front.webp`）作为风格参考一起给。原图由维护者从基础模型导出（VRoid 示例模型，许可允许修改和再发布）。
+
+**4a · 脸（`face-skin.png`，1024×1024）**：嘴、鼻子、腮红。
+
+```text
+Edit this exact image and keep everything outside the small changes below pixel-for-pixel the same. It is the unwrapped face texture of a 3D anime character (1024×1024): the large pale face area in the middle, ear shapes in the corners, two eye-hole shapes, a nose mark and a straight mouth line. Keep the image size, the layout, the position and shape of every part, the eye holes and the colours outside the face exactly as they are.
+
+Only change these, in the style of the attached head reference: replace the straight mouth line with a small, closed, gentle smile — one thin warm-brown line of about the same width and in the same place, its corners turned up very slightly; make the nose a tiny short warm line in the same place; keep the two soft round blush patches under the eye holes but make them faint warm peach. Skin a warm peach like the reference. Flat anime colours, no texture or noise, no shading, no new features, no lips, no teeth.
+```
+
+**4b · 虹膜（`eye-iris.png`，1024×512）**：两只虹膜。
+
+```text
+Edit this exact image and keep the image size, the black background, and the position, size and oval shape of both irises exactly. It is the iris texture of a 3D anime character: two irises on black.
+
+Repaint each iris in the style of the attached head reference: a warm honey-amber brown, darker brown at the top (under the upper lash), lighter golden amber towards the bottom, a dark brown round pupil in the centre, a thin dark brown rim, a few soft lighter flecks in the lower half. No white highlight dots (the model adds its own highlights). Clean anime rendering, flat with soft gradients, no photorealistic texture. Both irises the same.
+```
+
+**4c · 睫毛（`eye-lashes.png`，1024×256）**：上睫毛线和眼皮的线。
+
+```text
+Edit this exact image and keep the image size, the dark background colour, and the positions of all shapes exactly. It is the eyelash texture of a 3D anime character: two dark upper lash lines, and above each a pale eyelid-crease shape.
+
+Reshape only the two dark lash lines, in the style of the attached head reference: a clean, fairly thick upper lash line in dark warm brown, thickest at the outer end where it finishes in a short flick outwards and slightly down, thinning towards the inner corner, with a soft lower edge. Keep the pale crease shapes above them as they are. Flat anime colours, no individual hairs, nothing else added.
+```
+
+改好之后：三张都保持原来的尺寸存成 PNG，放到 `inputs/source/persona/model/face/`（不进仓库），告诉维护者。维护者会把它们换到模型上，从正面、3/4、侧面对照参考图检查，并确认眨眼时睫毛和眼皮仍然对得上。
+
 ## 不要（如果工具有反向提示词栏）
 
 ```text

@@ -156,9 +156,11 @@ function lockGeometry(lock:typeof FRINGE.locks[number],uv:[number,number]){
 export const SIDELOCKS = [
   // they start inside the hair (hidden under it), come out round the ear and end at the jaw, turned in;
   // three a side, close to the face, so the cheek is framed by hair (not by a gap onto the background)
-  {p:[[.075,1.505,-.012],[.15,1.44,-.008],[.108,1.325,.014]],w:.06,bulge:.005},
-  {p:[[.073,1.5,.014],[.142,1.44,.02],[.1,1.333,.034]],w:.05,bulge:.005},
-  {p:[[.07,1.495,.036],[.133,1.435,.042],[.09,1.35,.052]],w:.036,bulge:.005},
+  // their ends curl in beside the jaw (the head turnaround: 6-7 cm off the middle, where they ended 9-11 cm
+  // out and hung straight, 2026-11-27); fuller at the cheek, so the bob is a bell
+  {p:[[.075,1.505,-.012],[.165,1.43,-.008],[.076,1.318,.012]],w:.06,bulge:.005},
+  {p:[[.073,1.5,.014],[.155,1.43,.02],[.071,1.326,.032]],w:.05,bulge:.005},
+  {p:[[.07,1.495,.036],[.143,1.43,.042],[.066,1.345,.05]],w:.036,bulge:.005},
 ] as {p:[number,number,number][],w:number,bulge:number}[];
 
 function sideLockGeometry(lock:typeof SIDELOCKS[number],sign:number,uv:[number,number]){
@@ -201,26 +203,24 @@ export const FILL = {
 /** The curtain beside the face: angles (degrees from ahead), radius from the hair's centre at the top (m), how much
  *  it swells beside the cheek and further out towards the back (m), where it ends (m, and how much lower round
  *  the back), its layers. */
-/** The hair's outline from the front (the user's note, 2026-11-27: the sheet's head of hair is a convex triangle,
- *  its edge one continuous line; pinched at the temples and full at the cheeks it read as a pear): the radius
- *  beside the head, from just under the hat's rim (where it fits inside the hat) straight down and out to the ends. */
-// A round dome on top (radius `dome` about height `cy`, inside the hat), and below it the tangent from the dome
-// straight down and out to the ends: one continuous line, no corner (a straight start at the hat's rim made
-// a shoulder there).
-export const SIL = {dome:.134,cy:1.478,ends:1.34,atEnds:.164,atEndsBack:.17};
-/** The outline to given ends (radius xe at height ye): the dome on top, then the tangent from it to the ends. */
-const silhouetteTo=(y:number,xe:number,ye:number)=>{
-  const R=SIL.dome,cy=SIL.cy,dx=xe,dy=ye-cy,d2=dx*dx+dy*dy,a=Math.atan2(dy,dx)+Math.acos(Math.min(1,R/Math.sqrt(d2))),tx=R*Math.cos(a),ty=cy+R*Math.sin(a);
-  return y>=ty?Math.sqrt(Math.max(0,R*R-(y-cy)**2)):tx+(xe-tx)*Math.min(1,(ty-y)/(ty-ye));
+/** The hair's outline (the user's notes, 2026-11-27: a convex shape whose edge is one continuous line; then
+ *  "match the head turnaround's distances, length and curl"): measured off the turnaround at equal scale (eyes to
+ *  chin matched), the radius from the hair's centre at each height. One smooth line: a dome that is narrower on
+ *  top than the old one (it stood 1.5 cm out each side at the temples), widest beside the nose (`yw`), and below
+ *  that one big inward curl to the ends, so the bob is a bell, its ends tucked in beside the neck.
+ *    upper: w·(1−s^p)^(1/p), s from the widest point (0) to the top (1)
+ *    lower: we+(w−we)·(1−s^q), s from the widest point (0) to the ends (1): full, then turning in fast at the ends
+ *  Round the back (`k` 1) a little fuller and the ends less tucked (they lie on the nape). The fit, front (m):
+ *  1.557 .084 · 1.517 .104 · 1.458 .126 · 1.419 .133 · 1.38 .117 · 1.36 .101 (sheet, less the strands' own depth). */
+export const SIL = {top:1.612,yw:1.425,w:.133,wBack:.137,we:.05,weBack:.06,p:1.8,q:2,
+  /** The ellipsoid under the crown strands (fills the top of the head): radii as shares of the outline's. */
+  cap:.86};
+/** The outline at height y for hair ending at ye; k: 0 at the sides, 1 at the back. */
+const silhouetteTo=(y:number,ye:number,k=0)=>{
+  const {top,yw,p,q}=SIL,W=SIL.w+(SIL.wBack-SIL.w)*k,we=SIL.we+(SIL.weBack-SIL.we)*k;
+  if(y>=yw){const s=Math.min(1,(y-yw)/(top-yw));return W*Math.pow(Math.max(0,1-Math.pow(s,p)),1/p);}
+  const s=Math.min(1,Math.max(0,(yw-y)/Math.max(.02,yw-ye)));return we+(W-we)*(1-Math.pow(s,q));
 };
-/** The inward curl from ARC.from down to ends at ye (a wide circular arc, ARC.depth at the ends). */
-const arcTo=(y:number,ye:number)=>{const L=Math.max(.05,ARC.from-ye),d=Math.min(L,Math.max(0,ARC.from-y)),D=ARC.depth*Math.min(1.3,L/(ARC.from-ARC.ends)),R=(L*L+D*D)/(2*D);return R-Math.sqrt(Math.max(0,R*R-d*d));};
-const silhouette=(()=>{
-  const {dome:R,cy,ends:ye,atEnds:xe}=SIL,dx=xe,dy=ye-cy,d2=dx*dx+dy*dy,l=Math.sqrt(d2-R*R);
-  // the tangent point on the circle, on the outer side
-  const a=Math.atan2(dy,dx)+Math.acos(R/Math.sqrt(d2)),tx=R*Math.cos(a),ty=cy+R*Math.sin(a);void l;
-  return (y:number)=>y>=ty?Math.sqrt(Math.max(0,R*R-(y-cy)**2)):tx+(xe-tx)*Math.min(1,(ty-y)/(ty-ye));
-})();
 
 /** The big inward curl of the ends (the user's note, 2026-11-27: "a big, sweeping curl" towards the face): from
  *  eye level down, the outline leaves its straight line along a wide circular arc, turning in by `depth` at the
@@ -237,6 +237,8 @@ export const CURTAIN = {
   // flame-shaped tops (seen from above, 2026-11-27)
   layers: [{inset:.0,w:.026},{inset:.007,w:.04,drop:.045},{inset:.014,w:.054,drop:.065}],
   loose: {r:.012,a:.09,bow:.006,w:.6} as Loose,
+  /** Round the back, how far the strands' tips turn towards the middle (rad). */
+  converge: .14,
   /** Outer strands' outline, times the base hair's (which is thin: every base card is outlined). */
   outline: 2.6,
 };
@@ -262,7 +264,7 @@ function measureHair(hair:THREE.Mesh){
   // fill holes from the neighbours above
   for(let a=0;a<A;a++)for(let yi=Y-2;yi>=0;yi--)if(!outer[a*Y+yi])outer[a*Y+yi]=outer[a*Y+yi+1]!;
   // (clamped: a few stray vertices far out made spikes)
-  const at=(ang:number,y:number)=>{const a=((Math.floor(((ang+Math.PI)/(2*Math.PI))*A)%A)+A)%A,yi=Math.min(Y-1,Math.max(0,Math.floor((y-y0)/dy)));return Math.min(.175,Math.max(.085,outer[a*Y+yi]!));};
+  const at=(ang:number,y:number)=>{const a=((Math.floor(((ang+Math.PI)/(2*Math.PI))*A)%A)+A)%A,yi=Math.min(Y-1,Math.max(0,Math.floor((y-y0)/dy)));return Math.min(.175,Math.max(.065,outer[a*Y+yi]!));}; // (low .065: the ends now turn in to beside the neck)
   const end=(ang:number)=>{const a=((Math.floor(((ang+Math.PI)/(2*Math.PI))*A)%A)+A)%A;let m=9;for(const k of [a-1,a,a+1])m=Math.min(m,low[(k+A)%A]!);return m;};
   return {at,end};
 }
@@ -271,7 +273,7 @@ function measureHair(hair:THREE.Mesh){
  *  paper): each strand stands off by its own amount (radial, m, growing down its length), drifts sideways by its
  *  own angle (rad, at its tip), bows out in the middle, varies in width, and tapers from half way. */
 type Loose={r:number,a:number,bow:number,w:number};
-function fillGeometry(ang:number,layer:{inset:number,w:number,drop?:number},hair:{at:(a:number,y:number)=>number,end:(a:number)=>number,top?:number,curl?:(a:number)=>number,loose?:Loose},uv:[number,number],seed:number){
+function fillGeometry(ang:number,layer:{inset:number,w:number,drop?:number},hair:{at:(a:number,y:number)=>number,end:(a:number)=>number,top?:number,curl?:(a:number)=>number,loose?:Loose,sweep?:(a:number)=>number},uv:[number,number],seed:number){
   const rnd=(k:number)=>((Math.sin(seed*12.9898+k*78.233)*43758.5453)%1+1)%1,L=hair.loose;
   // round the back the strands come out of the hair just under the hat's brim, where one sees them from behind:
   // there they start together and lie flat until lower down (staggered, their tops showed under the brim)
@@ -286,7 +288,7 @@ function fillGeometry(ang:number,layer:{inset:number,w:number,drop?:number},hair
     const t=i/N,y=yTop+(yEnd-yTop)*t;
     for(let a=0;a<=Aw;a++){
       const taper=L?(1-.9*Math.max(0,(t-.45)/.55)**1.2):(1-.85*Math.max(0,(t-.75)/.25)**1.3);
-      const s=a/Aw*2-1,w=layer.w*wk*.5*(t<.15?.6+t/.15*.4:1)*taper,ac=ang+drift*t**1.4,aa=ac+s*w/Math.max(.05,hair.at(ac,y));
+      const s=a/Aw*2-1,w=layer.w*wk*.5*(t<.15?.6+t/.15*.4:1)*taper,ac=ang+(drift+(hair.sweep?.(ang)??0))*t**1.4,aa=ac+s*w/Math.max(.05,hair.at(ac,y));
       // its root sinks into the hair (tops showing out of the crown read as flat patches)
       let r=hair.at(aa,Math.max(y,yEnd+.012))-layer.inset+.0016*(seed%3)-(L?.006:.016)*(1-Math.min(1,t/(L?.15:.2)))**2+ /* loose (outer) strands lie on the crown from the top: sunk under it, where they came out made a jagged line (2026-11-27) */ (off*Math.min(1,t/.35)+bow*Math.sin(Math.PI*t)+(L?.0012*(1-s*s)+twist*s*w:0))*Math.min(1,Math.max(0,(looseFrom-y)/.05)); // loose only below the hat's rim: above it, it poked through the hat // twist: one edge out, the other in, so strands catch the light differently
       const k=Math.max(0,(y-(yEnd+FILL.curl))/-FILL.curl); // 0 → 1 over the last few cm: curl in under
@@ -356,11 +358,13 @@ export function headwear(vrm:VRM,base:MToonMaterial):Headwear{
       const backness=(deg:number)=>{const k=Math.min(1,Math.max(0,(deg-92)/38));return k*k*(3-2*k);};
       const endAt=(ang:number)=>{const deg=Math.abs(THREE.MathUtils.radToDeg(ang)),e=CURTAIN.end-CURTAIN.endBack*Math.min(1,Math.max(0,deg-55)/55),kb=backness(deg);return e+(measured.end(ang)+.006-e)*kb;};
       const shell=(ang:number,y:number)=>{
-        const deg=Math.abs(THREE.MathUtils.radToDeg(ang)),kb=backness(deg),ye=endAt(ang),xe=SIL.atEnds+(SIL.atEndsBack-SIL.atEnds)*kb;
-        const bendK=1-.4*Math.min(1,Math.max(0,(deg-90)/30));
-        return silhouetteTo(y,xe,ye)-arcTo(y,ye)*bendK;
+        const deg=Math.abs(THREE.MathUtils.radToDeg(ang));
+        return silhouetteTo(y,endAt(ang),backness(deg));
       };
       const prof={loose:CURTAIN.loose,top:CURTAIN.top,curl:(ang:number)=>{const d=Math.abs(THREE.MathUtils.radToDeg(ang));return .45+.55*Math.min(1,Math.max(0,(d-60)/30));},
+        // round the back the strands run together towards the middle at their tips (the head turnaround's back:
+        // they fall from the crown and meet in a soft U at the nape, not in one straight row)
+        sweep:(ang:number)=>{const d=Math.abs(THREE.MathUtils.radToDeg(ang));return Math.sign(ang)*CURTAIN.converge*Math.sin(Math.PI*Math.min(1,Math.max(0,(d-100)/80)));},
         at:shell,end:endAt};
       // the base hair inside the shell (by a little), so the shell is the outline everywhere
       {
@@ -395,7 +399,7 @@ export function headwear(vrm:VRM,base:MToonMaterial):Headwear{
         // the top of the head in front, behind the fringe's roots: short strands from the crown's top to the
         // fringe (here the base cards were removed for the fringe, leaving a bare patch seen from above)
         {
-          const capProf={top:CURTAIN.top,curl:()=>0,at:(ang:number,y:number)=>silhouetteTo(y,SIL.atEnds,SIL.ends)+.0015*Math.cos(ang*3),end:()=>CURTAIN.capEnd};
+          const capProf={top:CURTAIN.top,curl:()=>0,at:(ang:number,y:number)=>silhouetteTo(y,CURTAIN.end)+.0015*Math.cos(ang*3),end:()=>CURTAIN.capEnd};
           let cs=800;
           for(let deg=-48;deg<=48;deg+=8){const fg=fillGeometry(THREE.MathUtils.degToRad(deg),{inset:0,w:.05},capProf,H.fringeUV,cs++);fg.addGroup(0,fg.index!.count,0);
             const m=new THREE.Mesh(fg,[mats[0]!]);m.renderOrder=1;carry(m,new THREE.Vector3());}
@@ -419,7 +423,7 @@ export function headwear(vrm:VRM,base:MToonMaterial):Headwear{
         const prof={top:TEMPLE.top,curl:()=>0,
           // on the shell's dome, so from the front the outline runs on round from the crown down past the temples
           // (hugging the head it left the top of the head too narrow, 2026-11-27); it ends above the eye
-          at:(ang:number,y:number)=>silhouetteTo(y,SIL.atEnds,SIL.ends)-.002,
+          at:(ang:number,y:number)=>silhouetteTo(y,CURTAIN.end)-.002,
           end:(ang:number)=>TEMPLE.end-TEMPLE.endBack*Math.max(0,Math.abs(THREE.MathUtils.radToDeg(ang))-TEMPLE.from)/(TEMPLE.to-TEMPLE.from)};
         let seed=900;
         for(const [li,layer] of TEMPLE.layers.entries())for(let deg=TEMPLE.from+li*TEMPLE.step/2;deg<=TEMPLE.to;deg+=TEMPLE.step)for(const sign of [-1,1]){
@@ -453,7 +457,9 @@ export function headwear(vrm:VRM,base:MToonMaterial):Headwear{
           if(!mat||!/^Hair(Back)?_/.test(mat.name??''))return;unify(m,m.userData.fringe?E.fringeKeep:0);
           // with the smooth normals the whole side of the hair faces sideways from the front, so the red rim lit
           // it in orange patches: on the hair it is a thin line at the very edge only
-          for(const x of Array.isArray(m.material)?m.material:[m.material]){x.userData.rim=.45;x.userData.rimPower=14;}});
+          // its shade only a little darker and less navy: from behind (away from the light) the head turnaround's hair
+          // is lit evenly, the strands drawn in a slightly darker line; a navy shade made the back a brown block (2026-11-27)
+          for(const x of Array.isArray(m.material)?m.material:[m.material]){x.userData.rim=.45;x.userData.rimPower=14;x.userData.navy=.2;}});
       }
     }
   }
@@ -462,8 +468,9 @@ export function headwear(vrm:VRM,base:MToonMaterial):Headwear{
   {
     let hairMat:THREE.Material|null=null;vrm.scene.traverse(o=>{const m=o as THREE.Mesh;if(!hairMat&&m.isMesh&&o.name==='Hair')hairMat=(Array.isArray(m.material)?m.material[0]:m.material) as THREE.Material;});
     if(hairMat){
-      const cap=new THREE.Mesh(new THREE.SphereGeometry(SIL.dome-.005,48,16,0,Math.PI*2,0,.95),hairMat);
-      cap.position.set(H.centre.x,SIL.cy,H.centre.z);cap.updateMatrix();cap.geometry.applyMatrix4(cap.matrix);cap.position.set(0,0,0);
+      // an ellipsoid under the outline's dome (from the widest point to the top), its upper part only
+      const cap=new THREE.Mesh(new THREE.SphereGeometry(1,48,16,0,Math.PI*2,0,.95),hairMat);
+      cap.scale.set(SIL.w*SIL.cap,SIL.top-SIL.yw-.005,SIL.w*SIL.cap);cap.position.set(H.centre.x,SIL.yw,H.centre.z);cap.updateMatrix();cap.geometry.applyMatrix4(cap.matrix);cap.position.set(0,0,0);
       cap.renderOrder=0;carry(cap,new THREE.Vector3());
     }
   }
@@ -483,7 +490,7 @@ export function headwear(vrm:VRM,base:MToonMaterial):Headwear{
   // the bow above her right ear (her right is -x), facing out and a little forward
   const b=bow(mat(H.bow,H.bowShade));
   // on the hair's outline (the shell), a little proud of it: placed on the head's ellipsoid it floated off the hair (2026-11-27)
-  {const a=THREE.MathUtils.degToRad(-64),y=1.49,r=silhouetteTo(y,SIL.atEnds,SIL.ends)+.02;b.userData.at=new THREE.Vector3(H.centre.x+Math.sin(a)*r,y,H.centre.z+Math.cos(a)*r);}
+  {const a=THREE.MathUtils.degToRad(-64),y=1.49,r=silhouetteTo(y,CURTAIN.end)+.02;b.userData.at=new THREE.Vector3(H.centre.x+Math.sin(a)*r,y,H.centre.z+Math.cos(a)*r);}
   carry(b,b.userData.at as THREE.Vector3,new THREE.Quaternion().setFromEuler(new THREE.Euler(0,THREE.MathUtils.degToRad(-58),0)));
   // the hat: its crown's base a little above the brows, tipped back slightly
   const h=hat(mat(H.hat,H.hatShade),mat(H.stripeBlue,'#7da2bb'),mat(H.stripePink,'#b87283'));

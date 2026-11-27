@@ -67,7 +67,7 @@ function teisu(vrm:VRM,on:boolean){
       const s=saved.get(m)!;
       if(on){
         // shadows lean to navy but keep a little of the material's own hue
-        m.shadeColorFactor.copy(s.shade).lerp(NAVY,.42);
+        m.shadeColorFactor.copy(s.shade).lerp(NAVY,m.userData.navy??.42); // a material may lean less (the hair: headwear.ts)
         // a thin red rim, lit side only (rimLightingMix 1): a wide one reads as a glow on dark cloth
         m.parametricRimColorFactor.copy(RED).multiplyScalar(.35*(m.userData.rim??1));m.parametricRimFresnelPowerFactor=m.userData.rimPower??6; // a material may tone it down (the hair: headwear.ts)
         m.parametricRimLiftFactor=0;m.rimLightingMixFactor=1;

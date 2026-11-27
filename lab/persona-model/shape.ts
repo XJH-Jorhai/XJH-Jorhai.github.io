@@ -24,7 +24,7 @@ export const SHAPE = {
   volume: 1.17, volumeFrom: 1.53, backVolume: .14, fluff: .18, // from just under the hat's rim: above it the hat must still fit
   /** Shoulder length at the back (the setting): the back hangs this much lower than the front (m), so the
    *  cheek locks end at the jaw and the back touches the shoulders. */
-  backDrop: .075,
+  backDrop: .03, // was .075 (to the shoulders); the head turnaround's back ends just above the collar (2026-11-27)
   /** Two layers: strands of the outer layer end this much shorter than the inner ones (m), so the inner shows
    *  below the outer as a second tier and the bob keeps its volume. */
   outerShort: .045,
@@ -39,7 +39,7 @@ export const SHAPE = {
   /** Fringe: front strands between these heights (m) and within this half-width (m) are combed towards the middle by up to `fringeComb`, and shifted towards her right (−x) by up to `fringeSweep` (m). */
   fringeTop: 1.585, fringeBottom: 1.45, fringeHalf: .115, fringeComb: .18, fringeSweep: 0, fringeClose: 0, fringeUnslant: 0, // straightening by shearing left a ragged edge (2026-11-27); the fringe needs its own cards // the sheet's fringe falls almost straight down from near the centre (a stronger comb read as a side sweep)
   /** Honey blonde (persona palette "hair"), and the colour of its shaded side before the site's navy. */
-  hair: '#EDC591', hairShade: '#C99A62', brow: '#B8875A',
+  hair: '#EDC591', hairShade: '#DCAB6E', brow: '#B8875A', // hairShade was #C99A62: the sheet's shade is a light one
 };
 
 type Bone=Parameters<VRM['humanoid']['getRawBoneNode']>[0];

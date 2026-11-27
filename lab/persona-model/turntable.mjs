@@ -45,6 +45,7 @@ const closeups = async (file, list, hat = true) => {
   await page.setViewportSize({width: 360, height: 360});
   await page.evaluate(on => window.__model.setHat(on), hat);
   const tiles = [];
+  await page.evaluate(a => window.__model.view(...a), [list[0][0], false, list[0][1], list[0][2], list[0][3]]); // a first draw after resizing comes out empty
   for (const [deg, dist, eyeY, targetY] of list) { await page.evaluate(a => window.__model.view(...a), [deg, false, dist, eyeY, targetY]); tiles.push([deg, (await page.locator('canvas').screenshot()).toString('base64')]); }
   const cols = 6, rows = Math.ceil(tiles.length / cols);
   await sheet.setViewportSize({width: cols * 360, height: rows * 360});

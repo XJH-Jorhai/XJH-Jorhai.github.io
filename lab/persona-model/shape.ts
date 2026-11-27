@@ -16,18 +16,19 @@ export const SHAPE = {
   shin: .875,
   /** Chin-length bob: the hair ends this far above the soles (m, base model scale; her chin is at 1.352). */
   hairEnd: 1.335,
-  /** How far the ends turn in towards the head, 0…1 (a bob curls in at the ends). */
-  tuck: .3,
   /** Layered ends: how much the cut length varies from strand to strand (m), and how many locks around the head. */
   ragged: .016, locks: 11,
-  /** Volume: the hair between the eyes and the ends stands this much further out from the head (factor). */
-  volume: 1.1, volumeFrom: 1.52,
-  /** Extra fullness at the back of the head (factor, added to volume there), and how much shorter the back is than the front (m). */
-  backVolume: .08, backLift: .03,
+  /** Volume (the head turnaround's round bob): from the crown down the hair stands out from the head, up to
+   *  this factor; a little more at the back of the head; strands differ by `fluff` (a share of it). */
+  volume: 1.17, volumeFrom: 1.53, backVolume: .06, fluff: .5, // from just under the hat's rim: above it the hat must still fit
+  /** How much shorter the back is than the front (m). */
+  backLift: .03,
+  /** Curl: the last `curlLength` of each strand bends in under, round a circle of radius `curlRadius` (m). */
+  curlLength: .055, curlRadius: .045,
   /** Each strand comes to a point: its middle runs this much further down than its edges (m). */
   tip: .018,
-  /** Layers: some strands end shorter than their neighbours (m), and the ends of all strands flick out a little (m). */
-  layer: .022, flick: .012,
+  /** Layers: some strands end shorter than their neighbours (m). */
+  layer: .022,
   /** Honey blonde (persona palette "hair"), and the colour of its shaded side before the site's navy. */
   hair: '#EDC591', hairShade: '#C99A62', brow: '#B8875A',
 };
@@ -50,7 +51,6 @@ function legs(vrm:VRM,k:number){
  * vertices below it are lifted to it and drawn in towards the head, so the ends curl in a little.
  */
 function bob(mesh:THREE.Mesh,s:typeof SHAPE,centre:THREE.Vector3){
-  const {tuck}=s;
   // the cut line, a little uneven from lock to lock (layered ends), by the angle around the head
   const back=(x:number,z:number)=>(1-Math.cos(Math.atan2(x-centre.x,z-centre.z)))/2; // 0 at the front, 1 at the back
   const endAt=(x:number,z:number)=>{const a=Math.atan2(x-centre.x,z-centre.z);return s.hairEnd+s.backLift*back(x,z)**2+s.ragged*(Math.sin(a*s.locks)*.6+Math.sin(a*s.locks*2.3+1.3)*.4);};
@@ -84,16 +84,24 @@ function bob(mesh:THREE.Mesh,s:typeof SHAPE,centre:THREE.Vector3){
     next.push({start,count:kept.length-start,materialIndex:grp.materialIndex});
   }
   g.setIndex(kept);g.clearGroups();for(const grp of next)g.addGroup(grp.start,grp.count,grp.materialIndex);
-  // lift what hangs below to the cut and draw it in
+  // Shape every strand like the sheet's bob: it swells out from the crown, fullest from the cheeks down,
+  // and its last few centimetres curl in under, towards the neck (a C, not a straight curtain).
+  const smooth=(a:number,b:number,x:number)=>{const k=Math.min(1,Math.max(0,(x-a)/(b-a)));return k*k*(3-2*k);};
   for(let i=0;i<pos.count;i++){
-    const end=endOf(i);let x=pos.getX(i),y=pos.getY(i),z=pos.getZ(i);
-    // volume: from the eyes down the hair rounds out from the head, fullest at the cheeks, and the
-    // ends turn back in (the tuck below): a round bob, not a straight curtain
-    // (a swell that peaks part-way down and is gone again at the ends, fuller at the back of the head)
-    if(y<s.volumeFrom){const k=Math.min(1,(s.volumeFrom-Math.max(y,end))/(s.volumeFrom-end)),v=1+(s.volume-1+s.backVolume*back(x,z))*Math.sin(k*Math.PI)**.7;x=centre.x+(x-centre.x)*v;z=centre.z+(z-centre.z)*v;}
-    if(y<end){const depth=Math.min(1,(end-y)/.08),pull=tuck*depth;x+=(centre.x-x)*pull;z+=(centre.z-z)*pull;y=end-.004*depth;}
-    // the last few centimetres of each strand lift and flick outwards, like the sheet's tips
-    else if(y<end+.035){const k=1-(y-end)/.035,r=Math.hypot(x-centre.x,z-centre.z)||1,out=s.flick*k*k*(tier(find(i))>.5?1:.4);x+=(x-centre.x)/r*out;z+=(z-centre.z)/r*out;y+=out*.4;}
+    const end=endOf(i),yc=end+s.curlLength;let x=pos.getX(i),y=pos.getY(i),z=pos.getZ(i);
+    if(y>=s.volumeFrom)continue;
+    const dx=x-centre.x,dz=z-centre.z,r=Math.hypot(dx,dz)||1e-6,ux=dx/r,uz=dz/r;
+    // volume
+    const t=Math.min(1,(s.volumeFrom-Math.max(y,end))/(s.volumeFrom-end));
+    const swell=smooth(0,.45,t)*(1-.2*smooth(.8,1,t))*(1+s.fluff*(tier(find(i))-.5));
+    let R=r*(1+(s.volume-1+s.backVolume*back(x,z))*swell);
+    // curl: past yc the strand runs round a circle, turning in under
+    if(y<yc){
+      // the locks beside the face fall almost straight and only turn in a little; the curl is fullest at the back
+      const k=.3+.7*smooth(.15,.6,back(x,z)),along=Math.min(yc-y,s.curlLength+.01),a=along/s.curlRadius*k;
+      R-=s.curlRadius*(1-Math.cos(a));y=yc-s.curlRadius*Math.sin(a);
+    }
+    x=centre.x+ux*R;z=centre.z+uz*R;
     pos.setXYZ(i,x,y,z);
   }
   pos.needsUpdate=true;g.computeVertexNormals();g.computeBoundingSphere();

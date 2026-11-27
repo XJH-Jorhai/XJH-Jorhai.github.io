@@ -21,7 +21,9 @@ export const HEAD = {
   fringe: [[-80,1.39],[-66,1.41],[-52,1.43],[-40,1.455],[-29,1.468],[-18,1.476],[-8,1.462],[0,1.452],[8,1.46],[18,1.474],[29,1.466],[40,1.452],[52,1.43],[66,1.41],[80,1.39]] as [number,number][],
   sweep: -7, rootY: 1.585, strandWidth: .03, extraFringe: false,
   /** The base hair's front cards that the drawn fringe replaces: centre in front of z (m), lowest point above y (m). A strip of the hair texture for the new locks (u range). */
-  fringeCut: [.03,1.38] as [number,number], fringeUV: [.147,.344] as [number,number],
+  fringeCut: [.03,1.38] as [number,number],
+  /** …and the cards in front of the ears down to the jaw: centre in front of z, centre further out than |x|, lowest point below y. */
+  sideCut: [-.01,.07,1.41] as [number,number,number], fringeUV: [.147,.344] as [number,number],
   hair: '#EDC591', hairShade: '#C99A62',
   /** The darker hair under the fringe, from this height up (m). */
   hairUnder: '#C99A62', hairUnderShade: '#9E7449', underFrom: 1.54, // only up under the fringe's root: lower down, the V between the locks shows forehead, as drawn
@@ -151,9 +153,11 @@ function lockGeometry(lock:typeof FRINGE.locks[number],uv:[number,number]){
  * for her right), its widest width (m, across the lock, front to back) and how far its middle bulges out.
  */
 export const SIDELOCKS = [
-  // they start inside the hair (hidden under it) and come out around the ear
-  {p:[[.086,1.545,.0],[.146,1.45,.006],[.108,1.33,.034]],w:.056,bulge:.005},
-  {p:[[.083,1.535,.03],[.14,1.44,.036],[.098,1.352,.054]],w:.036,bulge:.005},
+  // they start inside the hair (hidden under it), come out round the ear and end at the jaw, turned in;
+  // three a side, close to the face, so the cheek is framed by hair (not by a gap onto the background)
+  {p:[[.075,1.505,-.012],[.15,1.44,-.008],[.108,1.325,.014]],w:.06,bulge:.005},
+  {p:[[.073,1.5,.014],[.142,1.44,.02],[.1,1.333,.034]],w:.05,bulge:.005},
+  {p:[[.07,1.495,.036],[.133,1.435,.042],[.09,1.35,.052]],w:.036,bulge:.005},
 ] as {p:[number,number,number][],w:number,bulge:number}[];
 
 function sideLockGeometry(lock:typeof SIDELOCKS[number],sign:number,uv:[number,number]){
@@ -204,7 +208,10 @@ export function headwear(vrm:VRM,base:MToonMaterial):Headwear{
       for(let t=0;t<idx.count;t+=3){const a=find(idx.getX(t)),b=find(idx.getX(t+1)),c=find(idx.getX(t+2));par[b]=a;par[c]=a;}
       const st=new Map<number,{n:number,z:number,ymin:number}>();
       for(let t=0;t<idx.count;t++){const i=idx.getX(t),r=find(i),v=st.get(r)??{n:0,z:0,ymin:9};v.n++;v.z+=pos.getZ(i);v.ymin=Math.min(v.ymin,pos.getY(i));st.set(r,v);}
-      const front=(i:number)=>{const v=st.get(find(i))!;return v.z/v.n>H.fringeCut[0]&&v.ymin>H.fringeCut[1];};
+      // also the cards in front of the ears that hang to the jaw (half-curled between front and back, they
+      // crumpled): the side locks take their place
+      const stx=new Map<number,number>();for(let t=0;t<idx.count;t++){const i=idx.getX(t),r=find(i);stx.set(r,(stx.get(r)??0)+pos.getX(i));}
+      const front=(i:number)=>{const r=find(i),v=st.get(r)!,cz=v.z/v.n,cx=stx.get(r)!/v.n;return (cz>H.fringeCut[0]&&v.ymin>H.fringeCut[1])||(cz>H.sideCut[0]&&Math.abs(cx)>H.sideCut[1]&&v.ymin<H.sideCut[2]);};
       const keep:number[]=[],groups:{start:number,count:number,materialIndex?:number}[]=[];
       for(const grp of g.groups){const start=keep.length;for(let t=grp.start;t<grp.start+grp.count;t+=3){const a=idx.getX(t);if(front(a))continue;keep.push(a,idx.getX(t+1),idx.getX(t+2));}groups.push({start,count:keep.length-start,materialIndex:grp.materialIndex});}
       g.setIndex(keep);g.clearGroups();for(const grp of groups)g.addGroup(grp.start,grp.count,grp.materialIndex);

@@ -112,14 +112,15 @@ function bob(mesh:THREE.Mesh,s:typeof SHAPE,centre:THREE.Vector3){
     const dx=x-centre.x,dz=z-centre.z,r=Math.hypot(dx,dz)||1e-6,ux=dx/r,uz=dz/r;
     // volume
     const t=Math.min(1,(s.volumeFrom-Math.max(y,end))/(s.volumeFrom-end));
-    const swell=smooth(0,.45,t)*(1-.2*smooth(.8,1,t))*(1+s.fluff*(tier(find(i))-.5));
+    // fullest at the cheeks, then back in towards the ends (a round bob, not a bell)
+    const swell=smooth(0,.4,t)*(1-.5*smooth(.55,1,t))*(1+s.fluff*(tier(find(i))-.5));
     let R=r*(1+(s.volume-1+s.backVolume*back(x,z))*swell);
     // curl: past yc the strand runs round a circle, turning in under
     if(y<yc){
       // the locks beside the face fall almost straight and only turn in a little; the curl is fullest at the back
       // k scales the curl: the strand bends round a circle of radius curlRadius/k, so with k → 0 it hangs
       // straight (with the radius fixed, a small k squashed everything below yc to one height: crumpled ends)
-      const k=Math.max(1e-3,(.3+.7*smooth(.15,.6,back(x,z)))*(1-smooth(-.015,.04,pos.getZ(i)))),rho=s.curlRadius/k;
+      const k=Math.max(1e-3,(.55+.45*smooth(.1,.5,back(x,z)))*(1-smooth(-.015,.04,pos.getZ(i)))),rho=s.curlRadius/k;
       const along=Math.min(yc-y,s.curlLength+.01),a=along/rho;
       R-=rho*(1-Math.cos(a));y=yc-rho*Math.sin(a);
     }

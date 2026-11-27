@@ -194,6 +194,7 @@ export const FILL = {
   // show as an inner layer at the ends
   layers: [{inset:.014,w:.044},{inset:.006,w:.036}],
   top: 1.47, curl: .035,
+  loose: {r:.006,a:.06,bow:.004,w:.5} as Loose,
 };
 
 /** The curtain beside the face: angles (degrees from ahead), radius from the hair's centre at the top (m), how much
@@ -222,7 +223,12 @@ export const arcIn=(y:number)=>{const d=Math.min(ARC.from-ARC.ends,Math.max(0,AR
 export const CURTAIN = {
   from: 46, to: 104, step: 6, r0: .118, swell: .03, back: 0, end: 1.335, endBack: .025, top: 1.598,
   // layers 7 mm apart, and every strand a little off its neighbours (strands at one depth z-fought into a checkerboard)
-  layers: [{inset:.0,w:.05},{inset:.007,w:.046},{inset:.014,w:.042}],
+  // the outer strands narrow (each about 10° wide, 6° apart: wider, they overlapped three deep and read as one
+  // sheet), the inner layers wide and darker, closing every gap beneath
+  layers: [{inset:.0,w:.026},{inset:.007,w:.04},{inset:.014,w:.054}],
+  loose: {r:.012,a:.09,bow:.006,w:.6} as Loose,
+  /** Outer strands' outline, times the base hair's (which is thin: every base card is outlined). */
+  outline: 2.6,
 };
 
 /** The temples (the user's note, 2026-11-27: seen from below, the fringe's side lock and the curtain did not
@@ -251,18 +257,25 @@ function measureHair(hair:THREE.Mesh){
   return {at,end};
 }
 
-function fillGeometry(ang:number,layer:{inset:number,w:number},hair:{at:(a:number,y:number)=>number,end:(a:number)=>number,top?:number,curl?:(a:number)=>number},uv:[number,number],seed:number){
+/** How loose a layer of strands is ("combed out", the user's note 2026-11-27: the side hair read as one sheet of
+ *  paper): each strand stands off by its own amount (radial, m, growing down its length), drifts sideways by its
+ *  own angle (rad, at its tip), bows out in the middle, varies in width, and tapers from half way. */
+type Loose={r:number,a:number,bow:number,w:number};
+function fillGeometry(ang:number,layer:{inset:number,w:number},hair:{at:(a:number,y:number)=>number,end:(a:number)=>number,top?:number,curl?:(a:number)=>number,loose?:Loose},uv:[number,number],seed:number){
+  const rnd=(k:number)=>((Math.sin(seed*12.9898+k*78.233)*43758.5453)%1+1)%1,L=hair.loose;
+  const twist=L?(rnd(5)-.5)*.9:0,off=L?(rnd(1)-.35)*L.r:0,drift=L?(rnd(2)-.5)*2*L.a:0,bow=L?rnd(3)*L.bow:0,wk=L?1-L.w/2+rnd(4)*L.w:1;
   // each strand takes a different strand region of the hair texture: with one region for all, neighbours were
   // identical and the curtain read as one smooth sheet
   const STRIPS:[number,number][]=[uv,[.344,.541],[.0,.243],[.243,.485],[.026,.275],[.275,.523]],su=STRIPS[seed%STRIPS.length]!;
   const c=H.centre,N=26,Aw=3,P:number[]=[],U:number[]=[],I:number[]=[];
-  const yEnd=hair.end(ang)+.004+.024*((Math.sin(seed*12.9898)*43758.5453%1+1)%1),yTop=hair.top??FILL.top; // uneven tips, not one straight cut
+  const yEnd=hair.end(ang)+.004+.024*((Math.sin(seed*12.9898)*43758.5453%1+1)%1),yTop=(hair.top??FILL.top)-(L?rnd(6)*.032:0); // uneven tips, not one straight cut; loose strands also start at different heights, coming out of the hair one by one (all from one line, their tops merged into a smooth cap)
   for(let i=0;i<=N;i++){
     const t=i/N,y=yTop+(yEnd-yTop)*t;
     for(let a=0;a<=Aw;a++){
-      const s=a/Aw*2-1,w=layer.w*.5*(t<.15?.6+t/.15*.4:1)*(1-.85*Math.max(0,(t-.75)/.25)**1.3),aa=ang+s*w/Math.max(.05,hair.at(ang,y));
+      const taper=L?(1-.9*Math.max(0,(t-.45)/.55)**1.2):(1-.85*Math.max(0,(t-.75)/.25)**1.3);
+      const s=a/Aw*2-1,w=layer.w*wk*.5*(t<.15?.6+t/.15*.4:1)*taper,ac=ang+drift*t**1.4,aa=ac+s*w/Math.max(.05,hair.at(ac,y));
       // its root sinks into the hair (tops showing out of the crown read as flat patches)
-      let r=hair.at(aa,Math.max(y,yEnd+.012))-layer.inset+.0016*(seed%3)-.016*(1-Math.min(1,t/.2))**2;
+      let r=hair.at(aa,Math.max(y,yEnd+.012))-layer.inset+.0016*(seed%3)-(L?.024:.016)*(1-Math.min(1,t/.2))**2+(off*Math.min(1,t/.35)+bow*Math.sin(Math.PI*t)+(L?.0012*(1-s*s)+twist*s*w:0))*Math.min(1,Math.max(0,(1.555-y)/.05)); // loose only below the hat's rim: above it, it poked through the hat // twist: one edge out, the other in, so strands catch the light differently
       const k=Math.max(0,(y-(yEnd+FILL.curl))/-FILL.curl); // 0 → 1 over the last few cm: curl in under
       const ck=hair.curl?hair.curl(ang):1;r-=.02*k*k*ck;const yy=y+.006*k*k*ck;
       P.push(c.x+Math.sin(aa)*r,yy,c.z+Math.cos(aa)*r);U.push(su[0]+(s+1)/2*(su[1]-su[0]),t);
@@ -325,7 +338,7 @@ export function headwear(vrm:VRM,base:MToonMaterial):Headwear{
           // where no hair hangs any more (the cards in front of the ears were removed) the curtain (below) is
           // there; a strand there would end above its start and turn into a flat spike
           if(measured.end(THREE.MathUtils.degToRad(deg*sign))>FILL.top-.06){seed++;continue;}
-          const fg=fillGeometry(THREE.MathUtils.degToRad(deg*sign),layer,measured,H.fringeUV,seed++);fg.addGroup(0,fg.index!.count,0);
+          const fg=fillGeometry(THREE.MathUtils.degToRad(deg*sign),layer,{...measured,loose:FILL.loose},H.fringeUV,seed++);fg.addGroup(0,fg.index!.count,0);
           const m=new THREE.Mesh(fg,[mats[0]!]); // inner strands, no outline: theirs showed through gaps as dark rectangles
           m.renderOrder=1;carry(m,new THREE.Vector3());
         }
@@ -337,7 +350,7 @@ export function headwear(vrm:VRM,base:MToonMaterial):Headwear{
         // it grows from under the crown hair (starting at mid-head it read as a pair of earmuffs): at the top just
         // inside the crown's measured surface, blending down into the bob's profile
         // its front edge hangs straight (curled in, its underside showed from the front as dark steps at the jaw)
-        const prof={top:CURTAIN.top,curl:(ang:number)=>{const d=Math.abs(THREE.MathUtils.radToDeg(ang));return .45+.55*Math.min(1,Math.max(0,(d-60)/30));},at:(ang:number,y:number)=>{const deg=Math.abs(THREE.MathUtils.radToDeg(ang)),u=Math.min(1,Math.max(0,(1.5-y)/.17));
+        const prof={loose:CURTAIN.loose,top:CURTAIN.top,curl:(ang:number)=>{const d=Math.abs(THREE.MathUtils.radToDeg(ang));return .45+.55*Math.min(1,Math.max(0,(d-60)/30));},at:(ang:number,y:number)=>{const deg=Math.abs(THREE.MathUtils.radToDeg(ang)),u=Math.min(1,Math.max(0,(1.5-y)/.17));
             void u;
             // the ends turn in towards the face (the user's note, 2026-11-27): the top stays, below `bendFrom` the
             // outline curves in, most at the front locks beside the cheek, less towards the back
@@ -346,12 +359,19 @@ export function headwear(vrm:VRM,base:MToonMaterial):Headwear{
             const k0=Math.min(1,Math.max(0,(y-1.5)/.08)),k=k0*k0*(3-2*k0),crown=Math.sqrt(Math.max(0,1-((y-H.centre.y)/.152)**2))*(H.radii.x+.006); // up top it lies over the crown hair (6 mm, so it stays inside the hat) (on the head's measured ellipsoid plus the hair's thickness; the measurement is clamped there and made the tops stand up like ears), covering the straight lower edge of its cards (under it, that edge showed as a ledge)
             return bob+(crown-bob)*k;},
           end:(ang:number)=>{const deg=Math.abs(THREE.MathUtils.radToDeg(ang));return CURTAIN.end-CURTAIN.endBack*Math.max(0,deg-55)/55;}};
+        // Combed out (the user's note, 2026-11-27: it read as one sheet of paper): the outer strands are outlined
+        // more strongly than the base hair; the inner layers are darker, so between the outer strands one sees
+        // depth, as in a drawing of hair, not more of the same surface.
+        const [hm0,ho0]=mats as [MToonMaterial,MToonMaterial];
+        const outer=[hm0,ho0.clone() as MToonMaterial];outer[1]!.outlineWidthFactor=ho0.outlineWidthFactor*CURTAIN.outline;
+        const inner=(k:number)=>{const m=hm0.clone() as MToonMaterial;m.color.copy(hm0.color).lerp(new THREE.Color(H.hairShade),k);m.shadeColorFactor.copy(hm0.shadeColorFactor).multiplyScalar(1-.25*k);return m;};
+        const layerMats=[outer,[inner(.45)],[inner(.8)]];
         let seed=500;
         for(const [li,layer] of CURTAIN.layers.entries())for(let deg=CURTAIN.from+li*CURTAIN.step/3;deg<=CURTAIN.to;deg+=CURTAIN.step)for(const sign of [-1,1]){
           const ang=THREE.MathUtils.degToRad(deg*sign);
           if(measured.end(ang)<=FILL.top-.06&&deg>CURTAIN.to-1)continue;
-          const fg=fillGeometry(ang,layer,prof,H.fringeUV,seed++);mats.forEach((_,k)=>fg.addGroup(0,fg.index!.count,k));
-          const m=new THREE.Mesh(fg,mats);m.renderOrder=1;carry(m,new THREE.Vector3());
+          const lm=layerMats[li]!,fg=fillGeometry(ang,layer,prof,H.fringeUV,seed++);lm.forEach((_,k)=>fg.addGroup(0,fg.index!.count,k));
+          const m=new THREE.Mesh(fg,lm);m.renderOrder=1;carry(m,new THREE.Vector3());
         }
       }
       {

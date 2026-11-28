@@ -5,6 +5,10 @@
  *
  *   jaw     (off) widening the lower face towards the sheet's rounder cheeks squared the jaw off; left as it is.
  *   eyes    the sheet's eyes are a little larger: iris, white, lash line and highlight scaled about each eye.
+ *   shape   almond, not round (the user's note, 2026-11-28: the round eyes changed who she is): the base model's own
+ *           eye morphs baked in a little — the upper lid lowered and the outer corner drawn out — and the iris larger,
+ *           so, as on the sheet, the lid covers its top and the white shows mostly at the corners. Lids, lashes and
+ *           skin move together, as they do when she blinks; the blink is shortened by what is already closed.
  *   skin    warmer (peach, as on the sheet, not a cool white); brows lighter and finer.
  *   paint   the user's repaints of the base model's face textures (inputs/source/persona/model/face/, prompts in
  *           inputs/persona-model-prompts.md section 4): a closed gentle smile, warm honey-amber irises, fuller lashes
@@ -19,6 +23,9 @@ export const FACE = {
   jaw: [[1.42,.076],[1.40,.071],[1.39,.0675],[1.38,.0595],[1.37,.0475],[1.36,.031],[1.352,.01]] as [number,number][],
   /** Eye size, as a factor about each eye's centre (across and up; depth kept, so it stays on the face). */
   eyes: 1.1,
+  /** The base model's eye morphs baked in (weights), and the iris (with its highlight) scaled about the eye. Chosen
+   *  side by side with the head turnaround from eight mixes (Close alone read sleepy, more Angry stern). */
+  eyeShape: {Natural:.3,Close:.15,Angry:.1} as Record<string,number>, irisSize: 1.1,
   /** Off: widening the lower face squared the jaw off with a step at the neck (tried 2026-11-27); the base
    *  model's chin is already close to the sheet's, which is also pointed. */
   reshapeJaw: false,
@@ -89,6 +96,17 @@ export function face(vrm:VRM,s=FACE,images:FaceImages=null){
     const current=(y:number)=>{const k=Math.round(y*200);return Math.max(.005,now.get(k)??now.get(k+1)??now.get(k-1)??.05);};
     reshape(skin,p=>{if(p.y>1.425)return p;const f=Math.max(1,lerpTable(s.jaw,p.y)/current(p.y));const w=smooth(-.01,.03,p.z)*smooth(1.425,1.405,p.y); /* the front of the face only: the underside meets the neck */p.x*=1+(f-1)*w;return p;});
   }
+  // eye shape: morphs baked into the rest shape (relative morph targets: rest + w × delta)
+  for(const m of meshes){
+    const dict=m.morphTargetDictionary,g=m.geometry,morphs=g.morphAttributes.position as THREE.BufferAttribute[]|undefined;if(!dict||!morphs||!g.morphTargetsRelative)continue;
+    const pos=g.attributes.position as THREE.BufferAttribute;let touched=false;
+    for(const [k,w] of Object.entries(s.eyeShape)){const d=morphs[dict['Face_Blendshape.Fcl_EYE_'+k]??-1];if(!d||!w)continue;touched=true;
+      for(let i=0;i<pos.count;i++)pos.setXYZ(i,pos.getX(i)+w*d.getX(i),pos.getY(i)+w*d.getY(i),pos.getZ(i)+w*d.getZ(i));}
+    // what is already closed comes off the blink, so a full blink still meets the lower lid (and does not pass it)
+    const shut=s.eyeShape.Close??0;
+    if(shut)for(const k of ['Close','Close_L','Close_R']){const d=morphs[dict['Face_Blendshape.Fcl_EYE_'+k]??-1];if(!d)continue;for(let i=0;i<d.count;i++)d.setXYZ(i,d.getX(i)*(1-shut),d.getY(i)*(1-shut),d.getZ(i)*(1-shut));d.needsUpdate=true;}
+    if(touched){pos.needsUpdate=true;g.computeVertexNormals();}
+  }
   // eyes: larger about each eye's centre
   const eyeParts=byMat(/^(EyeIris|EyeWhite|FaceEyeline|EyeHighlight)_/);
   const white=byMat(/^EyeWhite_/)[0];
@@ -97,6 +115,8 @@ export function face(vrm:VRM,s=FACE,images:FaceImages=null){
     for(let i=0;i<pos.count;i++){const k=pos.getX(i)>0?0:1;c[k]!.add(new THREE.Vector3().fromBufferAttribute(pos,i));n[k]!++;}
     c.forEach((v,k)=>v.divideScalar(n[k]||1));
     for(const m of eyeParts)reshape(m,p=>{const e=c[p.x>0?0:1]!;p.x=e.x+(p.x-e.x)*s.eyes;p.y=e.y+(p.y-e.y)*s.eyes;return p;});
+    // the iris (and its highlight) larger still, filling the eye from lid to lid
+    for(const m of byMat(/^(EyeIris|EyeHighlight)_/))reshape(m,p=>{const e=c[p.x>0?0:1]!;p.x=e.x+(p.x-e.x)*s.irisSize;p.y=e.y+(p.y-e.y)*s.irisSize;return p;});
   }
   // skin; the brows and the irises recoloured in their own textures (their shape and shading kept: a colour
   // factor alone only darkens a dark texture)

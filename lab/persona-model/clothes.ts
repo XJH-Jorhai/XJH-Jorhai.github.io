@@ -372,13 +372,14 @@ export function clothes(vrm:VRM){
   const buttonMat=flat('#4C4658','#2a2534');
   for(const [k,y] of [C.vBottom-.004,C.vBottom-.058,C.vBottom-.112].entries()){
     const b=new THREE.Mesh(new THREE.SphereGeometry(.0085,14,10),buttonMat);b.scale.z=.45;
+    b.userData.rigid=true; // keeps its shape when the body's proportions change (shape.ts proportions())
     carry(k?'spine':'chest',b,new THREE.Vector3(.004,y,frontAt(y)+.002));
   }
   const ribbonMat=flat(C.ribbon,C.ribbonShade),bow=new THREE.Group();
   // the same full-looped bow as in her hair, smaller, and without its own tails (the long ones follow)
   const knot=ribbonBow(ribbonMat);knot.children.filter(c=>c.position.y<-.003).forEach(c=>knot.remove(c));knot.scale.setScalar(.62);bow.add(knot);
   const knotY=C.vTop-.03;
-  carry('upperChest',bow,new THREE.Vector3(0,knotY,shirtFront(knotY)+.006));
+  bow.userData.rigid=true;carry('upperChest',bow,new THREE.Vector3(0,knotY,shirtFront(knotY)+.006));
   // the tails: one continuous strip each, lying along the shirt from the knot down over the chest
   for(const side of [-1,1]){
     const steps=12,pts:THREE.Vector3[]=[];

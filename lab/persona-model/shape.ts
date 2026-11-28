@@ -22,7 +22,7 @@ export const SHAPE = {
    *  are not stretched with it); arms: along the upper arm (the hand scaled back); thighs: likewise; head: as a whole. */
   // 1.3/1.18/1.1/.9 read as too burly (the user, 2026-11-28): shoulders and body a little narrower, the torso a little
   // shorter; and the lab has sliders for all of these (main.ts) so she can be tuned by eye
-  body: {head:.92, torso:1.22, shoulders:.9, width:.92, arms:1.12, thighs:1.1, shins:1, legs:.95},
+  body: {head:.92, torso:1.22, shoulders:.9, width:.92, waist:1, arms:1.12, thighs:1.1, shins:1, legs:.95},
   /** Chin-length bob: the hair ends this far above the soles (m, base model scale; her chin is at 1.352). */
   hairEnd: 1.345,
   /** Layered ends: how much the cut length varies from strand to strand (m), and how many locks around the head. */
@@ -196,27 +196,32 @@ function recolor(tex:THREE.Texture|null,color:THREE.Color){
  *    torso      the spine's length; the neck and shoulders scaled back, so the head and the arms are not stretched
  *    shoulders  the upper chest's width (the shoulders closer together or further apart); neck and shoulders scaled back
  *    width      the body's width and depth from the waist up; likewise
+ *    waist      the waist alone, side to side (the spine's segment, between the hips and the chest): the chest scales it back
  *    arms       the upper arm along its length (the hand scaled back)
  *    thighs, shins  the legs' lengths (the foot scaled back); legs: their thickness
  *  Bone scales, so the clothes, the hair and everything carried by a bone follow; then the soles are put back on the
  *  ground. Can be applied again with other values (the lab's sliders): each time from the scales it first found. */
 export type Body=typeof SHAPE.body;
-const restScales=new WeakMap<VRM,{scales:Map<THREE.Object3D,THREE.Vector3>,sole:number}>();
+const restScales=new WeakMap<VRM,{scales:Map<THREE.Object3D,THREE.Vector3>,sole:number,rigid:Map<THREE.Object3D,THREE.Vector3>}>();
+const worldScale=(o:THREE.Object3D)=>{const p=new THREE.Vector3(),q=new THREE.Quaternion(),s=new THREE.Vector3();o.matrixWorld.decompose(p,q,s);return s;};
 export function proportions(vrm:VRM,b:Body=SHAPE.body){
   const B=(n:Bone)=>vrm.humanoid.getRawBoneNode(n)!;
-  const names:Bone[]=['spine','upperChest','neck','head','leftShoulder','rightShoulder','leftUpperArm','rightUpperArm','leftHand','rightHand','leftUpperLeg','rightUpperLeg','leftLowerLeg','rightLowerLeg','leftFoot','rightFoot'];
+  const names:Bone[]=['spine','chest','upperChest','neck','head','leftShoulder','rightShoulder','leftUpperArm','rightUpperArm','leftHand','rightHand','leftUpperLeg','rightUpperLeg','leftLowerLeg','rightLowerLeg','leftFoot','rightFoot'];
   let rest=restScales.get(vrm);
   if(!rest){
     // the soles' height under the foot bone, once (the foot is scaled back, so it keeps its size)
     vrm.scene.updateMatrixWorld(true);
     let sole=Infinity;vrm.scene.traverse(o=>{const m=o as THREE.SkinnedMesh;if(!m.isSkinnedMesh)return;const p=m.geometry.attributes.position!,v=new THREE.Vector3();for(let i=0;i<p.count;i+=5){v.fromBufferAttribute(p,i);if(v.y>.3)continue;m.applyBoneTransform(i,v);v.applyMatrix4(m.matrixWorld);sole=Math.min(sole,v.y);}});
-    rest={scales:new Map(names.map(n=>[B(n),B(n).scale.clone()])),sole:B('leftFoot').getWorldPosition(new THREE.Vector3()).y-sole};
+    // the rigid things carried by a bone (buttons, the neck bow): their size in the world, to keep
+    const rigid=new Map<THREE.Object3D,THREE.Vector3>();vrm.scene.traverse(o=>{if(o.userData.rigid)rigid.set(o,worldScale(o));});
+    rest={scales:new Map(names.map(n=>[B(n),B(n).scale.clone()])),sole:B('leftFoot').getWorldPosition(new THREE.Vector3()).y-sole,rigid};
     restScales.set(vrm,rest);
   }
   for(const [bone,sc] of rest.scales)bone.scale.copy(sc);
   const mul=(n:Bone,x:number,y:number,z:number)=>{B(n).scale.multiply(new THREE.Vector3(x,y,z));};
   const w=b.width,sw=b.shoulders;
-  mul('spine',w,b.torso,w);mul('upperChest',sw,1,1);
+  // the waist narrows at the sides only: in depth too, the buttons (on the spine) sank into the cardigan's front
+  mul('spine',w*b.waist,b.torso,w);mul('chest',1/b.waist,1,1);mul('upperChest',sw,1,1);
   mul('neck',1/(w*sw),1/b.torso,1/w);
   for(const side of ['left','right'] as const){
     mul(`${side}Shoulder`,1/(w*sw),1/b.torso,1/w);
@@ -225,6 +230,8 @@ export function proportions(vrm:VRM,b:Body=SHAPE.body){
   }
   B('head').scale.multiplyScalar(b.head);
   vrm.scene.updateMatrixWorld(true);
+  // rigid things back to their own size and shape (they still move with the body)
+  for(const [o,size] of rest.rigid){o.scale.set(1,1,1);o.updateMatrixWorld(true);const now=worldScale(o);o.scale.set(size.x/now.x,size.y/now.y,size.z/now.z);}
   vrm.scene.position.y-=B('leftFoot').getWorldPosition(new THREE.Vector3()).y-rest.sole;
   vrm.scene.updateMatrixWorld(true);
   vrm.springBoneManager?.setInitState();

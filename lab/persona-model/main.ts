@@ -105,7 +105,7 @@ let ready=false;
 
 // Proportions: a slider per factor (shape.ts proportions()); the values shown, to copy back into SHAPE.body.
 const SLIDERS:[keyof Body,string,number,number][]=[
-  ['head','头',.75,1.15],['torso','躯干长',.9,1.5],['shoulders','肩宽',.75,1.15],['width','身体宽',.75,1.15],
+  ['head','头',.75,1.15],['torso','躯干长',.9,1.5],['shoulders','肩宽',.75,1.15],['width','身体宽',.75,1.15],['waist','腰围',.7,1.15],
   ['arms','手臂长',.9,1.35],['thighs','大腿长',.85,1.35],['shins','小腿长',.85,1.35],['legs','腿粗',.75,1.2],
 ];
 const body:Body={...SHAPE.body};

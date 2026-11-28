@@ -22,7 +22,8 @@ export const SHAPE = {
    *  are not stretched with it); arms: along the upper arm (the hand scaled back); thighs: likewise; head: as a whole. */
   // 1.3/1.18/1.1/.9 read as too burly (the user, 2026-11-28): shoulders and body a little narrower, the torso a little
   // shorter; and the lab has sliders for all of these (main.ts) so she can be tuned by eye
-  body: {head:.92, torso:1.22, shoulders:.9, width:.92, waist:1, hips:1, arms:1.12, thighs:1.1, shins:1, legs:.95},
+  // the user's own choice with the sliders (2026-11-28)
+  body: {head:.93, torso:1.22, shoulders:.92, width:.92, waist:1, hips:.95, arms:1.12, thighs:1.1, shins:1, legs:.95},
   /** Chin-length bob: the hair ends this far above the soles (m, base model scale; her chin is at 1.352). */
   hairEnd: 1.345,
   /** Layered ends: how much the cut length varies from strand to strand (m), and how many locks around the head. */

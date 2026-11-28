@@ -372,7 +372,7 @@ export function clothes(vrm:VRM){
   const buttonMat=flat('#4C4658','#2a2534');
   for(const [k,y] of [C.vBottom-.004,C.vBottom-.058,C.vBottom-.112].entries()){
     const b=new THREE.Mesh(new THREE.SphereGeometry(.0085,14,10),buttonMat);b.scale.z=.45;
-    b.userData.rigid=true; // keeps its shape when the body's proportions change (shape.ts proportions())
+    b.userData.rigid=true;b.userData.snapTo=coat;b.userData.snapGap=.002; // keeps its shape, and sits on the cardigan, when the body's proportions change (shape.ts proportions())
     carry(k?'spine':'chest',b,new THREE.Vector3(.004,y,frontAt(y)+.002));
   }
   const ribbonMat=flat(C.ribbon,C.ribbonShade),bow=new THREE.Group();

@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Persona model · lab</title>
+<style>
+  :root {--paper:#F3EDE2;--navy:#083366;--red:#EF3025;}
+  html,body {margin:0;height:100%;background:var(--paper);overflow:hidden;font:12px/1.4 'Cascadia Code',Consolas,monospace;color:var(--navy);}
+  /* the site's ground: paper, a navy slab along the mark's diagonal */
+  .ground {position:fixed;inset:0;background:linear-gradient(135deg,transparent 0 58%,var(--navy) 58% 100%);}
+  canvas {position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab;}
+  canvas:active {cursor:grabbing;}
+  .hud {position:fixed;left:16px;bottom:14px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+  .hud button {font:inherit;color:inherit;background:var(--paper);border:1.5px solid var(--navy);padding:5px 10px;cursor:pointer;}
+  .hud button[aria-pressed='true'] {background:var(--navy);color:var(--paper);}
+  .tag {position:fixed;left:16px;top:14px;letter-spacing:.16em;text-transform:uppercase;}
+  .status {position:fixed;right:16px;top:14px;}
+  .status {right:auto;left:16px;top:34px;}
+  /* proportions: sliders, top right */
+  .props {position:fixed;right:16px;top:14px;width:260px;background:var(--paper);border:1.5px solid var(--navy);padding:8px 10px;}
+  .props summary {cursor:pointer;letter-spacing:.12em;}
+  .props label {display:grid;grid-template-columns:4.5em 1fr 3em;gap:6px;align-items:center;margin-top:6px;}
+  .props input[type=range] {width:100%;accent-color:var(--navy);}
+  .props output {text-align:right;}
+  .props .row {display:flex;gap:6px;margin-top:8px;}
+  .props .row button {font:inherit;color:inherit;background:var(--paper);border:1.5px solid var(--navy);padding:3px 8px;cursor:pointer;}
+  .props textarea {width:100%;box-sizing:border-box;margin-top:6px;font:11px/1.3 inherit;color:inherit;background:transparent;border:1px dashed var(--navy);resize:none;}
+  body.shot .hud,body.shot .tag,body.shot .status,body.shot .props {display:none;}
+</style>
+</head>
+<body>
+<div class="ground"></div>
+<canvas id="stage"></canvas>
+<div class="tag">Persona model · lab · step 37 衣服配色与气球袖</div>
+<div class="status" id="status">loading…</div>
+<details class="props" open><summary>比例 · proportions</summary><div id="sliders"></div>
+  <div class="row"><button type="button" id="props-reset">重置</button><button type="button" id="props-copy">复制数值</button></div>
+  <textarea id="props-out" rows="4" readonly aria-label="当前数值"></textarea>
+</details>
+<div class="hud">
+  <button type="button" data-act="spin" aria-pressed="false">自转</button>
+  <button type="button" data-act="front">正面</button>
+  <button type="button" data-act="side">侧面</button>
+  <button type="button" data-act="back">背面</button>
+  <button type="button" data-act="hat" aria-pressed="true">帽子</button>
+  <button type="button" data-act="toon" aria-pressed="true">TEISU 色调</button>
+</div>
+<!-- the model, as a script that runs while the page is parsed, before the module (base-vrm.js, see build.mjs) -->
+<script src="./base-vrm.js"></script>
+<script src="./face-textures.js"></script>
+<script type="module" src="./main.ts"></script>
+</body>
+</html>

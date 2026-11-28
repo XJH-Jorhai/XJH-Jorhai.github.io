@@ -17,6 +17,8 @@ npm run preview     # 预览 dist/，http://127.0.0.1:4321
 npm run test:site   # 浏览器路径测试（需 npx playwright install chromium）
 npm run test:piston # 首页铁傀儡动画测试（需先运行 preview）
 npm run lab         # 构建站点并生成开幕原型 lab/opening/teisu-opening.html（双击打开）
+npm run lab:model   # 构建 Persona 3D 模型原型到 lab/persona-model/dist/（需要用本地服务器打开，见该目录 README）
+npm run lab:model:check  # 渲染模型的八角度环绕图和三视图对照表到 reports/evidence/persona-model/
 npm run persona     # 由私有原图重新生成 Persona 页素材（需要 inputs/source/persona/）
 ```
 

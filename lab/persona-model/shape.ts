@@ -20,7 +20,9 @@ export const SHAPE = {
    *  for the same widths. Tried in steps; this mix put the cardigan's hem, the skirt's hem and the hands within a few
    *  pixels of the Vyou model's. torso: the spine lengthened (the neck and shoulders scaled back, so the head and arms
    *  are not stretched with it); arms: along the upper arm (the hand scaled back); thighs: likewise; head: as a whole. */
-  body: {torso:1.3, arms:1.18, thighs:1.1, head:.9},
+  // 1.3/1.18/1.1/.9 read as too burly (the user, 2026-11-28): shoulders and body a little narrower, the torso a little
+  // shorter; and the lab has sliders for all of these (main.ts) so she can be tuned by eye
+  body: {head:.92, torso:1.22, shoulders:.9, width:.92, arms:1.12, thighs:1.1, shins:1, legs:.95},
   /** Chin-length bob: the hair ends this far above the soles (m, base model scale; her chin is at 1.352). */
   hairEnd: 1.345,
   /** Layered ends: how much the cut length varies from strand to strand (m), and how many locks around the head. */
@@ -189,19 +191,43 @@ function recolor(tex:THREE.Texture|null,color:THREE.Color){
   return out;
 }
 
-/** The proportions (SHAPE.body): bone scales, so the clothes, the hair and everything carried by a bone follow; then
- *  the feet are put back on the ground. Called once everything is built on the rest pose (main.ts). */
-export function proportions(vrm:VRM,b=SHAPE.body){
+/** The proportions (SHAPE.body), as factors on the rest skeleton (1 = the shaped base model):
+ *    head       the head as a whole (with the hair and the hat)
+ *    torso      the spine's length; the neck and shoulders scaled back, so the head and the arms are not stretched
+ *    shoulders  the upper chest's width (the shoulders closer together or further apart); neck and shoulders scaled back
+ *    width      the body's width and depth from the waist up; likewise
+ *    arms       the upper arm along its length (the hand scaled back)
+ *    thighs, shins  the legs' lengths (the foot scaled back); legs: their thickness
+ *  Bone scales, so the clothes, the hair and everything carried by a bone follow; then the soles are put back on the
+ *  ground. Can be applied again with other values (the lab's sliders): each time from the scales it first found. */
+export type Body=typeof SHAPE.body;
+const restScales=new WeakMap<VRM,{scales:Map<THREE.Object3D,THREE.Vector3>,sole:number}>();
+export function proportions(vrm:VRM,b:Body=SHAPE.body){
   const B=(n:Bone)=>vrm.humanoid.getRawBoneNode(n)!;
-  B('spine').scale.y*=b.torso;B('neck').scale.y/=b.torso;B('leftShoulder').scale.y/=b.torso;B('rightShoulder').scale.y/=b.torso;
+  const names:Bone[]=['spine','upperChest','neck','head','leftShoulder','rightShoulder','leftUpperArm','rightUpperArm','leftHand','rightHand','leftUpperLeg','rightUpperLeg','leftLowerLeg','rightLowerLeg','leftFoot','rightFoot'];
+  let rest=restScales.get(vrm);
+  if(!rest){
+    // the soles' height under the foot bone, once (the foot is scaled back, so it keeps its size)
+    vrm.scene.updateMatrixWorld(true);
+    let sole=Infinity;vrm.scene.traverse(o=>{const m=o as THREE.SkinnedMesh;if(!m.isSkinnedMesh)return;const p=m.geometry.attributes.position!,v=new THREE.Vector3();for(let i=0;i<p.count;i+=5){v.fromBufferAttribute(p,i);if(v.y>.3)continue;m.applyBoneTransform(i,v);v.applyMatrix4(m.matrixWorld);sole=Math.min(sole,v.y);}});
+    rest={scales:new Map(names.map(n=>[B(n),B(n).scale.clone()])),sole:B('leftFoot').getWorldPosition(new THREE.Vector3()).y-sole};
+    restScales.set(vrm,rest);
+  }
+  for(const [bone,sc] of rest.scales)bone.scale.copy(sc);
+  const mul=(n:Bone,x:number,y:number,z:number)=>{B(n).scale.multiply(new THREE.Vector3(x,y,z));};
+  const w=b.width,sw=b.shoulders;
+  mul('spine',w,b.torso,w);mul('upperChest',sw,1,1);
+  mul('neck',1/(w*sw),1/b.torso,1/w);
   for(const side of ['left','right'] as const){
-    B(`${side}UpperArm`).scale.x*=b.arms;B(`${side}Hand`).scale.x/=b.arms;
-    B(`${side}UpperLeg`).scale.y*=b.thighs;B(`${side}Foot`).scale.y/=b.thighs;
+    mul(`${side}Shoulder`,1/(w*sw),1/b.torso,1/w);
+    mul(`${side}UpperArm`,b.arms,1,1);mul(`${side}Hand`,1/b.arms,1,1);
+    mul(`${side}UpperLeg`,b.legs,b.thighs,b.legs);mul(`${side}LowerLeg`,1,b.shins,1);mul(`${side}Foot`,1/b.legs,1/(b.thighs*b.shins),1/b.legs);
   }
   B('head').scale.multiplyScalar(b.head);
   vrm.scene.updateMatrixWorld(true);
-  const toe=new THREE.Box3();vrm.scene.traverse(o=>{const m=o as THREE.SkinnedMesh;if(!m.isSkinnedMesh)return;const p=m.geometry.attributes.position!,v=new THREE.Vector3();for(let i=0;i<p.count;i+=7){v.fromBufferAttribute(p,i);m.applyBoneTransform(i,v);v.applyMatrix4(m.matrixWorld);if(v.y<.3)toe.expandByPoint(v);}});
-  if(!toe.isEmpty())vrm.scene.position.y-=toe.min.y;
+  vrm.scene.position.y-=B('leftFoot').getWorldPosition(new THREE.Vector3()).y-rest.sole;
+  vrm.scene.updateMatrixWorld(true);
+  vrm.springBoneManager?.setInitState();
 }
 
 export function shape(vrm:VRM,s=SHAPE){

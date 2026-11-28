@@ -16,7 +16,7 @@ import * as THREE from 'three';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {VRMLoaderPlugin, VRMUtils, MToonMaterial, type VRM} from '@pixiv/three-vrm';
-import {proportions,shape} from './shape';
+import {proportions,shape,SHAPE,type Body} from './shape';
 import {face,FACE,faceImages} from './face';
 import {clothes} from './clothes';
 import {headwear, type Headwear} from './headwear';
@@ -98,9 +98,33 @@ faceImages.then(images=>loader.parse(bytes.buffer,'./',gltf=>{
   let hairMat:MToonMaterial|null=null;vrm.scene.traverse(o=>{const m=(o as THREE.Mesh).material;for(const x of Array.isArray(m)?m:[m])if(x instanceof MToonMaterial&&x.name.startsWith('Hair_')&&!hairMat)hairMat=x;});
   wear=headwear(vrm,hairMat!);proportions(vrm);pose(vrm);teisu(vrm,true);
   if(vrm.lookAt)vrm.lookAt.target=gaze;
+  buildSliders();
   status.textContent='';ready=true;
 },err=>{status.textContent='failed to load the model';console.error(err);}));
 let ready=false;
+
+// Proportions: a slider per factor (shape.ts proportions()); the values shown, to copy back into SHAPE.body.
+const SLIDERS:[keyof Body,string,number,number][]=[
+  ['head','头',.75,1.15],['torso','躯干长',.9,1.5],['shoulders','肩宽',.75,1.15],['width','身体宽',.75,1.15],
+  ['arms','手臂长',.9,1.35],['thighs','大腿长',.85,1.35],['shins','小腿长',.85,1.35],['legs','腿粗',.75,1.2],
+];
+const body:Body={...SHAPE.body};
+function buildSliders(){
+  if(innerWidth<700)document.querySelector('.props')?.removeAttribute('open'); // on a phone it starts folded, off the model
+  const box=document.getElementById('sliders')!,out=document.getElementById('props-out') as HTMLTextAreaElement;
+  const show=()=>{out.value=JSON.stringify(body).replace(/,/g,', ');};
+  const inputs=new Map<keyof Body,[HTMLInputElement,HTMLOutputElement]>();
+  let queued=false;const apply=()=>{if(queued)return;queued=true;requestAnimationFrame(()=>{queued=false;if(vrm)proportions(vrm,body);});};
+  for(const [key,label,min,max] of SLIDERS){
+    const row=document.createElement('label'),name=document.createElement('span'),input=document.createElement('input'),val=document.createElement('output');
+    name.textContent=label;input.type='range';input.min=String(min);input.max=String(max);input.step='0.01';input.value=String(body[key]);val.textContent=body[key].toFixed(2);
+    input.addEventListener('input',()=>{body[key]=+input.value;val.textContent=(+input.value).toFixed(2);show();apply();});
+    row.append(name,input,val);box.append(row);inputs.set(key,[input,val]);
+  }
+  document.getElementById('props-reset')!.addEventListener('click',()=>{Object.assign(body,SHAPE.body);for(const [k,[i,v]] of inputs){i.value=String(body[k]);v.textContent=body[k].toFixed(2);}show();apply();});
+  document.getElementById('props-copy')!.addEventListener('click',()=>{out.select();navigator.clipboard?.writeText(out.value).catch(()=>{});});
+  show();
+}
 
 // HUD
 const azimuth=(deg:number)=>{const r=controls.getDistance(),t=controls.target,a=THREE.MathUtils.degToRad(deg);camera.position.set(t.x+Math.sin(a)*r,camera.position.y,t.z+Math.cos(a)*r);controls.update();};
@@ -147,6 +171,7 @@ if(shot)Object.assign(window,{__three:THREE,__camera:()=>active,__model:{
   get ready(){return ready;},
   get vrm(){return vrm;},
   setHat(on:boolean){wear?.setHat(on);},
+  setBody(b:Partial<Body>){if(vrm){Object.assign(body,b);proportions(vrm,body);}},
   view(deg:number,orthographic=false,dist=4.6,eyeY=1.0,targetY=.86){
     still=true;pointerOn=false;
     if(vrm){

@@ -23,7 +23,7 @@ export const SHAPE = {
   // 1.3/1.18/1.1/.9 read as too burly (the user, 2026-11-28): shoulders and body a little narrower, the torso a little
   // shorter; and the lab has sliders for all of these (main.ts) so she can be tuned by eye
   // the user's own choice with the sliders (2026-11-28)
-  body: {head:.93, torso:1.22, shoulders:.92, width:.92, waist:1, hips:.95, arms:1.12, thighs:1.1, shins:1, legs:.95},
+  body: {head:.93, torso:1.22, shoulders:.93, slope:.2, width:.92, waist:1, hips:.96, arms:1.12, thighs:1.1, shins:1, legs:1.03},
   /** Chin-length bob: the hair ends this far above the soles (m, base model scale; her chin is at 1.352). */
   hairEnd: 1.345,
   /** Layered ends: how much the cut length varies from strand to strand (m), and how many locks around the head. */
@@ -196,6 +196,9 @@ function recolor(tex:THREE.Texture|null,color:THREE.Color){
  *    head       the head as a whole (with the hair and the hat)
  *    torso      the spine's length; the neck and shoulders scaled back, so the head and the arms are not stretched
  *    shoulders  the upper chest's width (the shoulders closer together or further apart); neck and shoulders scaled back
+ *    slope      sloping shoulders (rad): the collarbones turned down, the upper arms turned back by as much, so the arms
+ *               hang as before. Squarer, the cardigan's shoulders read as broad (the user, 2026-11-28). A pose, not a scale:
+ *               applied in main.ts pose()
  *    width      the body's width and depth from the waist up; likewise
  *    waist      the waist alone, side to side (the spine's segment, between the hips and the chest): the chest scales it back
  *    hips       the hips (the pelvis, side to side and front to back; the spine above and the thighs below scale it back,

@@ -82,7 +82,9 @@ function teisu(vrm:VRM,on:boolean){
 // A pose: arms down from the T pose, elbows a little bent.
 function pose(vrm:VRM){
   const b=(name:Parameters<VRM['humanoid']['getNormalizedBoneNode']>[0])=>vrm.humanoid.getNormalizedBoneNode(name);
-  b('leftUpperArm')!.rotation.z=-1.18;b('rightUpperArm')!.rotation.z=1.18;
+  const sl=body.slope; // sloping shoulders (shape.ts SHAPE.body): the collarbones down, the arms back up by as much
+  b('leftShoulder')!.rotation.z=-sl;b('rightShoulder')!.rotation.z=sl;
+  b('leftUpperArm')!.rotation.z=-1.18+sl;b('rightUpperArm')!.rotation.z=1.18-sl;
   b('leftLowerArm')!.rotation.y=.18;b('rightLowerArm')!.rotation.y=-.18;
   b('leftHand')!.rotation.z=-.12;b('rightHand')!.rotation.z=.12;
 }
@@ -105,7 +107,7 @@ let ready=false;
 
 // Proportions: a slider per factor (shape.ts proportions()); the values shown, to copy back into SHAPE.body.
 const SLIDERS:[keyof Body,string,number,number][]=[
-  ['head','头',.75,1.15],['torso','躯干长',.9,1.5],['shoulders','肩宽',.75,1.15],['width','身体宽',.75,1.15],['waist','腰围',.7,1.15],['hips','臀围',.8,1.2],
+  ['head','头',.75,1.15],['torso','躯干长',.9,1.5],['shoulders','肩宽',.75,1.15],['slope','溜肩',0,.35],['width','身体宽',.75,1.15],['waist','腰围',.7,1.15],['hips','臀围',.8,1.2],
   ['arms','手臂长',.9,1.35],['thighs','大腿长',.85,1.35],['shins','小腿长',.85,1.35],['legs','腿粗',.75,1.2],
 ];
 const body:Body={...SHAPE.body};
@@ -114,7 +116,7 @@ function buildSliders(){
   const box=document.getElementById('sliders')!,out=document.getElementById('props-out') as HTMLTextAreaElement;
   const show=()=>{out.value=JSON.stringify(body).replace(/,/g,', ');};
   const inputs=new Map<keyof Body,[HTMLInputElement,HTMLOutputElement]>();
-  let queued=false;const apply=()=>{if(queued)return;queued=true;requestAnimationFrame(()=>{queued=false;if(vrm)proportions(vrm,body);});};
+  let queued=false;const apply=()=>{if(queued)return;queued=true;requestAnimationFrame(()=>{queued=false;if(vrm){proportions(vrm,body);pose(vrm);}});};
   for(const [key,label,min,max] of SLIDERS){
     const row=document.createElement('label'),name=document.createElement('span'),input=document.createElement('input'),val=document.createElement('output');
     name.textContent=label;input.type='range';input.min=String(min);input.max=String(max);input.step='0.01';input.value=String(body[key]);val.textContent=body[key].toFixed(2);
@@ -171,7 +173,7 @@ if(shot)Object.assign(window,{__three:THREE,__camera:()=>active,__model:{
   get ready(){return ready;},
   get vrm(){return vrm;},
   setHat(on:boolean){wear?.setHat(on);},
-  setBody(b:Partial<Body>){if(vrm){Object.assign(body,b);proportions(vrm,body);}},
+  setBody(b:Partial<Body>){if(vrm){Object.assign(body,b);proportions(vrm,body);pose(vrm);}},
   view(deg:number,orthographic=false,dist=4.6,eyeY=1.0,targetY=.86){
     still=true;pointerOn=false;
     if(vrm){

@@ -29,6 +29,9 @@ export const FACE = {
   /** Off: widening the lower face squared the jaw off with a step at the neck (tried 2026-11-27); the base
    *  model's chin is already close to the sheet's, which is also pointed. */
   reshapeJaw: false,
+  /** A colour the repainted iris is multiplied by (its texture kept): the second repaint (2026-11-28) came out a bright gold,
+   *  about twice as light as the sheet's warm brown (median 254,185,74 against 134,91,68 on screen). */
+  irisMultiply: '#877DEB',
   skin: '#FFF1E7', skinShade: '#F2CDB8', skinNavy: .12, brow: '#C9A178', iris: '#A97C55', smile: 0, // the iris warm but not orange; no smile: the base model's 'happy' opens the mouth even at 7%
 };
 
@@ -131,7 +134,7 @@ export function face(vrm:VRM,s=FACE,images:FaceImages=null){
     if(/^FaceBrow/.test(mat.name))tint(mat,new THREE.Color(s.brow),.95);
     if(/^Face_00_SKIN/.test(mat.name)&&images?.skin)repaint(mat,images.skin);
     if(/^FaceEyeline/.test(mat.name)&&images?.lashes)repaint(mat,images.lashes);
-    if(/^EyeIris/.test(mat.name)){if(images?.iris)repaint(mat,images.iris);else tint(mat,new THREE.Color(s.iris),.5);} // the repaint is already the sheet's colour
+    if(/^EyeIris/.test(mat.name)){if(images?.iris){repaint(mat,images.iris);mat.color.set(s.irisMultiply);}else tint(mat,new THREE.Color(s.iris),.5);} // the repaint is already the sheet's colour
   }
   // a soft smile, as on the sheet (the base model's 'happy', a little: more closes the eyes into arcs)
   vrm.expressionManager?.setValue('happy',s.smile);

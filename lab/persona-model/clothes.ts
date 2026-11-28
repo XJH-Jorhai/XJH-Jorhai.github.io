@@ -19,9 +19,18 @@ import {bow as ribbonBow} from './headwear';
 
 export const CLOTHES = {
   // grey with a little lavender, as on the no-hat sheet (the palette's coat colour read too purple in 3D)
-  coat: '#BFB7C6', coatShade: '#857C92', cuff: '#B0A7B9', coatInside: '#766D84',
+  // colours taken off the no-hat sheet (2026-11-28): a warm pinkish grey (203,193,200), its shaded side only a little
+  // darker (187,176,184), the ribbed bands (placket, hem, cuffs, pocket tops) that darker grey; was a cool lavender
+  // with a dark shade that turned the back navy
+  coat: '#CBC1C8', coatShade: '#B2A7B0', cuff: '#B9AEB6', coatInside: '#8E8490',
+  /** How far the clothes' shade leans to the site's navy (main.ts teisu; default .42): the sheet's cloth is lit almost flat. */
+  clothNavy: .15,
   shirt: '#F7F4EE', shirtShade: '#C9C3CF',
-  plaidBase: '#6F6A80', plaidLight: '#D9D4E2', plaidPink: '#E9ACA9', plaidDark: '#4A4660',
+  // the sheet's plaid, by colour clusters: grey (138,124,132), wide darker bands (116,105,114) crossing darker still,
+  // a light stripe (192,173,181), thin white (236,215,220) and dark red lines; was a coarse blue-purple check
+  plaidBase: '#8A7C84', plaidLight: '#C0ADB5', plaidWhite: '#ECD7DC', plaidRed: '#8C2F3F', plaidDark: '#5E5258',
+  /** Plaid repeats round the skirt and down it (the sheet: about ten round, three down). */
+  plaidRound: 10, plaidDown: 3.2,
   sock: '#F5F2EC', sockShade: '#C8C3CC',
   loafer: '#6E4A3A', loaferSole: '#3A2620', strap: '#4E3328',
   /** Sole: below this (m). Saddle strap across the instep at this depth (m, forward). */
@@ -39,10 +48,15 @@ export const CLOTHES = {
   waist: .985, skirtHem: .708, pleats: 30, pleatDepth: .1,
   /** Sock tops above the soles, measured as 0.44 of the knee's height. */
   sockTop: .226,
+  /** The sleeve: its radius at the shoulder (m), how much fuller at its fullest (m), and how far down that is
+   *  (a power: higher, lower; 3.2 puts it about three quarters down the arm). */
+  sleeve: [.046,.03,3.2] as [number,number,number],
+  /** The ribbed cuff, from here down the arm (0…1 from the seam to the wrist; the sheet's is a tall one). */
+  cuffFrom: .84,
   /** Where the sleeves meet the cardigan: this far out from the shoulder joint (m). */
   seam: .035,
   /** Ribbing: the hem band's height, the placket's width, the pockets (|x| range, height range) and their ribbed tops (m). */
-  ribHem: .03, ribPlacket: .017, pocketX: [.045,.115] as [number,number], pocketY: [.893,.955] as [number,number], ribPocket: .012,
+  ribHem: .03, ribPlacket: .022, pocketX: [.045,.115] as [number,number], pocketY: [.893,.955] as [number,number], ribPocket: .012,
   /** Everything of the T-shirt within this distance of the arm's axis, beyond the seam, is sleeve (m). */
   armhole: .088,
   /** The T-shirt's neckline is cut here (m); the collar covers from here up. */
@@ -68,8 +82,10 @@ const rib=()=>pattern(64,(x,s)=>{x.fillStyle='#fff';x.fillRect(0,0,s,s);for(let 
 const plaid=()=>pattern(256,(x,s)=>{
   x.fillStyle=C.plaidBase;x.fillRect(0,0,s,s);
   const band=(pos:number,w:number,color:string,alpha:number)=>{x.globalAlpha=alpha;x.fillStyle=color;x.fillRect(pos*s,0,w*s,s);x.fillRect(0,pos*s,s,w*s);x.globalAlpha=1;};
-  band(.0,.22,C.plaidDark,.55);band(.5,.22,C.plaidDark,.55);
-  band(.3,.04,C.plaidLight,.85);band(.8,.04,C.plaidLight,.85);band(.38,.012,C.plaidPink,1);band(.88,.012,C.plaidPink,1);band(.62,.01,C.plaidLight,.7);
+  // a wide dark band (darker where it crosses itself), a light stripe each side of it, then the thin lines: a white
+  // pair with a dark red line between
+  band(.04,.3,C.plaidDark,.42);band(.38,.06,C.plaidLight,.55);band(.62,.05,C.plaidLight,.4);
+  band(.72,.014,C.plaidWhite,.95);band(.755,.016,C.plaidRed,.9);band(.79,.014,C.plaidWhite,.95);band(.22,.01,C.plaidRed,.55);
 });
 
 /** A copy of an MToon material (and its outline twin) with a new colour, shade and texture. */
@@ -77,6 +93,7 @@ export function dress(base:MToonMaterial,outline:MToonMaterial|undefined,color:s
   const m=base.clone() as MToonMaterial,o=outline?.clone() as MToonMaterial|undefined;
   for(const x of [m,o]){if(!x)continue;x.color.set(color);x.shadeColorFactor.set(shade);x.map=map;x.shadeMultiplyTexture=map;x.side=THREE.DoubleSide;x.needsUpdate=true;}
   if(o)o.side=THREE.BackSide;
+  m.userData.navy=CLOTHES.clothNavy;
   return [m,o].filter(Boolean) as MToonMaterial[];
 }
 
@@ -161,7 +178,7 @@ function skirt(body:THREE.SkinnedMesh,vrm:VRM,mats:THREE.Material[]){
     for(let s=0;s<=seg;s++){
       const a=s/seg*Math.PI*2,saw=((s/seg*C.pleats)%1),bump=1+depth*(saw-.5)*.5;
       const x=Math.sin(a)*rx*bump,z=cz+Math.cos(a)*rz*bump;
-      P.push(x,y,z);U.push(s/seg*5,t*1.6);
+      P.push(x,y,z);U.push(s/seg*C.plaidRound,t*C.plaidDown);
       // the top follows the hips; lower down the thighs pull their side
       const legs=Math.min(1,Math.max(0,(t-.35)/.65))*.55,left=legs*Math.min(1,Math.max(0,.5+x/.16));
       SI.push(hips,L,R,0);SW.push(1-legs,left,legs-left,0);
@@ -222,7 +239,9 @@ export function clothes(vrm:VRM){
   const arms=(['left','right'] as const).map(side=>{
     const sh=rest(`${side}UpperArm` as Bone),sign=Math.sign(sh.x),wr=rest(`${side}Hand` as Bone);
     const from=new THREE.Vector3(sign*seam,sh.y-.006,sh.z),to=wr.clone().add(new THREE.Vector3(sign*.004,0,0));
-    const radius=(t:number)=>.048+.021*Math.sin(Math.PI*Math.min(1,Math.max(0,t/.87)**1.3))**1.2;
+    // a balloon, as on the sheet: slim at the shoulder, fullest over the forearm (three quarters down), then gathered
+    // into the cuff (was fullest at the elbow, a plain tube)
+    const radius=(t:number)=>C.sleeve[0]+C.sleeve[1]*Math.sin(Math.PI*Math.min(1,Math.max(0,t/.86))**C.sleeve[2])**.85;
     return {side,sh,sign,from,to,radius};
   });
   // the T-shirt's crew neck (its band turns inside, above 1.306 m) goes from both: the shirt's collar
@@ -254,7 +273,7 @@ export function clothes(vrm:VRM){
     for(let i=0;i<cp.count;i++){
       q.fromBufferAttribute(cp,i);if(!onSleeve(q))continue;
       const t=q.clone().sub(from).dot(dir)/len,c=from.clone().addScaledVector(dir,t*len),off=q.clone().sub(c),d=off.length()||1;
-      const w=smooth(.02,hemT*.7,t),r=d+(radius(t)+.002-d)*w; // the last third (and the hem's turned-in band) lies right on the sleeve's surface
+      const outer=smooth(-.2,.3,off.x*sign/d),w=smooth(.02,hemT*.7,t),r=d+(radius(t)+.002-.006*smooth(hemT*(.8-.25*outer),hemT*(.95-.25*outer),t)-d)*w; // tucked under the tube near its hem, earlier on the outer side (the edge showed there); on the inner side late (early, it opened a slit at the armpit) // the last third (and the hem's turned-in band) lies just under the sleeve's tube, which covers its edge (lying on it, the edge showed as a step on the upper arm)
       q.copy(c).addScaledVector(off,r/d);cp.setXYZ(i,q.x,q.y,q.z);drawn.push([i,w,off.clone().normalize()]);
       // the knit runs along the arm here, exactly as on the tube (same angle reference, same scale)
       const bu=new THREE.Vector3(0,1,0).projectOnPlane(dir).normalize(),bv=dir.clone().cross(bu);
@@ -262,8 +281,8 @@ export function clothes(vrm:VRM){
     }
     const el=rest(`${side}LowerArm` as Bone);
     const elbowT=from.distanceTo(el)/len,bones:[number,number]=[boneIndex(`${side}UpperArm` as Bone),boneIndex(`${side}LowerArm` as Bone)];
-    tube(body,from,to,bones,elbowT,radius,hemT*.6,.875,knitMats);
-    tube(body,from,to,bones,elbowT,()=>.037,.865,1,cuffMats);
+    tube(body,from,to,bones,elbowT,radius,hemT*.6,C.cuffFrom+.01,knitMats);
+    tube(body,from,to,bones,elbowT,()=>.037,C.cuffFrom,1,cuffMats);
   }
   cp.needsUpdate=true;cu.needsUpdate=true;coat.geometry.computeVertexNormals();
   // where the sleeve lies on the tube it is shaded like the tube (normals straight out from the arm), so the two read as one
@@ -277,8 +296,13 @@ export function clothes(vrm:VRM){
     const inPocket=(x:number,y:number,z:number)=>z>centreZ&&Math.abs(x)>C.pocketX[0]&&Math.abs(x)<C.pocketX[1]&&y>C.pocketY[0]&&y<C.pocketY[1];
     for(let i=0;i<pos.count;i++)if(inPocket(pos.getX(i),pos.getY(i),pos.getZ(i)))pos.setXYZ(i,pos.getX(i)+nor.getX(i)*.0025,pos.getY(i)+nor.getY(i)*.0025,pos.getZ(i)+nor.getZ(i)*.0025);
     pos.needsUpdate=true;
+    // the neck's edge: the cardigan's highest point at each angle round the neck (the band runs on round it, behind the
+    // neck, as on the sheet's back view; it stopped at the top of the V)
+    const NB=48,neckTop=new Float32Array(NB).fill(-9),bin=(x:number,z:number)=>Math.min(NB-1,Math.floor((Math.atan2(x,z-centreZ)/(Math.PI*2)+.5)*NB));
+    for(let i=0;i<pos.count;i++){const x=pos.getX(i),y=pos.getY(i),z=pos.getZ(i);if(Math.abs(x)<.11&&y>1.2){const k=bin(x,z);neckTop[k]=Math.max(neckTop[k]!,y);}}
     const ribbed=(x:number,y:number,z:number)=>{
       if(y<C.hem+C.ribHem)return true;                                                   // hem band
+      if(Math.abs(x)<.105&&y>1.2&&y>neckTop[bin(x,z)]!-C.ribPlacket&&(z<centreZ||y>C.vTop-.01))return true; // round the neck
       if(z>centreZ){
         const edge=y>C.vBottom?Math.abs(x)-vHalf(y):Math.abs(x);                          // placket: along the V's edge, then down the front
         if(edge>-.001&&edge<C.ribPlacket&&y<C.vTop+.004)return true;
@@ -299,7 +323,7 @@ export function clothes(vrm:VRM){
   }
 
   // --- skirt
-  skirt(body,vrm,dress(baseMat!,baseOutline,'#ffffff','#9a94ad',plaid()));
+  skirt(body,vrm,dress(baseMat!,baseOutline,'#ffffff','#D3C7CD',plaid()));
 
   // --- socks, from the shins and ankles
   // inside the shoe: a brown lining over the foot, so the gaps between the shoe's panels show shoe, not sock

@@ -25,7 +25,11 @@ export const FACE = {
   eyes: 1.1,
   /** The base model's eye morphs baked in (weights), and the iris (with its highlight) scaled about the eye. Chosen
    *  side by side with the head turnaround from eight mixes (Close alone read sleepy, more Angry stern). */
-  eyeShape: {Natural:.3,Close:.15,Angry:.1} as Record<string,number>, irisSize: 1.1,
+  // Off since 2026-11-28 (the user prefers the eyes as they were at step 27: round, the base model's own iris and lashes);
+  // the almond mix that was tried is kept here: {Natural:.3,Close:.15,Angry:.1}, irisSize 1.1.
+  eyeShape: {} as Record<string,number>, irisSize: 1,
+  /** Which of the user's repainted textures are used (the smile is kept; the eyes are the base model's, as at step 27). */
+  repaint: {skin:true, iris:false, lashes:false},
   /** Off: widening the lower face squared the jaw off with a step at the neck (tried 2026-11-27); the base
    *  model's chin is already close to the sheet's, which is also pointed. */
   reshapeJaw: false,
@@ -107,7 +111,7 @@ export function face(vrm:VRM,s=FACE,images:FaceImages=null){
       for(let i=0;i<pos.count;i++)pos.setXYZ(i,pos.getX(i)+w*d.getX(i),pos.getY(i)+w*d.getY(i),pos.getZ(i)+w*d.getZ(i));}
     // what is already closed comes off the blink, so a full blink still meets the lower lid (and does not pass it)
     const shut=s.eyeShape.Close??0;
-    if(shut)for(const k of ['Close','Close_L','Close_R']){const d=morphs[dict['Face_Blendshape.Fcl_EYE_'+k]??-1];if(!d)continue;for(let i=0;i<d.count;i++)d.setXYZ(i,d.getX(i)*(1-shut),d.getY(i)*(1-shut),d.getZ(i)*(1-shut));d.needsUpdate=true;}
+    if(shut&&touched)for(const k of ['Close','Close_L','Close_R']){const d=morphs[dict['Face_Blendshape.Fcl_EYE_'+k]??-1];if(!d)continue;for(let i=0;i<d.count;i++)d.setXYZ(i,d.getX(i)*(1-shut),d.getY(i)*(1-shut),d.getZ(i)*(1-shut));d.needsUpdate=true;}
     if(touched){pos.needsUpdate=true;g.computeVertexNormals();}
   }
   // eyes: larger about each eye's centre
@@ -119,7 +123,7 @@ export function face(vrm:VRM,s=FACE,images:FaceImages=null){
     c.forEach((v,k)=>v.divideScalar(n[k]||1));
     for(const m of eyeParts)reshape(m,p=>{const e=c[p.x>0?0:1]!;p.x=e.x+(p.x-e.x)*s.eyes;p.y=e.y+(p.y-e.y)*s.eyes;return p;});
     // the iris (and its highlight) larger still, filling the eye from lid to lid
-    for(const m of byMat(/^(EyeIris|EyeHighlight)_/))reshape(m,p=>{const e=c[p.x>0?0:1]!;p.x=e.x+(p.x-e.x)*s.irisSize;p.y=e.y+(p.y-e.y)*s.irisSize;return p;});
+    if(s.irisSize!==1)for(const m of byMat(/^(EyeIris|EyeHighlight)_/))reshape(m,p=>{const e=c[p.x>0?0:1]!;p.x=e.x+(p.x-e.x)*s.irisSize;p.y=e.y+(p.y-e.y)*s.irisSize;return p;});
   }
   // skin; the brows and the irises recoloured in their own textures (their shape and shading kept: a colour
   // factor alone only darkens a dark texture)
@@ -132,9 +136,9 @@ export function face(vrm:VRM,s=FACE,images:FaceImages=null){
       mat.shadeColorFactor.set(s.skinShade);mat.userData.navy=s.skinNavy;
     }
     if(/^FaceBrow/.test(mat.name))tint(mat,new THREE.Color(s.brow),.95);
-    if(/^Face_00_SKIN/.test(mat.name)&&images?.skin)repaint(mat,images.skin);
-    if(/^FaceEyeline/.test(mat.name)&&images?.lashes)repaint(mat,images.lashes);
-    if(/^EyeIris/.test(mat.name)){if(images?.iris){repaint(mat,images.iris);mat.color.set(s.irisMultiply);}else tint(mat,new THREE.Color(s.iris),.5);} // the repaint is already the sheet's colour
+    if(/^Face_00_SKIN/.test(mat.name)&&images?.skin&&s.repaint.skin)repaint(mat,images.skin);
+    if(/^FaceEyeline/.test(mat.name)&&images?.lashes&&s.repaint.lashes)repaint(mat,images.lashes);
+    if(/^EyeIris/.test(mat.name)){if(images?.iris&&s.repaint.iris){repaint(mat,images.iris);mat.color.set(s.irisMultiply);}else tint(mat,new THREE.Color(s.iris),.5);} // the repaint is already the sheet's colour
   }
   // a soft smile, as on the sheet (the base model's 'happy', a little: more closes the eyes into arcs)
   vrm.expressionManager?.setValue('happy',s.smile);

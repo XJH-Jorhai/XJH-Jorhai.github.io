@@ -54,8 +54,10 @@ const closeups = async (file, list, hat = true) => {
   await page.evaluate(() => window.__model.setHat(true));
 };
 const around = (n, dist, eyeY, targetY) => Array.from({length: n}, (_, i) => [i * 360 / n - 180, dist, eyeY, targetY]);
-await closeups('closeup-upper.png', [...around(12, 1.15, 1.32, 1.22), ...around(12, 1.0, 1.55, 1.3)]);
-await closeups('closeup-head.png', [...around(12, .75, 1.5, 1.45)], false);
+// framed from her eyes (the heights were fixed for the first proportions; taller since step 31, the heads were cut off)
+const eye = (await page.evaluate(() => window.__model.landmarks()))?.leftEye?.[1] ?? 1.397, at = h => +(eye - 1.397 + h).toFixed(3);
+await closeups('closeup-upper.png', [...around(12, 1.15, at(1.32), at(1.22)), ...around(12, 1.0, at(1.55), at(1.3))]);
+await closeups('closeup-head.png', [...around(12, .75, at(1.5), at(1.45))], false);
 await closeups('closeup-lower.png', [...around(6, 1.6, .45, .32), ...around(6, 1.3, .12, .5)]);
 await browser.close(); server.close();
 console.log(`${out}/turntable.png\n${out}/three-view.png\n${out}/closeup-upper.png\n${out}/closeup-head.png\n${out}/closeup-lower.png`);

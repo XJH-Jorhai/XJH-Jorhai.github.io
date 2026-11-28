@@ -15,6 +15,12 @@ import {arcIn} from './headwear';
 export const SHAPE = {
   /** Shin length (knee to ankle) as a factor: 0.875 brings the knees from 0.38 C to 0.35 C. */
   shin: .875,
+  /** Proportions after the user's own Vyou model (2026-11-28; until then the head turnaround's ~6 heads): measured
+   *  side by side with the Vyou screenshot at equal face size (eyes to chin), her body there is about 1.35× as long
+   *  for the same widths. Tried in steps; this mix put the cardigan's hem, the skirt's hem and the hands within a few
+   *  pixels of the Vyou model's. torso: the spine lengthened (the neck and shoulders scaled back, so the head and arms
+   *  are not stretched with it); arms: along the upper arm (the hand scaled back); thighs: likewise; head: as a whole. */
+  body: {torso:1.3, arms:1.18, thighs:1.1, head:.9},
   /** Chin-length bob: the hair ends this far above the soles (m, base model scale; her chin is at 1.352). */
   hairEnd: 1.345,
   /** Layered ends: how much the cut length varies from strand to strand (m), and how many locks around the head. */
@@ -181,6 +187,21 @@ function recolor(tex:THREE.Texture|null,color:THREE.Color){
   x.putImageData(d,0,0);
   const out=new THREE.CanvasTexture(c);out.colorSpace=tex.colorSpace;out.flipY=tex.flipY;out.wrapS=tex.wrapS;out.wrapT=tex.wrapT;out.needsUpdate=true;
   return out;
+}
+
+/** The proportions (SHAPE.body): bone scales, so the clothes, the hair and everything carried by a bone follow; then
+ *  the feet are put back on the ground. Called once everything is built on the rest pose (main.ts). */
+export function proportions(vrm:VRM,b=SHAPE.body){
+  const B=(n:Bone)=>vrm.humanoid.getRawBoneNode(n)!;
+  B('spine').scale.y*=b.torso;B('neck').scale.y/=b.torso;B('leftShoulder').scale.y/=b.torso;B('rightShoulder').scale.y/=b.torso;
+  for(const side of ['left','right'] as const){
+    B(`${side}UpperArm`).scale.x*=b.arms;B(`${side}Hand`).scale.x/=b.arms;
+    B(`${side}UpperLeg`).scale.y*=b.thighs;B(`${side}Foot`).scale.y/=b.thighs;
+  }
+  B('head').scale.multiplyScalar(b.head);
+  vrm.scene.updateMatrixWorld(true);
+  const toe=new THREE.Box3();vrm.scene.traverse(o=>{const m=o as THREE.SkinnedMesh;if(!m.isSkinnedMesh)return;const p=m.geometry.attributes.position!,v=new THREE.Vector3();for(let i=0;i<p.count;i+=7){v.fromBufferAttribute(p,i);m.applyBoneTransform(i,v);v.applyMatrix4(m.matrixWorld);if(v.y<.3)toe.expandByPoint(v);}});
+  if(!toe.isEmpty())vrm.scene.position.y-=toe.min.y;
 }
 
 export function shape(vrm:VRM,s=SHAPE){

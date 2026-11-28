@@ -17,7 +17,7 @@ import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {VRMLoaderPlugin, VRMUtils, MToonMaterial, type VRM} from '@pixiv/three-vrm';
 import {shape} from './shape';
-import {face} from './face';
+import {face,FACE,faceImages} from './face';
 import {clothes} from './clothes';
 import {headwear, type Headwear} from './headwear';
 
@@ -90,16 +90,16 @@ function pose(vrm:VRM){
 let vrm:VRM|null=null,spin=false,yawGoal:number|null=null,wear:Headwear|null=null;
 const loader=new GLTFLoader();loader.register(parser=>new VRMLoaderPlugin(parser));
 const bytes=Uint8Array.from(atob((window as unknown as {__baseVrm:string}).__baseVrm),c=>c.charCodeAt(0));
-loader.parse(bytes.buffer,'./',gltf=>{
+faceImages.then(images=>loader.parse(bytes.buffer,'./',gltf=>{
   vrm=gltf.userData.vrm as VRM;
   VRMUtils.removeUnnecessaryVertices(gltf.scene);VRMUtils.combineSkeletons(gltf.scene);
   vrm.scene.traverse(o=>{o.frustumCulled=false;});
-  scene.add(vrm.scene);shape(vrm);face(vrm);clothes(vrm);
+  scene.add(vrm.scene);shape(vrm);face(vrm,FACE,images);clothes(vrm);
   let hairMat:MToonMaterial|null=null;vrm.scene.traverse(o=>{const m=(o as THREE.Mesh).material;for(const x of Array.isArray(m)?m:[m])if(x instanceof MToonMaterial&&x.name.startsWith('Hair_')&&!hairMat)hairMat=x;});
   wear=headwear(vrm,hairMat!);pose(vrm);teisu(vrm,true);
   if(vrm.lookAt)vrm.lookAt.target=gaze;
   status.textContent='';ready=true;
-},err=>{status.textContent='failed to load the model';console.error(err);});
+},err=>{status.textContent='failed to load the model';console.error(err);}));
 let ready=false;
 
 // HUD

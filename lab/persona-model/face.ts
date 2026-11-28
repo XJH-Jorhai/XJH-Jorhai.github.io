@@ -6,6 +6,9 @@
  *   jaw     (off) widening the lower face towards the sheet's rounder cheeks squared the jaw off; left as it is.
  *   eyes    the sheet's eyes are a little larger: iris, white, lash line and highlight scaled about each eye.
  *   skin    warmer (peach, as on the sheet, not a cool white); brows lighter and finer.
+ *   paint   the user's repaints of the base model's face textures (inputs/source/persona/model/face/, prompts in
+ *           inputs/persona-model-prompts.md section 4): a closed gentle smile, warm honey-amber irises, fuller lashes
+ *           with a flick at the outer end. Same layout as the originals, so they drop in; absent, the originals stay.
  */
 import * as THREE from 'three';
 import {MToonMaterial, type VRM} from '@pixiv/three-vrm';
@@ -19,8 +22,24 @@ export const FACE = {
   /** Off: widening the lower face squared the jaw off with a step at the neck (tried 2026-11-27); the base
    *  model's chin is already close to the sheet's, which is also pointed. */
   reshapeJaw: false,
-  skin: '#FFF1E7', brow: '#C9A178', iris: '#A97C55', smile: 0, // the iris warm but not orange; no smile: the base model's 'happy' opens the mouth even at 7%
+  skin: '#FFF1E7', skinShade: '#F2CDB8', skinNavy: .12, brow: '#C9A178', iris: '#A97C55', smile: 0, // the iris warm but not orange; no smile: the base model's 'happy' opens the mouth even at 7%
 };
+
+/** The repainted textures, if the build shipped them (build.mjs → face-textures.js), decoded before the model is built. */
+type FaceImages={skin?:HTMLImageElement,iris?:HTMLImageElement,lashes?:HTMLImageElement}|null;
+export const faceImages:Promise<FaceImages>=(async()=>{
+  const urls=(window as unknown as {__faceTextures?:Record<string,string>|null}).__faceTextures;if(!urls)return null;
+  const out:Record<string,HTMLImageElement>={};
+  await Promise.all(Object.entries(urls).map(async([k,u])=>{const img=new Image();img.src=u;await img.decode();out[k]=img;}));
+  return out as FaceImages;
+})();
+
+/** Puts an image in place of a material's texture, keeping how the old one was sampled. */
+function repaint(mat:MToonMaterial,img:HTMLImageElement){
+  const old=mat.map;if(!old)return;
+  const t=new THREE.Texture(img);t.colorSpace=old.colorSpace;t.flipY=old.flipY;t.wrapS=old.wrapS;t.wrapT=old.wrapT;t.needsUpdate=true;
+  if(mat.shadeMultiplyTexture===old)mat.shadeMultiplyTexture=t;mat.map=t;mat.needsUpdate=true;
+}
 
 const lerpTable=(t:[number,number][],y:number)=>{
   if(y>=t[0]![0])return t[0]![1];
@@ -57,7 +76,7 @@ function tint(mat:MToonMaterial,color:THREE.Color,amount:number){
   mat.map=t;mat.shadeMultiplyTexture=t;mat.color.set('#ffffff');mat.needsUpdate=true;
 }
 
-export function face(vrm:VRM,s=FACE){
+export function face(vrm:VRM,s=FACE,images:FaceImages=null){
   const meshes:THREE.Mesh[]=[];vrm.scene.traverse(o=>{if((o as THREE.Mesh).isMesh)meshes.push(o as THREE.Mesh);});
   const byMat=(re:RegExp)=>meshes.filter(m=>re.test((Array.isArray(m.material)?m.material[0]:m.material)?.name??''));
   const smooth=(a:number,b:number,x:number)=>{const k=Math.min(1,Math.max(0,(x-a)/(b-a)));return k*k*(3-2*k);};
@@ -83,9 +102,16 @@ export function face(vrm:VRM,s=FACE){
   // factor alone only darkens a dark texture)
   for(const m of meshes)for(const mat of Array.isArray(m.material)?m.material:[m.material]){
     if(!(mat instanceof MToonMaterial))continue;
-    if(/^(Face|Body)_00_SKIN/.test(mat.name))mat.color.set(s.skin);
+    if(/^(Face|Body)_00_SKIN/.test(mat.name)){
+      mat.color.set(s.skin);
+      // the shade warm and light, and only a little navy (main.ts teisu): on the sheet the face is lit almost flat, a soft
+      // peach under the chin; navy, every small crease (under the nose, the corners of the mouth) came out as a mauve spot
+      mat.shadeColorFactor.set(s.skinShade);mat.userData.navy=s.skinNavy;
+    }
     if(/^FaceBrow/.test(mat.name))tint(mat,new THREE.Color(s.brow),.95);
-    if(/^EyeIris/.test(mat.name))tint(mat,new THREE.Color(s.iris),.5);
+    if(/^Face_00_SKIN/.test(mat.name)&&images?.skin)repaint(mat,images.skin);
+    if(/^FaceEyeline/.test(mat.name)&&images?.lashes)repaint(mat,images.lashes);
+    if(/^EyeIris/.test(mat.name)){if(images?.iris)repaint(mat,images.iris);else tint(mat,new THREE.Color(s.iris),.5);} // the repaint is already the sheet's colour
   }
   // a soft smile, as on the sheet (the base model's 'happy', a little: more closes the eyes into arcs)
   vrm.expressionManager?.setValue('happy',s.smile);

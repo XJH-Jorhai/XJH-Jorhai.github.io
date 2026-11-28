@@ -239,7 +239,7 @@ export const SIL = {top:1.612,yw:1.425,w:.133,wBack:.137,we:.05,weBack:.06,p:1.8
   /** The ellipsoid under the crown strands (fills the top of the head): radii as shares of the outline's. */
   cap:.95, capLocks:28, capLift:.006,
   /** How far down the cap reaches (rad from the top): .95 left the top of the back of the head bare from behind. */
-  capDown:1.15, capBack:1.08};
+  capDown:1.15, capBack:1.08, capTuck:.08};
 /** The outline at height y for hair ending at ye; k: 0 at the sides, 1 at the back. */
 const silhouetteTo=(y:number,ye:number,k=0)=>{
   const {top,yw,p,q}=SIL,W=SIL.w+(SIL.wBack-SIL.w)*k,we=SIL.we+(SIL.weBack-SIL.we)*k;
@@ -508,7 +508,10 @@ export function headwear(vrm:VRM,base:MToonMaterial):Headwear{
       const cg=new THREE.SphereGeometry(1,96,20,0,Math.PI*2,0,SIL.capDown),cuv=cg.attributes.uv as THREE.BufferAttribute;
       for(let i=0;i<cuv.count;i++)cuv.setXY(i,cuv.getX(i)*SIL.capLocks/LOCK.columns,(1-cuv.getY(i))*.85); // v runs 1 → 0 from the top down whatever the cap's extent
       // fuller behind, as the outline is (the back of the head; there the base hair stood over a round cap)
-      {const cp=cg.attributes.position as THREE.BufferAttribute;for(let i=0;i<cp.count;i++)if(cp.getZ(i)<0)cp.setZ(i,cp.getZ(i)*SIL.capBack);cg.computeVertexNormals();}
+      {const cp=cg.attributes.position as THREE.BufferAttribute;for(let i=0;i<cp.count;i++){if(cp.getZ(i)<0)cp.setZ(i,cp.getZ(i)*SIL.capBack);
+        // its lower edge turned in, under the strands (lying on them, it showed from behind as a level line across the head)
+        const th=Math.acos(Math.max(-1,Math.min(1,cp.getY(i)))),k=Math.min(1,Math.max(0,(th-(SIL.capDown-.3))/.3)),f=1-SIL.capTuck*k*k*(3-2*k);cp.setX(i,cp.getX(i)*f);cp.setZ(i,cp.getZ(i)*f);}
+        cg.computeVertexNormals();}
       const tex=lockTexture();tex.wrapS=THREE.RepeatWrapping;
       const capMat=(hairMat as MToonMaterial).clone();capMat.map=tex;capMat.shadeMultiplyTexture=tex;capMat.needsUpdate=true;
       const cap=new THREE.Mesh(cg,capMat);

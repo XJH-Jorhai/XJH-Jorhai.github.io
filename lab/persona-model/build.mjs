@@ -17,6 +17,15 @@ if (!(await stat(cached).catch(() => null))) {
 // The model ships as a script (base-vrm.js sets window.__baseVrm to its bytes in base64), so the
 // prototype can be hosted where only ordinary web file types are served.
 await writeFile(`${here}.cache/public/base-vrm.js`, `window.__baseVrm=${JSON.stringify((await readFile(cached)).toString('base64'))};\n`);
+// The face textures the user repainted (inputs/source/persona/model/face/, not in the repository): shipped the same
+// way, as data URLs in face-textures.js; without them (CI, a fresh clone) the base model's own are used.
+const faceDir = fileURLToPath(new URL('../../inputs/source/persona/model/face/', import.meta.url));
+const faces = {};
+for (const [key, file] of [['skin', 'face-skin.png'], ['iris', 'eye-iris.png'], ['lashes', 'eye-lashes.png']]) {
+  const png = await readFile(faceDir + file).catch(() => null);
+  if (png) faces[key] = `data:image/png;base64,${png.toString('base64')}`;
+}
+await writeFile(`${here}.cache/public/face-textures.js`, `window.__faceTextures=${JSON.stringify(Object.keys(faces).length ? faces : null)};\n`);
 await build({
   root: here, base: './', publicDir: `${here}.cache/public`, logLevel: 'warn',
   build: {outDir: `${here}dist`, emptyOutDir: true, rollupOptions: {input: `${here}template.html`}, chunkSizeWarningLimit: 2000},
